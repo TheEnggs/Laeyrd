@@ -3,8 +3,7 @@
 import { Button } from "@webview/components/ui/button";
 import { Badge } from "@webview/components/ui/badge";
 import { useSettings } from "../contexts/settings-context";
-import { Save, RotateCcw } from "lucide-react";
-import PreviewDialog from "./preview-dialog";
+import { Save, RotateCcw, MonitorPlay } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@webview/components/ui/alert-dialog";
 import { useVSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -38,6 +37,7 @@ export default function Header() {
     state,
   } = useSettings() as any;
   const { postMessage } = useVSCodeMessenger();
+  const [livePreview, setLivePreview] = useState(false);
 
   const [mode, setMode] = useState<"overwrite" | "create">("overwrite");
   const [themeName, setThemeName] = useState<string>("");
@@ -66,6 +66,27 @@ export default function Header() {
       },
     });
   };
+
+  const toggleLivePreview = () => {
+    const next = !livePreview;
+    setLivePreview(next);
+    postMessage({
+      command: next ? "ENABLE_LIVE_PREVIEW" : "DISABLE_LIVE_PREVIEW",
+    });
+  };
+
+  // Auto-save while live preview is on
+  useEffect(() => {
+    if (!livePreview) return;
+    postMessage({
+      command: "LIVE_PREVIEW_APPLY",
+      payload: {
+        colors: colorsState,
+        tokenColors: tokenColorsState,
+        vscodeSettings: buildVSCodeSettingsFromState(state.settings),
+      },
+    });
+  }, [livePreview, colorsState, tokenColorsState, state.settings, postMessage]);
 
   function buildVSCodeSettingsFromState(s: any) {
     // Map our local UI state into VS Code settings keys
@@ -111,7 +132,7 @@ export default function Header() {
       out["window.titleBarStyle"] = layout.window.titleBarStyle;
       out["window.menuBarVisibility"] = layout.window.menuBarVisibility;
       out["window.zoomLevel"] = layout.window.zoomLevel;
-      out["window.nativeFullScreen"] = layout.window.nativeFullScreen;
+      //   out["window.nativeFullScreen"] = layout.window.nativeFullScreen;
       out["window.nativeTabs"] = layout.window.nativeTabs;
     }
     if (layout.zenMode) {
@@ -166,9 +187,17 @@ export default function Header() {
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
       <div className="relative flex items-center gap-3 px-6 py-4 bg-card/95 border border-border/40 rounded-2xl shadow- xl backdrop-blur-xl">
-        {/* Preview Button */}
-        <PreviewDialog />
-
+        {/* Live Preview Toggle */}
+        <Button
+          variant={livePreview ? "default" : "outline"}
+          size="sm"
+          onClick={toggleLivePreview}
+          className="h-10 px-4 text-sm font-medium transition-all duration-200 rounded-xl"
+          title={livePreview ? "Disable Live Preview" : "Enable Live Preview"}
+        >
+          <MonitorPlay className="w-4 h-4 mr-2" />
+          {livePreview ? "Live Preview On" : "Live Preview"}
+        </Button>
         {/* Divider */}
         <div className="w-px h-6 bg-border/40"></div>
 
@@ -229,8 +258,8 @@ export default function Header() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4 py-2">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-4 w-full">
+                <label className="flex items-center gap-2 text-sm w-1/3">
                   <input
                     type="radio"
                     name="save-mode"
@@ -240,35 +269,35 @@ export default function Header() {
                   />
                   Overwrite theme
                 </label>
+                {mode === "overwrite" && (
+                  <div className="flex items-center gap-2 w-2/3">
+                    <Select
+                      value={overwriteLabel}
+                      onValueChange={setOverwriteLabel}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select theme to overwrite" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortedThemes.map((t: any) => (
+                          <SelectItem key={t.label} value={t.label}>
+                            <div className="flex items-center gap-2">
+                              <span>{t.label}</span>
+                              {activeThemeLabel === t.label && (
+                                <Badge className="ml-2" variant="secondary">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-              {mode === "overwrite" && (
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={overwriteLabel}
-                    onValueChange={setOverwriteLabel}
-                  >
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue placeholder="Select theme to overwrite" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedThemes.map((t: any) => (
-                        <SelectItem key={t.label} value={t.label}>
-                          <div className="flex items-center gap-2">
-                            <span>{t.label}</span>
-                            {activeThemeLabel === t.label && (
-                              <Badge className="ml-2" variant="secondary">
-                                Current
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-4 w-full">
+                <label className="flex items-center gap-2 text-sm w-1/3">
                   <input
                     type="radio"
                     name="save-mode"
@@ -276,12 +305,13 @@ export default function Header() {
                     checked={mode === "create"}
                     onChange={() => setMode("create")}
                   />
-                  Create new theme as
+                  Create new
                 </label>
+
                 <input
                   type="text"
                   placeholder="Theme Name"
-                  className="flex-1 px-3 py-2 rounded-md bg-background/60 border border-border/40 text-sm"
+                  className=" px-3 w-2/3 py-2 rounded-md bg-background/60 border border-border/40 text-sm"
                   disabled={mode !== "create"}
                   value={themeName}
                   onChange={(e) => setThemeName(e.target.value)}

@@ -12,7 +12,7 @@
     "button.secondaryBackground": "#434c5e",
     "button.secondaryForeground": "#d8dee9",
     "button.secondaryHoverBackground": "#4c566a",
-    "editor.background": "#000000",
+    "editor.background": "#222325",
     "editor.findMatchBackground": "#88c0d066",
     "editor.findMatchHighlightBackground": "#88c0d033",
     "editor.findRangeHighlightBackground": "#88c0d033",

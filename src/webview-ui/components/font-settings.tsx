@@ -73,27 +73,27 @@ export default function FontSettings() {
   return (
     <div className="w-full">
       <Tabs defaultValue="editor" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-card/50 border border-border/40 p-1 rounded-xl">
+        <TabsList className="w-full mb-6 bg-card/50 border border-border/40 p-1 rounded-xl gap-1 md:grid md:grid-cols-3 md:[mask-image:none] md:[-webkit-mask-image:none]">
           <TabsTrigger
             value="editor"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Editor</span>
+            <span className="hidden sm:inline">Editor</span>
           </TabsTrigger>
           <TabsTrigger
             value="terminal"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <Terminal className="w-3.5 h-3.5" />
-            <span>Terminal</span>
+            <span className="hidden sm:inline">Terminal</span>
           </TabsTrigger>
           <TabsTrigger
             value="ui"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <Monitor className="w-3.5 h-3.5" />
-            <span>UI Elements</span>
+            <span className="hidden sm:inline">UI Elements</span>
           </TabsTrigger>
         </TabsList>
 

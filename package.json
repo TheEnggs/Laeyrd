@@ -11,8 +11,9 @@
     "dev:webview": "vite",
     "build:ts": "tsc -b",
     "build:webview": "vite build",
-    "build": "npm-run-all build:ts build:webview copy:themes",
+    "build": "npm-run-all build:ts build:webview copy:themes copy:snippets",
     "copy:themes": "cp -r src/themes dist/",
+    "copy:snippets": "mkdir -p dist/extension && cp -r src/extension/snippets dist/extension/",
     "prepublishOnly": "npm run build",
     "package": "vsce package"
   },
@@ -43,6 +44,11 @@
         "label": "red with black bg",
         "uiTheme": "vs-dark",
         "path": "./src/themes/red with black bg.json"
+      },
+      {
+        "label": "live-preview",
+        "uiTheme": "vs-dark",
+        "path": "./src/themes/live-preview.json"
       }
     ],
     "commands": [

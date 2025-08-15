@@ -41,6 +41,7 @@ const debug_logs_1 = require("./utils/debug-logs");
 const message_1 = require("./controller/message");
 const theme_1 = require("./controller/theme");
 const userSettings_1 = require("./controller/userSettings");
+const livePreview_1 = require("./controller/livePreview");
 async function activate(context) {
     (0, debug_logs_1.log)("activate", context.extensionPath);
     const settingsPath = context.globalStorageUri.fsPath;
@@ -82,6 +83,10 @@ async function activate(context) {
         panel.webview.onDidReceiveMessage((message) => {
             handler.handle(message);
         }, undefined, context.subscriptions);
+        // Ensure live preview cleans up if panel is disposed without saving
+        panel.onDidDispose(() => {
+            livePreview_1.LivePreviewController.getInstance(context).handleDispose();
+        });
     }));
 }
 const isDev = false;

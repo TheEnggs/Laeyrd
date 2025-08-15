@@ -45,17 +45,17 @@ export default function CustomizationTabs() {
         defaultValue="colors"
         className="flex flex-col items-center w-full justify-start"
       >
-        <TabsList className="grid max-w-2xl w-full  grid-cols-3 bg-card/50 border border-border/40 h-full rounded-2xl shadow-sm">
+        <TabsList className="w-full max-w-2xl bg-card/50 border border-border/40 h-full rounded-2xl shadow-sm gap-1 md:grid md:grid-cols-3 md:justify-center md:[mask-image:none]">
           {mainTabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200 text-muted-foreground hover:text-foreground text-sm font-medium rounded-xl p-2"
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200 text-muted-foreground hover:text-foreground text-sm font-medium rounded-xl px-3 py-2"
               >
                 <IconComponent className="w-4 h-4" />
-                <span>{tab.name}</span>
+                <span className="hidden sm:inline">{tab.name}</span>
               </TabsTrigger>
             );
           })}

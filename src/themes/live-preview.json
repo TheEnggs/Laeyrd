@@ -1,6 +1,5 @@
 {
-  "name": "Theme Your Code",
-  "type": "dark",
+  "name": "live-preview",
   "colors": {
     "activityBar.background": "#191c22",
     "activityBar.foreground": "#7b88a1",
@@ -26,7 +25,7 @@
     "dropdown.background": "#191c22",
     "dropdown.border": "#272c36",
     "dropdown.foreground": "#d8dee9",
-    "editor.background": "#0d4cc9",
+    "editor.background": "#1e2127",
     "editor.findMatchBackground": "#88c0d066",
     "editor.findMatchHighlightBackground": "#88c0d033",
     "editor.findRangeHighlightBackground": "#88c0d033",

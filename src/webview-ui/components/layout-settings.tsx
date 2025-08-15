@@ -42,34 +42,34 @@ export default function LayoutSettings() {
   return (
     <div className="w-full">
       <Tabs defaultValue="window" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-card/50 border border-border/40 p-1 rounded-xl">
+        <TabsList className="w-full mb-6 bg-card/50 border border-border/40 p-1 rounded-xl gap-1 md:grid md:grid-cols-4 md:[mask-image:none] md:[-webkit-mask-image:none]">
           <TabsTrigger
             value="window"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <Monitor className="w-3.5 h-3.5" />
-            <span>Window</span>
+            <span className="hidden sm:inline">Window</span>
           </TabsTrigger>
           <TabsTrigger
             value="editor"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Editor</span>
+            <span className="hidden sm:inline">Editor</span>
           </TabsTrigger>
           <TabsTrigger
             value="explorer"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <FolderOpen className="w-3.5 h-3.5" />
-            <span>Explorer</span>
+            <span className="hidden sm:inline">Explorer</span>
           </TabsTrigger>
           <TabsTrigger
             value="search"
             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-200 text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg px-3 py-2"
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Search</span>
+            <span className="hidden sm:inline">Search</span>
           </TabsTrigger>
         </TabsList>
 
@@ -207,7 +207,7 @@ export default function LayoutSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  {/* <div className="flex items-center space-x-2">
                     <Switch
                       id="native-fullscreen"
                       checked={layout.window.nativeFullScreen}
@@ -221,7 +221,7 @@ export default function LayoutSettings() {
                     <Label htmlFor="native-fullscreen">
                       Native Full Screen
                     </Label>
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center space-x-2">
                     <Switch

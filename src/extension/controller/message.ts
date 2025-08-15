@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { UserSettingsController } from "./userSettings";
+import { LivePreviewController } from "./livePreview";
 
 export class MessageHandler {
   constructor(
@@ -10,6 +11,37 @@ export class MessageHandler {
 
   public async handle(message: any) {
     switch (message.command) {
+      case "ENABLE_LIVE_PREVIEW": {
+        const lp = LivePreviewController.getInstance(this.context);
+        await lp.enable();
+        break;
+      }
+      case "DISABLE_LIVE_PREVIEW": {
+        const lp = LivePreviewController.getInstance(this.context);
+        await lp.disable(false);
+        break;
+      }
+      case "LIVE_PREVIEW_APPLY": {
+        const tc = ThemeController.getInstance();
+        // Apply to live-preview theme in place
+        tc.overwriteThemeByLabel(
+          this.context,
+          "live-preview",
+          message.payload.colors || {},
+          message.payload.tokenColors || []
+        );
+        // Apply settings live (fonts/layout); do not include color customizations here
+        if (message.payload.vscodeSettings) {
+          const settings = new UserSettingsController(this.context);
+          settings.applySettings(message.payload.vscodeSettings);
+        }
+        break;
+      }
+      case "OPEN_DONATION": {
+        const url = vscode.Uri.parse("https://buymeacoffee.com/themeYourCode");
+        vscode.env.openExternal(url);
+        break;
+      }
       case "GET_THEME_COLORS":
         const colors = ThemeController.getInstance().getColors();
         this.panel.webview.postMessage({
@@ -35,14 +67,18 @@ export class MessageHandler {
         break;
       }
       case "SAVE_THEME":
-        this.handleSaveTheme(message.payload);
+        await this.handleSaveTheme(message.payload);
+        break;
+      case "RESTORE_ORIGINAL_SETTINGS":
+        const settings = new UserSettingsController(this.context);
+        settings.rollbackToOriginal();
         break;
       default:
         console.warn("Unknown message:", message);
     }
   }
 
-  private handleSaveTheme(payload: {
+  private async handleSaveTheme(payload: {
     mode: "create" | "overwrite";
     themeName?: string;
     overwriteLabel?: string; // when overwriting pick a label from our package.json list
@@ -86,6 +122,9 @@ export class MessageHandler {
     }
 
     this.panel.webview.postMessage({ command: "SAVE_SUCCESS" });
+    // If live preview is on, turn it off after save completes
+    const lp = LivePreviewController.getInstance(this.context);
+    await lp.handleSaveComplete();
   }
 
   public postMessage(message: any, payload: any) {

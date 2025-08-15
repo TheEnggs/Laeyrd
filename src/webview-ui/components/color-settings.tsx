@@ -15,18 +15,28 @@ import {
 import ColorPicker from "./ui/color-picker";
 import { useSettings } from "../contexts/settings-context";
 import { themeColors } from "../data/theme-colors";
-import { Palette } from "lucide-react";
+import {
+  Palette,
+  FileText,
+  Layout,
+  Monitor,
+  Braces,
+  Type,
+  Zap,
+  MousePointer,
+  Terminal,
+} from "lucide-react";
 
 const iconMap = {
   base: Palette,
-  editor: Palette,
-  workbench: Palette,
-  window: Palette,
-  tokens: Palette,
-  text: Palette,
-  actions: Palette,
-  buttons: Palette,
-  terminal: Palette,
+  editor: FileText,
+  workbench: Layout,
+  window: Monitor,
+  tokens: Braces,
+  text: Type,
+  actions: Zap,
+  buttons: MousePointer,
+  terminal: Terminal,
 } as const;
 
 export default function ColorSettings() {
@@ -35,7 +45,7 @@ export default function ColorSettings() {
   return (
     <div className="w-full">
       <Tabs defaultValue={themeColors[0]?.id ?? "base"} className="w-full">
-        <TabsList className="grid w-full h-full grid-cols-4 md:grid-cols-9 mb-6 bg-card/50 border border-border/40 rounded-2xl shadow-sm">
+        <TabsList className="w-full h-full mb-6 bg-card/50 border border-border/40 rounded-2xl shadow-sm gap-1 md:grid md:grid-cols-9 md:[mask-image:none] md:[-webkit-mask-image:none]">
           {themeColors.map((tab) => {
             const IconComponent =
               iconMap[tab.id as keyof typeof iconMap] || Palette;

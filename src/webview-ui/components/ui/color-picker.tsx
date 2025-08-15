@@ -15,7 +15,7 @@ import {
   TabsTrigger,
 } from "@webview/components/ui/tabs";
 import { Plus } from "lucide-react";
-import MonacoPreview from "../MonacoPreview";
+import { Badge } from "./badge";
 
 interface ColorPickerProps {
   value: string;
@@ -91,20 +91,14 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
             <span className="sr-only">Pick color</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[600px] h-[600px] p-4 bg-card/95 border border-border/40 rounded-2xl flex flex-col  gap-2 shadow-lg backdrop-blur-xl">
+        <PopoverContent className="p-4 bg-card/95 border border-border/40 rounded-2xl flex flex-col  gap-2 shadow-lg backdrop-blur-xl">
           <Tabs defaultValue="picker" className="w-full shrink-0">
-            <TabsList className="grid w-full grid-cols-3 bg-card/50 border border-border/40 rounded-xl p-1">
+            <TabsList className="w-full bg-card/50 border border-border/40 rounded-xl p-1 gap-1 md:grid md:grid-cols-2">
               <TabsTrigger
                 value="picker"
                 className="text-foreground data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground text-xs font-medium rounded-lg px-3 py-2"
               >
                 Picker
-              </TabsTrigger>
-              <TabsTrigger
-                value="zinc"
-                className="text-foreground data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground text-xs font-medium rounded-lg px-3 py-2"
-              >
-                Zinc
               </TabsTrigger>
               <TabsTrigger
                 value="custom"
@@ -132,22 +126,14 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="zinc" className="mt-4">
-              <div className="grid grid-cols-6 gap-2">
-                {zincColors.map((color) => (
-                  <button
-                    key={color}
-                    className="w-8 h-8 rounded-xl border-2 border-border/60 hover:border-primary/60 transition-colors hover:scale-110 shadow-sm"
-                    style={{ backgroundColor: color }}
-                    onClick={() => handleColorSelect(color)}
-                    title={color}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="custom" className="mt-4">
-              <div className="space-y-3">
+            <TabsContent value="custom" className="mt-4 w-full">
+              <div className="space-y-3 w-full flex flex-col items-center">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/20 text-xs text-center"
+                >
+                  custom color import coming soon
+                </Badge>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">
                     Catppuccin Palette
@@ -179,11 +165,6 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
               </div>
             </TabsContent>
           </Tabs>
-          {isOpen && (
-            <div className="grow-1 h-full w-full overflow-y-auto">
-              <MonacoPreview />
-            </div>
-          )}
         </PopoverContent>
       </Popover>
       <Input

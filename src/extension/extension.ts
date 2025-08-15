@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import SettingsVersionControl from "./settingsController";
-import { copyCurrentThemeToBase } from "./utils";
 import { log } from "./utils/debug-logs";
 import { MessageHandler } from "./controller/message";
 import { ThemeController } from "./controller/theme";
 import { UserSettingsController } from "./controller/userSettings";
+import { LivePreviewController } from "./controller/livePreview";
 
+let panelInstance: vscode.WebviewPanel | undefined = undefined;
 export async function activate(context: vscode.ExtensionContext) {
   log("activate", context.extensionPath);
   const settingsPath = context.globalStorageUri.fsPath;
@@ -26,8 +26,12 @@ export async function activate(context: vscode.ExtensionContext) {
   //   }
   context.subscriptions.push(
     vscode.commands.registerCommand("themeYourCode.open", () => {
+      if (panelInstance) {
+        panelInstance.reveal(vscode.ViewColumn.One);
+        return;
+      }
       // Create and show panel
-      const panel = vscode.window.createWebviewPanel(
+      panelInstance = vscode.window.createWebviewPanel(
         "themeYourCode",
         "Theme Your Code",
         vscode.ViewColumn.One,
@@ -44,9 +48,12 @@ export async function activate(context: vscode.ExtensionContext) {
       const themeController = ThemeController.getInstance();
       // Ensure user settings backup exists on first open
       new UserSettingsController(context).ensureOriginalBackup();
-      const handler = new MessageHandler(context, panel);
+      const handler = new MessageHandler(context, panelInstance);
       // And set its HTML content
-      panel.webview.html = getWebviewHtml(panel.webview, context.extensionPath);
+      panelInstance.webview.html = getWebviewHtml(
+        panelInstance.webview,
+        context.extensionPath
+      );
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration("workbench.colorTheme")) {
           themeController.refreshTheme();
@@ -56,13 +63,18 @@ export async function activate(context: vscode.ExtensionContext) {
           //do something
         }
       });
-      panel.webview.onDidReceiveMessage(
+      panelInstance.webview.onDidReceiveMessage(
         (message) => {
           handler.handle(message);
         },
         undefined,
         context.subscriptions
       );
+
+      // Ensure live preview cleans up if panel is disposed without saving
+      panelInstance.onDidDispose(() => {
+        LivePreviewController.getInstance(context).handleDispose();
+      });
     })
   );
 }
