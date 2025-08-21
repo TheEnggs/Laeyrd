@@ -1,8 +1,8 @@
 import { Coffee } from "lucide-react";
-import { useVSCodeMessenger } from "../hooks/use-vscode-messenger";
+import { VSCodeMessenger } from "../hooks/use-vscode-messenger";
 
 export default function HeroSection() {
-  const { postMessage } = useVSCodeMessenger();
+  const { postMessage } = VSCodeMessenger();
   const openDonation = () => postMessage({ command: "OPEN_DONATION" });
   return (
     <section className="text-center py-8 relative">

@@ -40,13 +40,15 @@ const iconMap = {
 } as const;
 
 export default function ColorSettings() {
-  const { colorsState, colorsDispatch, markChanged } = useSettings() as any;
+  const { colorsState, isLoading, draftState, draftDispatch } = useSettings();
 
+  if (isLoading) return <p>Loading ...</p>;
+  if (!colorsState) return <p>No colors found</p>;
   return (
     <div className="w-full">
-      <Tabs defaultValue={themeColors[0]?.id ?? "base"} className="w-full">
+      <Tabs defaultValue={colorsState[0]?.id ?? "base"} className="w-full">
         <TabsList className="w-full h-full mb-6 bg-card/50 border border-border/40 rounded-2xl shadow-sm gap-1 md:grid md:grid-cols-9 md:[mask-image:none] md:[-webkit-mask-image:none]">
-          {themeColors.map((tab) => {
+          {colorsState.map((tab) => {
             const IconComponent =
               iconMap[tab.id as keyof typeof iconMap] || Palette;
             return (
@@ -63,7 +65,7 @@ export default function ColorSettings() {
         </TabsList>
 
         <div className="space-y-6">
-          {themeColors.map((tab) => {
+          {colorsState.map((tab) => {
             const IconComponent =
               iconMap[tab.id as keyof typeof iconMap] || Palette;
             return (
@@ -90,8 +92,6 @@ export default function ColorSettings() {
                         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                           {category.colors.map((color) => {
                             const id = color.id; // e.g., 'editor.background'
-                            const current =
-                              colorsState[id] ?? color.defaultValue;
                             return (
                               <div key={id} className="space-y-3">
                                 <div className="flex items-center justify-between">
@@ -110,13 +110,13 @@ export default function ColorSettings() {
                                   </div>
                                 </div>
                                 <ColorPicker
-                                  value={current}
+                                  value={color.defaultValue}
                                   onChange={(newValue) => {
-                                    colorsDispatch({
-                                      type: "SET_COLORS",
-                                      colors: { [id]: String(newValue) },
+                                    draftDispatch({
+                                      type: "SET_COLOR",
+                                      key: id,
+                                      value: String(newValue),
                                     });
-                                    markChanged();
                                   }}
                                 />
                               </div>

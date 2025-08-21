@@ -41,7 +41,7 @@ const debug_logs_1 = require("./utils/debug-logs");
 const message_1 = require("./controller/message");
 const theme_1 = require("./controller/theme");
 const userSettings_1 = require("./controller/userSettings");
-const livePreview_1 = require("./controller/livePreview");
+let panelInstance = undefined;
 async function activate(context) {
     (0, debug_logs_1.log)("activate", context.extensionPath);
     const settingsPath = context.globalStorageUri.fsPath;
@@ -57,8 +57,12 @@ async function activate(context) {
     //     context.globalState.update("tyc_initialized", true);
     //   }
     context.subscriptions.push(vscode.commands.registerCommand("themeYourCode.open", () => {
+        if (panelInstance) {
+            panelInstance.reveal(vscode.ViewColumn.One);
+            return;
+        }
         // Create and show panel
-        const panel = vscode.window.createWebviewPanel("themeYourCode", "Theme Your Code", vscode.ViewColumn.One, {
+        panelInstance = vscode.window.createWebviewPanel("themeYourCode", "Theme Your Code", vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true,
             localResourceRoots: [
@@ -68,24 +72,27 @@ async function activate(context) {
         const themeController = theme_1.ThemeController.getInstance();
         // Ensure user settings backup exists on first open
         new userSettings_1.UserSettingsController(context).ensureOriginalBackup();
-        const handler = new message_1.MessageHandler(context, panel);
+        const handler = new message_1.MessageHandler(context, panelInstance);
         // And set its HTML content
-        panel.webview.html = getWebviewHtml(panel.webview, context.extensionPath);
+        panelInstance.webview.html = getWebviewHtml(panelInstance.webview, context.extensionPath);
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration("workbench.colorTheme")) {
                 themeController.refreshTheme();
-                handler.postMessage("GET_THEME_COLORS", themeController.getColors());
+                const groupedColors = themeController.getColors();
+                handler.postMessage("UPDATE_THEME_COLORS", groupedColors);
             }
             if (event.affectsConfiguration("workbench.colorCustomizations")) {
                 //do something
             }
         });
-        panel.webview.onDidReceiveMessage((message) => {
+        panelInstance.webview.onDidReceiveMessage((message) => {
+            console.log("message", message);
             handler.handle(message);
         }, undefined, context.subscriptions);
         // Ensure live preview cleans up if panel is disposed without saving
-        panel.onDidDispose(() => {
-            livePreview_1.LivePreviewController.getInstance(context).handleDispose();
+        panelInstance.onDidDispose(() => {
+            // LivePreviewController.getInstance(context).handleDispose();
+            panelInstance = undefined;
         });
     }));
 }

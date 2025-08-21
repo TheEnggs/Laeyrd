@@ -12,7 +12,18 @@ export interface ColorCategory {
 }
 
 export interface ColorTab {
-  id: string;
+  id:
+    | "base"
+    | "editor"
+    | "workbench"
+    | "text"
+    | "actions"
+    | "buttons"
+    | "terminal"
+    | "ui"
+    | "uiLayout"
+    | "window"
+    | "tokens";
   name: string;
   icon: string;
   categories: ColorCategory[];

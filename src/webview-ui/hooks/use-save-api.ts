@@ -1,13 +1,12 @@
 import React from "react";
-import { useVSCodeMessenger } from "./use-vscode-messenger";
+import { VSCodeMessenger } from "./use-vscode-messenger";
 
 export function useSaveApi() {
-  const { postMessage } = useVSCodeMessenger((msg) => {
-    if (msg.command === "SAVE_SUCCESS") {
-      alert("Theme saved successfully!");
-    }
-  });
-
+  //   const { postMessage } = VSCodeMessenger((msg) => {
+  //     if (msg.command === "SAVE_SUCCESS") {
+  //       alert("Theme saved successfully!");
+  //     }
+  //   });
   //   const handleSave = () => {
   //     postMessage({
   //       command: "SAVE_THEME",
@@ -19,6 +18,5 @@ export function useSaveApi() {
   //       },
   //     });
   //   };
-
   //   return { handleSave };
 }

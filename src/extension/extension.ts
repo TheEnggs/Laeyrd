@@ -6,6 +6,7 @@ import { MessageHandler } from "./controller/message";
 import { ThemeController } from "./controller/theme";
 import { UserSettingsController } from "./controller/userSettings";
 import { LivePreviewController } from "./controller/livePreview";
+import { transformColorsToColorTabs } from "./utils/color-category-map";
 
 let panelInstance: vscode.WebviewPanel | undefined = undefined;
 export async function activate(context: vscode.ExtensionContext) {
@@ -57,7 +58,8 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration("workbench.colorTheme")) {
           themeController.refreshTheme();
-          handler.postMessage("GET_THEME_COLORS", themeController.getColors());
+          const groupedColors = themeController.getColors();
+          handler.postMessage("UPDATE_THEME_COLORS", groupedColors);
         }
         if (event.affectsConfiguration("workbench.colorCustomizations")) {
           //do something
@@ -65,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
       });
       panelInstance.webview.onDidReceiveMessage(
         (message) => {
+          console.log("message", message);
           handler.handle(message);
         },
         undefined,
@@ -73,7 +76,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Ensure live preview cleans up if panel is disposed without saving
       panelInstance.onDidDispose(() => {
-        LivePreviewController.getInstance(context).handleDispose();
+        // LivePreviewController.getInstance(context).handleDispose();
+        panelInstance = undefined;
       });
     })
   );

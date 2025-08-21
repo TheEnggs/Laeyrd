@@ -40,6 +40,7 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const debug_logs_1 = require("../utils/debug-logs");
+const color_category_map_1 = require("../utils/color-category-map");
 function groupColors(colors) {
     return Object.entries(colors).reduce((acc, [key, value]) => {
         const [category, subKey] = key.split(".");
@@ -89,38 +90,43 @@ class ThemeController {
      * Load the currently active theme JSON into memory.
      */
     loadCurrentTheme() {
-        const activeThemeName = vscode.workspace
-            .getConfiguration("workbench")
-            .get("colorTheme");
-        if (!activeThemeName) {
-            console.warn("No active theme detected");
-            return;
+        try {
+            const activeThemeName = vscode.workspace
+                .getConfiguration("workbench")
+                .get("colorTheme");
+            if (!activeThemeName) {
+                console.warn("No active theme detected");
+                return;
+            }
+            (0, debug_logs_1.log)("activeThemeName", activeThemeName);
+            const themeExt = vscode.extensions.all.find((ext) => {
+                const themes = ext.packageJSON?.contributes?.themes || [];
+                return themes.some((t) => t.label === activeThemeName || t.id === activeThemeName);
+            });
+            (0, debug_logs_1.log)("themeExt", themeExt);
+            if (!themeExt) {
+                console.warn("Theme extension not found for:", activeThemeName);
+                return;
+            }
+            const themeInfo = themeExt.packageJSON.contributes.themes.find((t) => t.label === activeThemeName || t.id === activeThemeName);
+            if (!themeInfo) {
+                console.warn("Theme info not found inside extension:", themeExt.id);
+                return;
+            }
+            console.log("themeInfo", themeInfo);
+            const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
+            if (!fs.existsSync(themeJsonPath)) {
+                console.error("Theme JSON file not found:", themeJsonPath);
+                return;
+            }
+            this.currentThemePath = themeJsonPath;
+            const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+            this.currentTheme = parsedTheme;
+            (0, debug_logs_1.log)("parsedTheme", parsedTheme);
         }
-        (0, debug_logs_1.log)("activeThemeName", activeThemeName);
-        const themeExt = vscode.extensions.all.find((ext) => {
-            const themes = ext.packageJSON?.contributes?.themes || [];
-            return themes.some((t) => t.label === activeThemeName || t.id === activeThemeName);
-        });
-        (0, debug_logs_1.log)("themeExt", themeExt);
-        if (!themeExt) {
-            console.warn("Theme extension not found for:", activeThemeName);
-            return;
+        catch (error) {
+            console.error("Error loading current theme", error);
         }
-        const themeInfo = themeExt.packageJSON.contributes.themes.find((t) => t.label === activeThemeName || t.id === activeThemeName);
-        if (!themeInfo) {
-            console.warn("Theme info not found inside extension:", themeExt.id);
-            return;
-        }
-        console.log("themeInfo", themeInfo);
-        const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
-        if (!fs.existsSync(themeJsonPath)) {
-            console.error("Theme JSON file not found:", themeJsonPath);
-            return;
-        }
-        this.currentThemePath = themeJsonPath;
-        const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
-        this.currentTheme = parsedTheme;
-        (0, debug_logs_1.log)("parsedTheme", parsedTheme);
     }
     /**
      * Force reload theme from disk
@@ -131,7 +137,7 @@ class ThemeController {
     }
     getColors() {
         const colors = this.currentTheme?.colors;
-        return colors ? groupColors(colors) : undefined;
+        return colors ? (0, color_category_map_1.transformColorsToColorTabs)(groupColors(colors)) : undefined;
     }
     getTokenColors() {
         const tokenColors = this.currentTheme?.tokenColors;

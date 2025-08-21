@@ -24,33 +24,6 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "themes": [
-      {
-        "label": "Theme Your Code",
-        "uiTheme": "vs-dark",
-        "path": "./src/themes/tyc.json"
-      },
-      {
-        "label": "Theme Your Code Dark",
-        "uiTheme": "vs-dark",
-        "path": "./src/themes/test.json"
-      },
-      {
-        "label": "theme2",
-        "uiTheme": "vs-dark",
-        "path": "./src/themes/theme2.json"
-      },
-      {
-        "label": "red with black bg",
-        "uiTheme": "vs-dark",
-        "path": "./src/themes/red with black bg.json"
-      },
-      {
-        "label": "live-preview",
-        "uiTheme": "vs-dark",
-        "path": "./src/themes/live-preview.json"
-      }
-    ],
     "commands": [
       {
         "command": "themeYourCode.open",

@@ -1,0 +1,80 @@
+import { WebViewEvent } from "../../types/event";
+import { queryClient } from "../controller/query-client";
+import { useEffect, useState } from "react";
+
+export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
+  command: T;
+  payload: WebViewEvent[T]["payload"];
+  staleTime?: number;
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState<WebViewEvent[T]["response"] | null>(null);
+  const [error, setError] = useState<any>(null);
+
+  useEffect(() => {
+    let canceled = false;
+    setIsLoading(true);
+    setError(null);
+
+    // Create a stable cache key that includes command and serialized payload
+    const cacheKey = queryParameter.command;
+
+    queryClient
+      .query(cacheKey, {
+        command: queryParameter.command,
+        payload: queryParameter.payload,
+        staleTime: queryParameter.staleTime || Infinity,
+      })
+      .then((data) => {
+        if (!canceled) {
+          setData(data);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!canceled) {
+          setError(err);
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [
+    queryParameter.command,
+    JSON.stringify(queryParameter.payload), // Serialize payload to avoid reference changes
+    queryParameter.staleTime,
+  ]);
+
+  return { data, isLoading, error };
+};
+
+export const useMutation = <T extends keyof WebViewEvent>(command: T) => {
+  const [isLoading, setIsPending] = useState(false);
+  const [error, setError] = useState<any>(null);
+
+  const mutate = (payload: WebViewEvent[T]["payload"]) => {
+    setIsPending(true);
+    queryClient
+      .mutate(command, payload)
+      .then((data) => {
+        setIsPending(false);
+        return data;
+      })
+      .catch((error) => {
+        setError(error);
+        setIsPending(false);
+      });
+  };
+
+  return { isLoading, error, mutate };
+};
+
+export const useSetData = <T extends keyof WebViewEvent>(
+  command: T,
+  payload: WebViewEvent[T]["payload"]
+) => {
+  queryClient.setData(command, payload);
+  return { success: true };
+};

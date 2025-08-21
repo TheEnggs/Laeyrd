@@ -44,6 +44,11 @@ class MessageHandler {
         this.panel = panel;
     }
     async handle(message) {
+        // Validate message structure
+        if (!message || typeof message !== "object") {
+            console.error("Invalid message received:", message);
+            return;
+        }
         switch (message.command) {
             case "ENABLE_LIVE_PREVIEW": {
                 const lp = livePreview_1.LivePreviewController.getInstance(this.context);
@@ -72,27 +77,62 @@ class MessageHandler {
                 break;
             }
             case "GET_THEME_COLORS":
-                const colors = theme_1.ThemeController.getInstance().getColors();
-                this.panel.webview.postMessage({
+                console.log("GETting_THEME_COLORS");
+                const groupedColors = theme_1.ThemeController.getInstance().getColors();
+                console.log("Grouped colors:", groupedColors);
+                console.log("Grouped colors type:", typeof groupedColors);
+                console.log("Grouped colors keys:", groupedColors ? Object.keys(groupedColors) : "null");
+                // Transform flat grouped colors to hierarchical ColorTab structure
+                const colorTabs = groupedColors || [];
+                console.log("Color tabs result:", colorTabs);
+                console.log("Color tabs length:", colorTabs?.length);
+                const responseData = {
                     command: "GET_THEME_COLORS",
-                    payload: colors,
-                });
+                    payload: colorTabs,
+                    status: "success",
+                    requestId: message.requestId,
+                };
+                // Validate response data
+                try {
+                    JSON.stringify(responseData);
+                    this.panel.webview.postMessage(responseData);
+                }
+                catch (error) {
+                    console.error("Invalid response data:", error);
+                    console.error("Response data:", responseData);
+                }
                 break;
             case "GET_THEME_TOKEN_COLORS":
                 const tokenColors = theme_1.ThemeController.getInstance().getTokenColors();
-                this.panel.webview.postMessage({
+                const tokenResponseData = {
                     command: "GET_THEME_TOKEN_COLORS",
                     payload: tokenColors,
-                });
+                };
+                try {
+                    JSON.stringify(tokenResponseData);
+                    this.panel.webview.postMessage(tokenResponseData);
+                }
+                catch (error) {
+                    console.error("Invalid token response data:", error);
+                    console.error("Token response data:", tokenResponseData);
+                }
                 break;
             case "GET_THEMES_LIST": {
                 const tc = theme_1.ThemeController.getInstance();
                 const list = tc.listOwnThemes(this.context);
                 const active = tc.getActiveThemeLabel();
-                this.panel.webview.postMessage({
+                const themesResponseData = {
                     command: "GET_THEMES_LIST",
                     payload: { themes: list, active },
-                });
+                };
+                try {
+                    JSON.stringify(themesResponseData);
+                    this.panel.webview.postMessage(themesResponseData);
+                }
+                catch (error) {
+                    console.error("Invalid themes response data:", error);
+                    console.error("Themes response data:", themesResponseData);
+                }
                 break;
             }
             case "SAVE_THEME":
@@ -128,13 +168,32 @@ class MessageHandler {
             settings.ensureOriginalBackup();
             settings.applySettings(payload.vscodeSettings);
         }
-        this.panel.webview.postMessage({ command: "SAVE_SUCCESS" });
+        const saveResponseData = { command: "SAVE_SUCCESS" };
+        try {
+            JSON.stringify(saveResponseData);
+            this.panel.webview.postMessage(saveResponseData);
+        }
+        catch (error) {
+            console.error("Invalid save response data:", error);
+            console.error("Save response data:", saveResponseData);
+        }
         // If live preview is on, turn it off after save completes
         const lp = livePreview_1.LivePreviewController.getInstance(this.context);
         await lp.handleSaveComplete();
     }
     postMessage(message, payload) {
-        this.panel.webview.postMessage({ command: message, payload });
+        // Validate data before sending
+        const messageData = { command: message, payload };
+        // Check for circular references or undefined values
+        try {
+            JSON.stringify(messageData);
+        }
+        catch (error) {
+            console.error("Invalid message data:", error);
+            console.error("Message data:", messageData);
+            return;
+        }
+        this.panel.webview.postMessage(messageData);
     }
 }
 exports.MessageHandler = MessageHandler;

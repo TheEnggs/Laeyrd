@@ -3,18 +3,21 @@ import * as path from "path";
 import * as fs from "fs";
 import {
   Color,
+  ColorGroups,
+  ColorTab,
   GroupedColors,
   GroupedTokenColors,
   Theme,
   TokenColor,
 } from "../../types/theme";
 import { log } from "../utils/debug-logs";
+import { transformColorsToColorTabs } from "../utils/color-category-map";
 
 export function groupColors(colors: Color): GroupedColors {
   return Object.entries(colors).reduce((acc, [key, value]) => {
-    const [category, subKey] = key.split(".");
-    if (!acc[category]) acc[category] = {};
-    acc[category][subKey] = value;
+    const [category, subKey] = (key as `${ColorGroups}.${string}`).split(".");
+    if (!acc[category as ColorGroups]) acc[category as ColorGroups] = {};
+    acc[category as ColorGroups][subKey as string] = value;
     return acc;
   }, {} as GroupedColors);
 }
@@ -70,46 +73,50 @@ export class ThemeController {
    * Load the currently active theme JSON into memory.
    */
   private loadCurrentTheme(): void {
-    const activeThemeName = vscode.workspace
-      .getConfiguration("workbench")
-      .get<string>("colorTheme");
-    if (!activeThemeName) {
-      console.warn("No active theme detected");
-      return;
-    }
-    log("activeThemeName", activeThemeName);
-    const themeExt = vscode.extensions.all.find((ext) => {
-      const themes = ext.packageJSON?.contributes?.themes || [];
-      return themes.some(
+    try {
+      const activeThemeName = vscode.workspace
+        .getConfiguration("workbench")
+        .get<string>("colorTheme");
+      if (!activeThemeName) {
+        console.warn("No active theme detected");
+        return;
+      }
+      log("activeThemeName", activeThemeName);
+      const themeExt = vscode.extensions.all.find((ext) => {
+        const themes = ext.packageJSON?.contributes?.themes || [];
+        return themes.some(
+          (t: any) => t.label === activeThemeName || t.id === activeThemeName
+        );
+      });
+      log("themeExt", themeExt);
+      if (!themeExt) {
+        console.warn("Theme extension not found for:", activeThemeName);
+        return;
+      }
+
+      const themeInfo = themeExt.packageJSON.contributes.themes.find(
         (t: any) => t.label === activeThemeName || t.id === activeThemeName
       );
-    });
-    log("themeExt", themeExt);
-    if (!themeExt) {
-      console.warn("Theme extension not found for:", activeThemeName);
-      return;
+
+      if (!themeInfo) {
+        console.warn("Theme info not found inside extension:", themeExt.id);
+        return;
+      }
+      console.log("themeInfo", themeInfo);
+      const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
+
+      if (!fs.existsSync(themeJsonPath)) {
+        console.error("Theme JSON file not found:", themeJsonPath);
+        return;
+      }
+
+      this.currentThemePath = themeJsonPath;
+      const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+      this.currentTheme = parsedTheme;
+      log("parsedTheme", parsedTheme);
+    } catch (error) {
+      console.error("Error loading current theme", error);
     }
-
-    const themeInfo = themeExt.packageJSON.contributes.themes.find(
-      (t: any) => t.label === activeThemeName || t.id === activeThemeName
-    );
-
-    if (!themeInfo) {
-      console.warn("Theme info not found inside extension:", themeExt.id);
-      return;
-    }
-    console.log("themeInfo", themeInfo);
-    const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
-
-    if (!fs.existsSync(themeJsonPath)) {
-      console.error("Theme JSON file not found:", themeJsonPath);
-      return;
-    }
-
-    this.currentThemePath = themeJsonPath;
-    const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
-    this.currentTheme = parsedTheme;
-    log("parsedTheme", parsedTheme);
   }
 
   /**
@@ -120,9 +127,9 @@ export class ThemeController {
     this.loadCurrentTheme();
   }
 
-  public getColors(): GroupedColors | undefined {
+  public getColors(): ColorTab[] | undefined {
     const colors = this.currentTheme?.colors;
-    return colors ? groupColors(colors) : undefined;
+    return colors ? transformColorsToColorTabs(groupColors(colors)) : undefined;
   }
 
   public getTokenColors(): GroupedTokenColors | undefined {

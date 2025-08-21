@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@webview/components/ui/alert-dialog";
-import { useVSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
+import { VSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
 import { useMemo, useState, useEffect } from "react";
 import {
   Select,
@@ -36,7 +36,7 @@ export default function Header() {
     activeThemeLabel,
     state,
   } = useSettings() as any;
-  const { postMessage } = useVSCodeMessenger();
+  const { postMessage } = VSCodeMessenger();
   const [livePreview, setLivePreview] = useState(false);
 
   const [mode, setMode] = useState<"overwrite" | "create">("overwrite");

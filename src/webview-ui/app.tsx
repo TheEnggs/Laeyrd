@@ -17,6 +17,7 @@ export default function App() {
         <Header />
         <Toaster />
       </div>
+      //{" "}
     </SettingsProvider>
   );
 }

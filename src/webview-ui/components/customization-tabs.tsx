@@ -13,7 +13,7 @@ import {
 } from "@webview/components/ui/card";
 import ColorSettings from "./color-settings";
 import FontSettings from "./font-settings";
-import LayoutSettings from "./layout-settings";
+// import LayoutSettings from "./layout-settings";
 // import { themeColors } from "../data/theme-colors";
 import { Palette, Type, Layout } from "lucide-react";
 
@@ -126,9 +126,7 @@ export default function CustomizationTabs() {
                   Adjust layout, panels, and user interface behavior
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <LayoutSettings />
-              </CardContent>
+              <CardContent>{/* <LayoutSettings /> */}</CardContent>
             </Card>
           </TabsContent>
         </div>
