@@ -1,16 +1,78 @@
+// new colors
+export type Category =
+  | "Base"
+  | "Editor"
+  | "Workbench"
+  //   | "Tokens"
+  | "Terminal"
+  | "UI & Layout"
+  | "Extras";
+
+export interface ColorMeta {
+  category: Category;
+  subcategory: string;
+  displayName: string;
+  description: string; // ≤ 6 words
+  defaultValue?: string;
+}
+
+export type ColorMetaGrouped = Record<string, ColorMeta>;
+
+export type TokenCategory =
+  | "Comments"
+  | "Literals"
+  | "Numbers"
+  | "Keywords"
+  | "Variables"
+  | "Functions"
+  | "Types"
+  | "Operators"
+  | "Punctuation";
+
+export type TokenColorMeta = {
+  displayName: TokenCategory;
+  description: string; // ≤ 6 words
+  defaultColor?: string;
+  defaultFontStyle?: string;
+};
+
+export type TokenColorsList = Record<TokenCategory, TokenColorMeta>;
+
 export type Color = Record<string, string>;
 
-export type TokenColor = {
+export type TokenColorItem = {
+  scope: TokenCategory | TokenCategory[];
+  settings: {
+    foreground?: string;
+    fontStyle?: string;
+  };
+};
+
+export type SemanticTokenColor = {
+  foreground: string;
+};
+
+export type SemanticTokenColors = {
+  [key: string]: SemanticTokenColor;
+};
+
+export type TokenColorItemDetailed = {
+  name: string;
   scope: string | string[];
-  settings: Record<string, string>;
+  settings: {
+    foreground?: string;
+    fontStyle?: string;
+  };
 };
 
 export type Theme = {
   name: string;
   type: "light" | "dark";
   colors: Color;
-  tokenColors: TokenColor[];
+  tokenColors: TokenColorItem[];
+  semanticTokenColors?: SemanticTokenColors;
 };
+
 export type ColorGroups =
   | "base"
   | "editor"

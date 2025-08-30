@@ -66,7 +66,7 @@ class LivePreviewController {
     }
     async enable() {
         fs.mkdirSync(this.storageDir, { recursive: true });
-        const prevTheme = theme_1.ThemeController.getInstance().getActiveThemeLabel();
+        const prevTheme = theme_1.ThemeController.getInstance(this.context).getActiveThemeLabel();
         await this.setGlobalState("livePreview.prevTheme", prevTheme);
         await this.setGlobalState("livePreview.enabled", true);
         // Snapshot current user settings to restore if needed
@@ -77,7 +77,7 @@ class LivePreviewController {
         delete previewSettings["workbench.colorCustomizations"]; // keep colors in theme only
         this.writeJson(this.previewSettingsPath, previewSettings);
         // Copy current theme JSON to live-preview theme file (exact copy, only name changed)
-        const tc = theme_1.ThemeController.getInstance();
+        const tc = theme_1.ThemeController.getInstance(this.context);
         const currentThemePath = tc.getThemePath();
         if (currentThemePath && fs.existsSync(currentThemePath)) {
             try {

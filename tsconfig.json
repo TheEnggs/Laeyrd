@@ -17,7 +17,8 @@
       "@components/*": ["components/*"],
       "@utils/*": ["utils/*"],
       "@webview/*": ["webview-ui/*"],
-      "@types/*": ["types/*"]
+      "@types/*": ["types/*"],
+      "@lib/*": ["lib/*"]
     }
   },
 

@@ -38,18 +38,145 @@ const vscode = __importStar(require("vscode"));
 const theme_1 = require("./theme");
 const userSettings_1 = require("./userSettings");
 const livePreview_1 = require("./livePreview");
+const settings_1 = require("./settings");
+const userPreferences_1 = require("./userPreferences");
+const auth_1 = require("./auth");
 class MessageHandler {
     constructor(context, panel) {
         this.context = context;
         this.panel = panel;
     }
-    async handle(message) {
+    async handle(command, message) {
         // Validate message structure
         if (!message || typeof message !== "object") {
             console.error("Invalid message received:", message);
             return;
         }
-        switch (message.command) {
+        switch (command) {
+            case "GET_THEME_COLORS":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => theme_1.ThemeController.getInstance(this.context).getColors(),
+                });
+                break;
+            case "GET_THEME_TOKEN_COLORS":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => theme_1.ThemeController.getInstance(this.context).getTokenColors(),
+                });
+                break;
+            case "GET_SEMANTIC_TOKEN_COLORS":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => theme_1.ThemeController.getInstance(this.context).getSemanticTokenColors(),
+                });
+                break;
+            case "GET_THEMES_LIST": {
+                const tc = theme_1.ThemeController.getInstance(this.context);
+                const list = tc.listOwnThemes(this.context);
+                const active = tc.getActiveThemeLabel();
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => ({
+                        themes: list,
+                        active,
+                    }),
+                });
+                break;
+            }
+            case "SAVE_THEME":
+                await this.handleSaveTheme(message.payload);
+                break;
+            case "SAVE_SETTINGS":
+                await this.handleSaveTheme(message.payload);
+                break;
+            case "RESTORE_ORIGINAL_SETTINGS":
+                const settings = new userSettings_1.UserSettingsController(this.context);
+                settings.rollbackToOriginal();
+                break;
+            case "GET_USER_PREFERENCES":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => userPreferences_1.UserPreferencesController.getInstance(this.context).getUserPreferences(),
+                });
+                break;
+            case "UPDATE_USER_PREFERENCES":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => userPreferences_1.UserPreferencesController.getInstance(this.context).updateUserPreferences(message.payload),
+                });
+                break;
+            case "SYNC_USER_PREFERENCES":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: async () => {
+                        const controller = userPreferences_1.UserPreferencesController.getInstance(this.context);
+                        // First update preferences, then sync
+                        await controller.updateUserPreferences(message.payload);
+                        // Return sync result (placeholder for now)
+                        return {
+                            success: true,
+                            message: "Preferences synced successfully",
+                        };
+                    },
+                });
+                break;
+            case "GET_SERVER_CONFIG":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).getServerConfig(),
+                });
+                break;
+            case "CLERK_SIGN_IN":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).signIn(message.payload?.returnUrl),
+                });
+                break;
+            case "CLERK_SIGN_OUT":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).signOut(),
+                });
+                break;
+            case "GET_AUTH_USER":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).getCurrentUser(),
+                });
+                break;
+            case "UPDATE_AUTH_USER":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).updateUser(message.payload),
+                });
+                break;
+            case "GET_AUTH_SESSION":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).getCurrentSession(),
+                });
+                break;
+            case "OPEN_EXTERNAL_URL":
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => auth_1.AuthController.getInstance(this.context).openExternalUrl(message.payload.url),
+                });
+                break;
             case "ENABLE_LIVE_PREVIEW": {
                 const lp = livePreview_1.LivePreviewController.getInstance(this.context);
                 await lp.enable();
@@ -61,7 +188,7 @@ class MessageHandler {
                 break;
             }
             case "LIVE_PREVIEW_APPLY": {
-                const tc = theme_1.ThemeController.getInstance();
+                const tc = theme_1.ThemeController.getInstance(this.context);
                 // Apply to live-preview theme in place
                 tc.overwriteThemeByLabel(this.context, "live-preview", message.payload.colors || {}, message.payload.tokenColors || []);
                 // Apply settings live (fonts/layout); do not include color customizations here
@@ -76,78 +203,31 @@ class MessageHandler {
                 vscode.env.openExternal(url);
                 break;
             }
-            case "GET_THEME_COLORS":
-                console.log("GETting_THEME_COLORS");
-                const groupedColors = theme_1.ThemeController.getInstance().getColors();
-                console.log("Grouped colors:", groupedColors);
-                console.log("Grouped colors type:", typeof groupedColors);
-                console.log("Grouped colors keys:", groupedColors ? Object.keys(groupedColors) : "null");
-                // Transform flat grouped colors to hierarchical ColorTab structure
-                const colorTabs = groupedColors || [];
-                console.log("Color tabs result:", colorTabs);
-                console.log("Color tabs length:", colorTabs?.length);
-                const responseData = {
-                    command: "GET_THEME_COLORS",
-                    payload: colorTabs,
-                    status: "success",
+            case "GET_FONT_SETTINGS": {
+                const settings = settings_1.SettingsController.getInstance(this.context);
+                console.log("GET_FONT_SETTINGS", settings.getFontSettings());
+                this.responseHandler({
+                    command,
                     requestId: message.requestId,
-                };
-                // Validate response data
-                try {
-                    JSON.stringify(responseData);
-                    this.panel.webview.postMessage(responseData);
-                }
-                catch (error) {
-                    console.error("Invalid response data:", error);
-                    console.error("Response data:", responseData);
-                }
-                break;
-            case "GET_THEME_TOKEN_COLORS":
-                const tokenColors = theme_1.ThemeController.getInstance().getTokenColors();
-                const tokenResponseData = {
-                    command: "GET_THEME_TOKEN_COLORS",
-                    payload: tokenColors,
-                };
-                try {
-                    JSON.stringify(tokenResponseData);
-                    this.panel.webview.postMessage(tokenResponseData);
-                }
-                catch (error) {
-                    console.error("Invalid token response data:", error);
-                    console.error("Token response data:", tokenResponseData);
-                }
-                break;
-            case "GET_THEMES_LIST": {
-                const tc = theme_1.ThemeController.getInstance();
-                const list = tc.listOwnThemes(this.context);
-                const active = tc.getActiveThemeLabel();
-                const themesResponseData = {
-                    command: "GET_THEMES_LIST",
-                    payload: { themes: list, active },
-                };
-                try {
-                    JSON.stringify(themesResponseData);
-                    this.panel.webview.postMessage(themesResponseData);
-                }
-                catch (error) {
-                    console.error("Invalid themes response data:", error);
-                    console.error("Themes response data:", themesResponseData);
-                }
+                    executor: () => settings.getFontSettings(),
+                });
                 break;
             }
-            case "SAVE_THEME":
-                await this.handleSaveTheme(message.payload);
+            case "GET_LAYOUT_SETTINGS": {
+                const settings = settings_1.SettingsController.getInstance(this.context);
+                this.responseHandler({
+                    command,
+                    requestId: message.requestId,
+                    executor: () => settings.getLayoutSettings(),
+                });
                 break;
-            case "RESTORE_ORIGINAL_SETTINGS":
-                const settings = new userSettings_1.UserSettingsController(this.context);
-                settings.rollbackToOriginal();
-                break;
+            }
             default:
                 console.warn("Unknown message:", message);
         }
     }
     async handleSaveTheme(payload) {
-        const themeController = theme_1.ThemeController.getInstance();
+        const themeController = theme_1.ThemeController.getInstance(this.context);
         console.log("SAVE_THEME", payload);
         if (payload.mode === "overwrite") {
             if (payload.overwriteLabel) {
@@ -181,19 +261,62 @@ class MessageHandler {
         const lp = livePreview_1.LivePreviewController.getInstance(this.context);
         await lp.handleSaveComplete();
     }
-    postMessage(message, payload) {
-        // Validate data before sending
-        const messageData = { command: message, payload };
-        // Check for circular references or undefined values
+    async responseHandler({ command, mode = "response", requestId, executor, }) {
         try {
-            JSON.stringify(messageData);
+            const response = await executor();
+            this.POST_MESSAGE({
+                command,
+                requestId,
+                status: "success",
+                payload: response,
+            });
+        }
+        catch (err) {
+            this.POST_MESSAGE({
+                command,
+                requestId,
+                status: "error",
+                error: err.message ?? String(err),
+            });
+        }
+    }
+    POST_MESSAGE({ command, payload, requestId, status }) {
+        const messageData = { command, payload, requestId, status };
+        try {
+            this.panel.webview.postMessage(messageData);
         }
         catch (error) {
             console.error("Invalid message data:", error);
             console.error("Message data:", messageData);
             return;
         }
-        this.panel.webview.postMessage(messageData);
+    }
+    configurationChanged({ updateThemeColor, updateThemeList, }) {
+        const themeController = theme_1.ThemeController.getInstance(this.context);
+        themeController.refreshTheme();
+        if (updateThemeColor) {
+            this.responseHandler({
+                command: "UPDATE_THEME_COLORS",
+                requestId: "",
+                mode: "payload",
+                executor: async () => themeController.getColors(),
+            });
+        }
+        if (updateThemeList) {
+            this.responseHandler({
+                command: "UPDATE_THEME_LIST",
+                requestId: "",
+                mode: "payload",
+                executor: () => {
+                    const list = themeController.listOwnThemes(this.context);
+                    const active = themeController.getActiveThemeLabel() || "";
+                    return {
+                        themes: list,
+                        active,
+                    };
+                },
+            });
+        }
     }
 }
 exports.MessageHandler = MessageHandler;

@@ -17,10 +17,13 @@ class PromiseController {
 
   constructor() {
     window.addEventListener("message", (event) => {
-      const message = event.data as ResponseMessage<keyof WebViewEvent>;
-
       // 1️⃣ Handle request-response
-      if (message.requestId) {
+      const requestId = event.data.requestId;
+      if (requestId) {
+        const message = event.data as ResponseMessage<
+          keyof WebViewEvent,
+          "payload"
+        >;
         const existingPromise = this.pendingRequests.get(message.requestId);
         if (existingPromise) {
           if (message.status === "success")
@@ -31,14 +34,18 @@ class PromiseController {
           reportError(new Error("Request not found: " + message.requestId));
         }
         return;
-      }
-
-      // 2️⃣ Handle push events (no requestId)
-      if (message.command) {
-        const listeners = this.eventListeners.get(message.command);
-        console.log(listeners, message.command, message.payload);
-        if (listeners) {
-          listeners.forEach((cb) => cb(message.payload));
+      } else {
+        const message = event.data as ResponseMessage<
+          keyof WebViewEvent,
+          "payload"
+        >;
+        // 2️⃣ Handle push events (no requestId)
+        if (message.command) {
+          const listeners = this.eventListeners.get(message.command);
+          console.log(listeners, message.command, message.payload);
+          if (listeners) {
+            listeners.forEach((cb) => cb(message.payload));
+          }
         }
       }
     });
@@ -82,12 +89,15 @@ class PromiseController {
     command: T,
     cb: (payload: WebViewEvent[T]["payload"]) => void
   ) {
-    console.log("event", command);
+    console.log("push event", command);
     if (!this.eventListeners.has(command)) {
       this.eventListeners.set(command, new Set());
     }
     this.eventListeners.get(command)!.add(cb);
     return () => this.eventListeners.get(command)!.delete(cb); // unsubscribe
+  }
+  off<T extends keyof WebViewEvent>(command: T) {
+    this.eventListeners.delete(command);
   }
 }
 

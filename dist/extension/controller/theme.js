@@ -35,12 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeController = void 0;
 exports.groupColors = groupColors;
-exports.groupTokenColors = groupTokenColors;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const debug_logs_1 = require("../utils/debug-logs");
-const color_category_map_1 = require("../utils/color-category-map");
+const colors_1 = require("../utils/colors");
+const jsonc_parser_1 = require("jsonc-parser");
 function groupColors(colors) {
     return Object.entries(colors).reduce((acc, [key, value]) => {
         const [category, subKey] = key.split(".");
@@ -50,39 +50,14 @@ function groupColors(colors) {
         return acc;
     }, {});
 }
-function groupTokenColors(tokenColors) {
-    const grouped = {};
-    for (const token of tokenColors) {
-        const scopes = Array.isArray(token.scope) ? token.scope : [token.scope];
-        for (const scope of scopes) {
-            grouped[scope] = {
-                foreground: token.settings.foreground || "",
-                fontStyle: token.settings.fontStyle || "",
-            };
-        }
-    }
-    return grouped;
-}
-function flattenTokenColors(groupedTokenColors) {
-    const tokenColors = [];
-    for (const [scope, settings] of Object.entries(groupedTokenColors)) {
-        tokenColors.push({
-            scope,
-            settings: {
-                ...(settings.foreground ? { foreground: settings.foreground } : {}),
-                ...(settings.fontStyle ? { fontStyle: settings.fontStyle } : {}),
-            },
-        });
-    }
-    return tokenColors;
-}
 class ThemeController {
-    constructor() {
+    constructor(context) {
+        this.context = context;
         this.loadCurrentTheme();
     }
-    static getInstance() {
+    static getInstance(context) {
         if (!ThemeController.instance) {
-            ThemeController.instance = new ThemeController();
+            ThemeController.instance = new ThemeController(context);
         }
         return ThemeController.instance;
     }
@@ -120,9 +95,9 @@ class ThemeController {
                 return;
             }
             this.currentThemePath = themeJsonPath;
-            const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+            console.log("themeJsonPath", themeJsonPath);
+            const parsedTheme = (0, jsonc_parser_1.parse)(fs.readFileSync(themeJsonPath, "utf8"));
             this.currentTheme = parsedTheme;
-            (0, debug_logs_1.log)("parsedTheme", parsedTheme);
         }
         catch (error) {
             console.error("Error loading current theme", error);
@@ -137,11 +112,14 @@ class ThemeController {
     }
     getColors() {
         const colors = this.currentTheme?.colors;
-        return colors ? (0, color_category_map_1.transformColorsToColorTabs)(groupColors(colors)) : undefined;
+        return colors ? (0, colors_1.generateColors)(colors) : undefined;
     }
     getTokenColors() {
         const tokenColors = this.currentTheme?.tokenColors;
-        return tokenColors ? groupTokenColors(tokenColors) : undefined;
+        return tokenColors ? (0, colors_1.convertTokenColors)(tokenColors) : undefined;
+    }
+    getSemanticTokenColors() {
+        return this.currentTheme?.semanticTokenColors;
     }
     getName() {
         return this.currentTheme?.name;
@@ -178,9 +156,10 @@ class ThemeController {
      * Return currently active theme label as configured in VS Code
      */
     getActiveThemeLabel() {
-        return vscode.workspace
+        const activeThemeName = vscode.workspace
             .getConfiguration("workbench")
             .get("colorTheme");
+        return activeThemeName;
     }
     /**
      * Overwrite a theme JSON by its label from our extension package.json
@@ -201,7 +180,7 @@ class ThemeController {
             const themeJson = JSON.parse(fs.readFileSync(absoluteThemePath, "utf8"));
             const tokensArray = Array.isArray(tokenColors)
                 ? tokenColors
-                : flattenTokenColors(tokenColors);
+                : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
             const updatedTheme = {
                 ...themeJson,
                 colors: {
@@ -233,7 +212,7 @@ class ThemeController {
         }
         const tokensArray = Array.isArray(tokenColors)
             ? tokenColors
-            : flattenTokenColors(tokenColors);
+            : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
         const updatedTheme = {
             ...this.currentTheme,
             colors: {
@@ -263,7 +242,7 @@ class ThemeController {
             console.log("themePath", themePath);
             const tokensArray = Array.isArray(tokenColors)
                 ? tokenColors
-                : flattenTokenColors(tokenColors);
+                : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
             console.log("tokensArray", tokensArray);
             const themeJson = {
                 name: themeName,

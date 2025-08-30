@@ -6,31 +6,33 @@ import { MessageHandler } from "./controller/message";
 import { ThemeController } from "./controller/theme";
 import { UserSettingsController } from "./controller/userSettings";
 import { LivePreviewController } from "./controller/livePreview";
-import { transformColorsToColorTabs } from "./utils/color-category-map";
+import { UserPreferencesController } from "./controller/userPreferences";
+import { AuthController } from "./controller/auth";
 
 let panelInstance: vscode.WebviewPanel | undefined = undefined;
+
 export async function activate(context: vscode.ExtensionContext) {
-  log("activate", context.extensionPath);
   const settingsPath = context.globalStorageUri.fsPath;
-  //   const alreadyInitialized = context.globalState.get("tyc_initialized");
+  const themeController = ThemeController.getInstance(context);
+  const userSettingsController = new UserSettingsController(context);
+  const userPreferencesController =
+    UserPreferencesController.getInstance(context);
+  const authController = AuthController.getInstance(context);
 
-  //   const vcs = SettingsVersionControl.getInstance(settingsPath);
+  // Ensure original user settings backup exists
+  userSettingsController.ensureOriginalBackup();
 
-  //   if (!alreadyInitialized) {
-  //     log("Initializing Theme Your Code");
-  //     try {
-  //       await copyCurrentThemeToBase(context);
-  //     } catch (error) {
-  //       log("Error copying current theme to base", error);
-  //     }
-  //     context.globalState.update("tyc_initialized", true);
-  //   }
-  context.subscriptions.push(
-    vscode.commands.registerCommand("themeYourCode.open", () => {
+  /**
+   * Command: themeYourCode.open
+   */
+  const openCommand = vscode.commands.registerCommand(
+    "themeYourCode.open",
+    () => {
       if (panelInstance) {
         panelInstance.reveal(vscode.ViewColumn.One);
         return;
       }
+
       // Create and show panel
       panelInstance = vscode.window.createWebviewPanel(
         "themeYourCode",
@@ -46,41 +48,53 @@ export async function activate(context: vscode.ExtensionContext) {
           ],
         }
       );
-      const themeController = ThemeController.getInstance();
-      // Ensure user settings backup exists on first open
-      new UserSettingsController(context).ensureOriginalBackup();
+
       const handler = new MessageHandler(context, panelInstance);
-      // And set its HTML content
+
+      // Set initial HTML
       panelInstance.webview.html = getWebviewHtml(
         panelInstance.webview,
         context.extensionPath
       );
-      vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("workbench.colorTheme")) {
-          themeController.refreshTheme();
-          const groupedColors = themeController.getColors();
-          handler.postMessage("UPDATE_THEME_COLORS", groupedColors);
+
+      // Watch for configuration changes (global/workspace)
+      const configWatcher = vscode.workspace.onDidChangeConfiguration(
+        (event) => {
+          if (event.affectsConfiguration("workbench.colorTheme")) {
+            handler.configurationChanged({
+              updateThemeColor: true,
+              updateThemeList: true,
+            });
+          }
+
+          if (event.affectsConfiguration("workbench.colorCustomizations")) {
+          }
         }
-        if (event.affectsConfiguration("workbench.colorCustomizations")) {
-          //do something
-        }
-      });
-      panelInstance.webview.onDidReceiveMessage(
-        (message) => {
-          console.log("message", message);
-          handler.handle(message);
-        },
-        undefined,
-        context.subscriptions
       );
 
-      // Ensure live preview cleans up if panel is disposed without saving
-      panelInstance.onDidDispose(() => {
-        // LivePreviewController.getInstance(context).handleDispose();
+      // Listen for webview messages
+      const messageListener = panelInstance.webview.onDidReceiveMessage(
+        (message) => {
+          handler.handle(message.command, message);
+        }
+      );
+
+      // Handle panel disposal
+      const disposeListener = panelInstance.onDidDispose(() => {
         panelInstance = undefined;
       });
-    })
+
+      // Push disposables
+      context.subscriptions.push(
+        configWatcher,
+        messageListener,
+        disposeListener
+      );
+    }
   );
+
+  // Register command
+  context.subscriptions.push(openCommand);
 }
 
 const isDev = false;

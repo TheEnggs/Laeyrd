@@ -51,7 +51,9 @@ export class LivePreviewController {
   public async enable(): Promise<void> {
     fs.mkdirSync(this.storageDir, { recursive: true });
 
-    const prevTheme = ThemeController.getInstance().getActiveThemeLabel();
+    const prevTheme = ThemeController.getInstance(
+      this.context
+    ).getActiveThemeLabel();
     await this.setGlobalState("livePreview.prevTheme", prevTheme);
     await this.setGlobalState("livePreview.enabled", true);
 
@@ -65,7 +67,7 @@ export class LivePreviewController {
     this.writeJson(this.previewSettingsPath, previewSettings);
 
     // Copy current theme JSON to live-preview theme file (exact copy, only name changed)
-    const tc = ThemeController.getInstance();
+    const tc = ThemeController.getInstance(this.context);
     const currentThemePath = tc.getThemePath();
     if (currentThemePath && fs.existsSync(currentThemePath)) {
       try {

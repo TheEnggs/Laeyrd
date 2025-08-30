@@ -4,15 +4,22 @@ import * as fs from "fs";
 import {
   Color,
   ColorGroups,
-  ColorTab,
   GroupedColors,
   GroupedTokenColors,
   Theme,
-  TokenColor,
+  TokenColorItem,
+  TokenColorMeta,
+  TokenColorsList,
+  SemanticTokenColors,
 } from "../../types/theme";
 import { log } from "../utils/debug-logs";
-import { transformColorsToColorTabs } from "../utils/color-category-map";
-
+import {
+  convertTokenColors,
+  convertTokenColorsBackToTheme,
+  generateColors,
+} from "../utils/colors";
+import { ColorMetaGrouped } from "../../types/theme";
+import { parse } from "jsonc-parser";
 export function groupColors(colors: Color): GroupedColors {
   return Object.entries(colors).reduce((acc, [key, value]) => {
     const [category, subKey] = (key as `${ColorGroups}.${string}`).split(".");
@@ -22,49 +29,20 @@ export function groupColors(colors: Color): GroupedColors {
   }, {} as GroupedColors);
 }
 
-export function groupTokenColors(tokenColors: TokenColor[]) {
-  const grouped: GroupedTokenColors = {};
-
-  for (const token of tokenColors) {
-    const scopes = Array.isArray(token.scope) ? token.scope : [token.scope];
-    for (const scope of scopes) {
-      grouped[scope] = {
-        foreground: token.settings.foreground || "",
-        fontStyle: token.settings.fontStyle || "",
-      };
-    }
-  }
-
-  return grouped;
-}
-
-function flattenTokenColors(groupedTokenColors: GroupedTokenColors) {
-  const tokenColors: TokenColor[] = [];
-  for (const [scope, settings] of Object.entries(groupedTokenColors)) {
-    tokenColors.push({
-      scope,
-      settings: {
-        ...(settings.foreground ? { foreground: settings.foreground } : {}),
-        ...(settings.fontStyle ? { fontStyle: settings.fontStyle } : {}),
-      },
-    });
-  }
-
-  return tokenColors;
-}
-
 export class ThemeController {
   private static instance: ThemeController;
+  private context: vscode.ExtensionContext;
   private currentTheme: Theme | undefined;
   private currentThemePath: string | undefined;
 
-  private constructor() {
+  private constructor(context: vscode.ExtensionContext) {
+    this.context = context;
     this.loadCurrentTheme();
   }
 
-  public static getInstance(): ThemeController {
+  public static getInstance(context: vscode.ExtensionContext): ThemeController {
     if (!ThemeController.instance) {
-      ThemeController.instance = new ThemeController();
+      ThemeController.instance = new ThemeController(context);
     }
     return ThemeController.instance;
   }
@@ -109,11 +87,10 @@ export class ThemeController {
         console.error("Theme JSON file not found:", themeJsonPath);
         return;
       }
-
       this.currentThemePath = themeJsonPath;
-      const parsedTheme = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+      console.log("themeJsonPath", themeJsonPath);
+      const parsedTheme = parse(fs.readFileSync(themeJsonPath, "utf8"));
       this.currentTheme = parsedTheme;
-      log("parsedTheme", parsedTheme);
     } catch (error) {
       console.error("Error loading current theme", error);
     }
@@ -127,14 +104,18 @@ export class ThemeController {
     this.loadCurrentTheme();
   }
 
-  public getColors(): ColorTab[] | undefined {
+  public getColors(): ColorMetaGrouped | undefined {
     const colors = this.currentTheme?.colors;
-    return colors ? transformColorsToColorTabs(groupColors(colors)) : undefined;
+    return colors ? generateColors(colors) : undefined;
   }
 
-  public getTokenColors(): GroupedTokenColors | undefined {
+  public getTokenColors(): TokenColorsList | undefined {
     const tokenColors = this.currentTheme?.tokenColors;
-    return tokenColors ? groupTokenColors(tokenColors) : undefined;
+    return tokenColors ? convertTokenColors(tokenColors) : undefined;
+  }
+
+  public getSemanticTokenColors(): SemanticTokenColors | undefined {
+    return this.currentTheme?.semanticTokenColors;
   }
 
   public getName(): string | undefined {
@@ -178,10 +159,11 @@ export class ThemeController {
   /**
    * Return currently active theme label as configured in VS Code
    */
-  public getActiveThemeLabel(): string | undefined {
-    return vscode.workspace
+  public getActiveThemeLabel() {
+    const activeThemeName = vscode.workspace
       .getConfiguration("workbench")
       .get<string>("colorTheme");
+    return activeThemeName;
   }
 
   /**
@@ -191,7 +173,7 @@ export class ThemeController {
     context: vscode.ExtensionContext,
     themeLabel: string,
     colors: Record<string, string>,
-    tokenColors: TokenColor[] | GroupedTokenColors
+    tokenColors: TokenColorItem[] | GroupedTokenColors
   ): void {
     try {
       const themes = this.listOwnThemes(context);
@@ -217,7 +199,7 @@ export class ThemeController {
 
       const tokensArray = Array.isArray(tokenColors)
         ? tokenColors
-        : flattenTokenColors(tokenColors as GroupedTokenColors);
+        : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
 
       const updatedTheme: Theme = {
         ...themeJson,
@@ -251,7 +233,7 @@ export class ThemeController {
    */
   public overwriteTheme(
     colors: Record<string, string>,
-    tokenColors: TokenColor[] | GroupedTokenColors
+    tokenColors: TokenColorItem[] | GroupedTokenColors
   ): void {
     if (!this.currentThemePath || !this.currentTheme) {
       console.error("No theme loaded to overwrite");
@@ -260,7 +242,7 @@ export class ThemeController {
 
     const tokensArray = Array.isArray(tokenColors)
       ? tokenColors
-      : flattenTokenColors(tokenColors as GroupedTokenColors);
+      : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
 
     const updatedTheme = {
       ...this.currentTheme,
@@ -289,7 +271,7 @@ export class ThemeController {
     context: vscode.ExtensionContext,
     themeName: string,
     colors: Record<string, string>,
-    tokenColors: TokenColor[] | GroupedTokenColors,
+    tokenColors: TokenColorItem[] | TokenColorsList,
     type: "light" | "dark" = "dark"
   ): string {
     try {
@@ -303,7 +285,7 @@ export class ThemeController {
 
       const tokensArray = Array.isArray(tokenColors)
         ? tokenColors
-        : flattenTokenColors(tokenColors as GroupedTokenColors);
+        : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
       console.log("tokensArray", tokensArray);
       const themeJson: Theme = {
         name: themeName,

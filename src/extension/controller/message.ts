@@ -2,7 +2,20 @@ import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { UserSettingsController } from "./userSettings";
 import { LivePreviewController } from "./livePreview";
-import { transformColorsToColorTabs } from "../utils/color-category-map";
+import {
+  RequestMessage,
+  ResponseMessage,
+  WebViewEvent,
+} from "../../types/event";
+import { SettingsController } from "./settings";
+import { UserPreferencesController } from "./userPreferences";
+import { AuthController } from "./auth";
+
+type Message = {
+  command: string;
+  payload: WebViewEvent[keyof WebViewEvent]["payload"];
+  requestId: string;
+};
 
 export class MessageHandler {
   constructor(
@@ -10,14 +23,164 @@ export class MessageHandler {
     private panel: vscode.WebviewPanel
   ) {}
 
-  public async handle(message: any) {
+  public async handle<T extends keyof WebViewEvent>(
+    command: T,
+    message: RequestMessage<T>
+  ) {
     // Validate message structure
     if (!message || typeof message !== "object") {
       console.error("Invalid message received:", message);
       return;
     }
 
-    switch (message.command) {
+    switch (command) {
+      case "GET_THEME_COLORS":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () => ThemeController.getInstance(this.context).getColors(),
+        });
+        break;
+      case "GET_THEME_TOKEN_COLORS":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            ThemeController.getInstance(this.context).getTokenColors(),
+        });
+        break;
+      case "GET_SEMANTIC_TOKEN_COLORS":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            ThemeController.getInstance(this.context).getSemanticTokenColors(),
+        });
+        break;
+      case "GET_THEMES_LIST": {
+        const tc = ThemeController.getInstance(this.context);
+        const list = tc.listOwnThemes(this.context);
+        const active = tc.getActiveThemeLabel();
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () => ({
+            themes: list,
+            active,
+          }),
+        });
+        break;
+      }
+      case "SAVE_THEME":
+        await this.handleSaveTheme(message.payload);
+        break;
+      case "SAVE_SETTINGS":
+        await this.handleSaveTheme(message.payload);
+        break;
+      case "RESTORE_ORIGINAL_SETTINGS":
+        const settings = new UserSettingsController(this.context);
+        settings.rollbackToOriginal();
+        break;
+      case "GET_USER_PREFERENCES":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            UserPreferencesController.getInstance(
+              this.context
+            ).getUserPreferences(),
+        });
+        break;
+      case "UPDATE_USER_PREFERENCES":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            UserPreferencesController.getInstance(
+              this.context
+            ).updateUserPreferences(message.payload),
+        });
+        break;
+      case "SYNC_USER_PREFERENCES":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const controller = UserPreferencesController.getInstance(
+              this.context
+            );
+            // First update preferences, then sync
+            await controller.updateUserPreferences(message.payload);
+            // Return sync result (placeholder for now)
+            return {
+              success: true,
+              message: "Preferences synced successfully",
+            };
+          },
+        });
+        break;
+      case "GET_SERVER_CONFIG":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).getServerConfig(),
+        });
+        break;
+      case "CLERK_SIGN_IN":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).signIn(
+              message.payload?.returnUrl
+            ),
+        });
+        break;
+      case "CLERK_SIGN_OUT":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () => AuthController.getInstance(this.context).signOut(),
+        });
+        break;
+      case "GET_AUTH_USER":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).getCurrentUser(),
+        });
+        break;
+      case "UPDATE_AUTH_USER":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).updateUser(
+              message.payload
+            ),
+        });
+        break;
+      case "GET_AUTH_SESSION":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).getCurrentSession(),
+        });
+        break;
+      case "OPEN_EXTERNAL_URL":
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () =>
+            AuthController.getInstance(this.context).openExternalUrl(
+              message.payload.url
+            ),
+        });
+        break;
+
       case "ENABLE_LIVE_PREVIEW": {
         const lp = LivePreviewController.getInstance(this.context);
         await lp.enable();
@@ -29,7 +192,7 @@ export class MessageHandler {
         break;
       }
       case "LIVE_PREVIEW_APPLY": {
-        const tc = ThemeController.getInstance();
+        const tc = ThemeController.getInstance(this.context);
         // Apply to live-preview theme in place
         tc.overwriteThemeByLabel(
           this.context,
@@ -49,76 +212,25 @@ export class MessageHandler {
         vscode.env.openExternal(url);
         break;
       }
-      case "GET_THEME_COLORS":
-        console.log("GETting_THEME_COLORS");
-        const groupedColors = ThemeController.getInstance().getColors();
-        console.log("Grouped colors:", groupedColors);
-        console.log("Grouped colors type:", typeof groupedColors);
-        console.log(
-          "Grouped colors keys:",
-          groupedColors ? Object.keys(groupedColors) : "null"
-        );
-
-        // Transform flat grouped colors to hierarchical ColorTab structure
-        const colorTabs = groupedColors || [];
-        console.log("Color tabs result:", colorTabs);
-        console.log("Color tabs length:", colorTabs?.length);
-        const responseData = {
-          command: "GET_THEME_COLORS",
-          payload: colorTabs,
-          status: "success",
+      case "GET_FONT_SETTINGS": {
+        const settings = SettingsController.getInstance(this.context);
+        console.log("GET_FONT_SETTINGS", settings.getFontSettings());
+        this.responseHandler({
+          command,
           requestId: message.requestId,
-        };
-
-        // Validate response data
-        try {
-          JSON.stringify(responseData);
-          this.panel.webview.postMessage(responseData);
-        } catch (error) {
-          console.error("Invalid response data:", error);
-          console.error("Response data:", responseData);
-        }
-        break;
-      case "GET_THEME_TOKEN_COLORS":
-        const tokenColors = ThemeController.getInstance().getTokenColors();
-        const tokenResponseData = {
-          command: "GET_THEME_TOKEN_COLORS",
-          payload: tokenColors,
-        };
-
-        try {
-          JSON.stringify(tokenResponseData);
-          this.panel.webview.postMessage(tokenResponseData);
-        } catch (error) {
-          console.error("Invalid token response data:", error);
-          console.error("Token response data:", tokenResponseData);
-        }
-        break;
-      case "GET_THEMES_LIST": {
-        const tc = ThemeController.getInstance();
-        const list = tc.listOwnThemes(this.context);
-        const active = tc.getActiveThemeLabel();
-        const themesResponseData = {
-          command: "GET_THEMES_LIST",
-          payload: { themes: list, active },
-        };
-
-        try {
-          JSON.stringify(themesResponseData);
-          this.panel.webview.postMessage(themesResponseData);
-        } catch (error) {
-          console.error("Invalid themes response data:", error);
-          console.error("Themes response data:", themesResponseData);
-        }
+          executor: () => settings.getFontSettings(),
+        });
         break;
       }
-      case "SAVE_THEME":
-        await this.handleSaveTheme(message.payload);
+      case "GET_LAYOUT_SETTINGS": {
+        const settings = SettingsController.getInstance(this.context);
+        this.responseHandler({
+          command,
+          requestId: message.requestId,
+          executor: () => settings.getLayoutSettings(),
+        });
         break;
-      case "RESTORE_ORIGINAL_SETTINGS":
-        const settings = new UserSettingsController(this.context);
-        settings.rollbackToOriginal();
-        break;
+      }
       default:
         console.warn("Unknown message:", message);
     }
@@ -132,7 +244,7 @@ export class MessageHandler {
     tokenColors: any[];
     vscodeSettings?: any;
   }) {
-    const themeController = ThemeController.getInstance();
+    const themeController = ThemeController.getInstance(this.context);
     console.log("SAVE_THEME", payload);
     if (payload.mode === "overwrite") {
       if (payload.overwriteLabel) {
@@ -181,19 +293,83 @@ export class MessageHandler {
     await lp.handleSaveComplete();
   }
 
-  public postMessage(message: any, payload: any) {
-    // Validate data before sending
-    const messageData = { command: message, payload };
-
-    // Check for circular references or undefined values
+  public async responseHandler<
+    T extends keyof WebViewEvent,
+    K extends "payload" | "response"
+  >({
+    command,
+    mode = "response" as K,
+    requestId,
+    executor,
+  }: {
+    command: T;
+    mode?: K;
+    requestId: string;
+    executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
+  }) {
     try {
-      JSON.stringify(messageData);
+      const response = await executor();
+      this.POST_MESSAGE<T, K>({
+        command,
+        requestId,
+        status: "success",
+        payload: response,
+      });
+    } catch (err) {
+      this.POST_MESSAGE<T, K>({
+        command,
+        requestId,
+        status: "error",
+        error: (err as Error).message ?? String(err),
+      });
+    }
+  }
+
+  public POST_MESSAGE<
+    T extends keyof WebViewEvent,
+    K extends "payload" | "response"
+  >({ command, payload, requestId, status }: ResponseMessage<T, K>) {
+    const messageData = { command, payload, requestId, status };
+    try {
+      this.panel.webview.postMessage(messageData);
     } catch (error) {
       console.error("Invalid message data:", error);
       console.error("Message data:", messageData);
       return;
     }
+  }
 
-    this.panel.webview.postMessage(messageData);
+  public configurationChanged({
+    updateThemeColor,
+    updateThemeList,
+  }: {
+    updateThemeColor: boolean;
+    updateThemeList: boolean;
+  }) {
+    const themeController = ThemeController.getInstance(this.context);
+    themeController.refreshTheme();
+    if (updateThemeColor) {
+      this.responseHandler({
+        command: "UPDATE_THEME_COLORS",
+        requestId: "",
+        mode: "payload",
+        executor: async () => themeController.getColors(),
+      });
+    }
+    if (updateThemeList) {
+      this.responseHandler({
+        command: "UPDATE_THEME_LIST",
+        requestId: "",
+        mode: "payload",
+        executor: () => {
+          const list = themeController.listOwnThemes(this.context);
+          const active = themeController.getActiveThemeLabel() || "";
+          return {
+            themes: list,
+            active,
+          };
+        },
+      });
+    }
   }
 }

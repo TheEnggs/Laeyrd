@@ -4,7 +4,10 @@ import { promiseController } from "./promise-controller";
 class QueryClient {
   private static instance: QueryClient;
   private cache = new Map<string, unknown>();
-
+  private subscribers = new Map<
+    keyof WebViewEvent,
+    Set<(data: unknown) => void>
+  >();
   private constructor() {}
 
   static getInstance() {
@@ -42,11 +45,50 @@ class QueryClient {
     return promiseController.create({ command, payload });
   }
 
-  async setData<T extends keyof WebViewEvent>(
-    key: string,
-    data: WebViewEvent[T]["response"]
-  ): Promise<void> {
-    this.cache.set(key, data);
+  private notify<T extends keyof WebViewEvent>({
+    command,
+    data,
+  }: {
+    command: T;
+    data: WebViewEvent[T]["payload"];
+  }) {
+    const subs = this.subscribers.get(command);
+    if (subs) {
+      for (const cb of subs) cb(data);
+    }
+    return;
+  }
+
+  subscribe<T extends keyof WebViewEvent>({
+    command,
+    cb,
+  }: {
+    command: T;
+    cb: (data: WebViewEvent[T]["response"]) => void;
+  }) {
+    if (!this.subscribers.has(command)) {
+      this.subscribers.set(command, new Set());
+    }
+    this.subscribers.get(command)!.add(cb);
+    return () => this.subscribers.get(command)!.delete(cb);
+  }
+
+  getQueryData<T extends keyof WebViewEvent>(
+    command: T
+  ): WebViewEvent[T]["response"] {
+    return this.cache.get(command) as WebViewEvent[T]["response"];
+  }
+
+  setData<T extends keyof WebViewEvent>({
+    command,
+    data,
+  }: {
+    command: T;
+    data: WebViewEvent[T]["response"];
+  }) {
+    this.cache.set(command, data);
+    this.notify({ command, data });
+    return;
   }
 
   invalidate(key: string) {

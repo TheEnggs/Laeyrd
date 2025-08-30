@@ -38,8 +38,16 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
         }
       });
 
+    const unsubscribe = queryClient.subscribe({
+      command: cacheKey,
+      cb: (data) => {
+        if (!canceled) return setData(data);
+      },
+    });
+
     return () => {
       canceled = true;
+      unsubscribe();
     };
   }, [
     queryParameter.command,
@@ -71,10 +79,13 @@ export const useMutation = <T extends keyof WebViewEvent>(command: T) => {
   return { isLoading, error, mutate };
 };
 
-export const useSetData = <T extends keyof WebViewEvent>(
-  command: T,
-  payload: WebViewEvent[T]["payload"]
-) => {
-  queryClient.setData(command, payload);
+export const useSetData = <T extends keyof WebViewEvent>({
+  command,
+  payload,
+}: {
+  command: T;
+  payload: WebViewEvent[T]["payload"];
+}) => {
+  queryClient.setData({ command, data: payload });
   return { success: true };
 };

@@ -1,23 +1,36 @@
 "use client";
 
+import { useEffect } from "react";
 import { SettingsProvider } from "./contexts/settings-context";
+import { ClerkAuthProvider } from "./components/clerk-provider";
 import HeroSection from "./components/hero-section";
 import CustomizationTabs from "./components/customization-tabs";
-import Header from "./components/floating-save";
+import FloatingSave from "./components/floating-save";
+import UserSettings from "./components/user-settings";
 import { Toaster } from "./components/ui/sonner";
+import { startListeners, stopListeners } from "@webview/lib/listeners";
 
 export default function App() {
+  useEffect(() => {
+    startListeners();
+    return () => {
+      stopListeners();
+    };
+  }, []);
+
   return (
-    <SettingsProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        <div className="px-6 py-6 space-y-8 pb-32">
-          <HeroSection />
-          <CustomizationTabs />
+    <ClerkAuthProvider>
+      <SettingsProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <div className="p-4 flex flex-col gap-4">
+            <HeroSection />
+            <CustomizationTabs />
+          </div>
+          {/* <FloatingSave /> */}
+          <UserSettings />
+          <Toaster />
         </div>
-        <Header />
-        <Toaster />
-      </div>
-      //{" "}
-    </SettingsProvider>
+      </SettingsProvider>
+    </ClerkAuthProvider>
   );
 }
