@@ -3,9 +3,8 @@
 # dependencies
 /node_modules
 
-# next.js
-/.next/
-/out/
+# Ignore the dist folder
+/dist
 
 # production
 /build

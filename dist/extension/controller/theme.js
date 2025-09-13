@@ -38,7 +38,7 @@ exports.groupColors = groupColors;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
-const debug_logs_1 = require("../utils/debug-logs");
+const debug_logs_1 = require("../../lib/debug-logs");
 const colors_1 = require("../utils/colors");
 const jsonc_parser_1 = require("jsonc-parser");
 function groupColors(colors) {
@@ -88,14 +88,14 @@ class ThemeController {
                 console.warn("Theme info not found inside extension:", themeExt.id);
                 return;
             }
-            console.log("themeInfo", themeInfo);
+            (0, debug_logs_1.log)("themeInfo", themeInfo);
             const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
             if (!fs.existsSync(themeJsonPath)) {
                 console.error("Theme JSON file not found:", themeJsonPath);
                 return;
             }
             this.currentThemePath = themeJsonPath;
-            console.log("themeJsonPath", themeJsonPath);
+            (0, debug_logs_1.log)("themeJsonPath", themeJsonPath);
             const parsedTheme = (0, jsonc_parser_1.parse)(fs.readFileSync(themeJsonPath, "utf8"));
             this.currentTheme = parsedTheme;
         }
@@ -178,16 +178,21 @@ class ThemeController {
                 return;
             }
             const themeJson = JSON.parse(fs.readFileSync(absoluteThemePath, "utf8"));
-            const tokensArray = Array.isArray(tokenColors)
-                ? tokenColors
-                : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
+            const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
             const updatedTheme = {
                 ...themeJson,
                 colors: {
-                    ...(themeJson.colors || {}),
+                    ...this.currentTheme?.colors,
                     ...colors,
                 },
-                tokenColors: tokensArray,
+                semanticTokenColors: {
+                    ...this.currentTheme?.semanticTokenColors,
+                    ...tokensArray.semanticTokenColors,
+                },
+                tokenColors: [
+                    ...(this.currentTheme?.tokenColors ?? []),
+                    ...tokensArray.tokenColors,
+                ],
             };
             fs.writeFileSync(absoluteThemePath, JSON.stringify(updatedTheme, null, 2), "utf8");
             // If we just overwrote the active theme, refresh in-memory cache
@@ -203,54 +208,38 @@ class ThemeController {
         }
     }
     /**
-     * Overwrite the current theme JSON
-     */
-    overwriteTheme(colors, tokenColors) {
-        if (!this.currentThemePath || !this.currentTheme) {
-            console.error("No theme loaded to overwrite");
-            return;
-        }
-        const tokensArray = Array.isArray(tokenColors)
-            ? tokenColors
-            : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
-        const updatedTheme = {
-            ...this.currentTheme,
-            colors: {
-                ...this.currentTheme.colors,
-                ...colors,
-            },
-            tokenColors: {
-                ...this.currentTheme.tokenColors,
-                ...tokensArray,
-            },
-        };
-        fs.writeFileSync(this.currentThemePath, JSON.stringify(updatedTheme, null, 2), "utf8");
-        this.refreshTheme();
-    }
-    /**
      * Create a new theme file inside our extension folder
      */
     createTheme(context, themeName, colors, tokenColors, type = "dark") {
         try {
-            console.log("creating theme", themeName);
+            (0, debug_logs_1.log)("creating theme", themeName);
             const themesDir = path.join(context.extensionPath, "/src/themes");
-            console.log("themesDir", themesDir);
+            (0, debug_logs_1.log)("themesDir", themesDir);
             if (!fs.existsSync(themesDir))
                 fs.mkdirSync(themesDir);
-            console.log("themesDir exists", fs.existsSync(themesDir));
+            (0, debug_logs_1.log)("themesDir exists", fs.existsSync(themesDir));
             const themePath = path.join(themesDir, `${themeName}.json`);
-            console.log("themePath", themePath);
-            const tokensArray = Array.isArray(tokenColors)
-                ? tokenColors
-                : (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
-            console.log("tokensArray", tokensArray);
+            (0, debug_logs_1.log)("themePath", themePath);
+            const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
+            (0, debug_logs_1.log)("tokensArray", tokensArray);
             const themeJson = {
                 name: themeName,
                 type,
-                colors,
-                tokenColors: tokensArray,
+                publisher: "Theme Your Code",
+                colors: {
+                    ...this.currentTheme?.colors,
+                    ...colors,
+                },
+                tokenColors: {
+                    ...this.currentTheme?.tokenColors,
+                    ...tokensArray.tokenColors,
+                },
+                semanticTokenColors: {
+                    ...this.currentTheme?.semanticTokenColors,
+                    ...tokensArray.semanticTokenColors,
+                },
             };
-            console.log("themeJson", themeJson);
+            (0, debug_logs_1.log)("themeJson", themeJson);
             fs.writeFileSync(themePath, JSON.stringify(themeJson, null, 2), "utf8");
             return themePath;
         }

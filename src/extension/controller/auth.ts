@@ -4,7 +4,7 @@ import {
   AuthSession,
   ServerConfig,
 } from "../../types/user-preferences";
-import { log } from "../utils/debug-logs";
+import { log } from "../../lib/debug-logs";
 
 export class AuthController {
   private static instance: AuthController;
@@ -19,9 +19,9 @@ export class AuthController {
     githubUrl: "https://github.com/your-org/theme-your-code-server",
     privacyPolicyUrl: "https://theme-your-code.com/privacy",
     termsOfServiceUrl: "https://theme-your-code.com/terms",
-    clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || "pk_test_...", // Replace with your Clerk publishable key
-    clerkSignInUrl: "https://your-clerk-app.accounts.dev/sign-in",
-    clerkSignUpUrl: "https://your-clerk-app.accounts.dev/sign-up",
+    clerkPublishableKey: "pk_test_YXdhcmUtZWVsLTM4LmNsZXJrLmFjY291bnRzLmRldiQ", // Replace with your Clerk publishable key
+    // clerkSignInUrl: "https://your-clerk-app.accounts.dev/sign-in",
+    // clerkSignUpUrl: "https://your-clerk-app.accounts.dev/sign-up",
   };
 
   private constructor(context: vscode.ExtensionContext) {

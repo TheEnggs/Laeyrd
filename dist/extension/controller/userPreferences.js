@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserPreferencesController = void 0;
 const crypto = __importStar(require("crypto"));
-const debug_logs_1 = require("../utils/debug-logs");
+const debug_logs_1 = require("../../lib/debug-logs");
 class UserPreferencesController {
     constructor(context) {
         // Server configuration - replace with your actual server details
@@ -152,8 +152,8 @@ class UserPreferencesController {
         }
     }
     /**
-   * Update user preferences in local storage
-   */
+     * Update user preferences in local storage
+     */
     async updateUserPreferences(updates) {
         try {
             const currentPreferences = await this.getUserPreferences();

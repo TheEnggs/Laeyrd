@@ -11,26 +11,30 @@ import {
 import { queryClient } from "@webview/controller/query-client";
 import { FontMeta } from "../../types/font";
 import { UiLayoutMeta } from "../../types/layout";
+import { fontsLayoutUI } from "../../lib/fonts-layout";
+import { Color } from "../../types/theme";
+import { log } from "../../lib/debug-logs";
 // ---------- Initial state ----------
 
-type DraftState = Record<string, { type: "color" | "token"; value: string }>;
-type DraftLayout = Record<string, UiLayoutMeta["defaultValue"]>;
-type DraftFonts = Record<string, FontMeta["defaultValue"]>;
-type DraftToken = {
+export type DraftColor = Color;
+export type DraftToken = {
   tokenColors: Record<string, { foreground?: string; fontStyle?: string }>;
   semanticTokenColors: Record<string, { foreground: string }>;
 };
 
-type DraftColorAction =
-  | { type: "SET_COLOR"; key: string; value: string }
-  | { type: "RESET"; payload: DraftState };
+type DraftLayout = Record<string, UiLayoutMeta["defaultValue"]>;
 
-type DraftFontAction =
-  | { type: "SET_FONT"; key: string; value: FontMeta["defaultValue"] }
-  | { type: "RESET"; payload: DraftFonts };
+type DraftColorAction =
+  | { type: "SET_COLOR"; key: string; value: string; defaultValue: string }
+  | { type: "RESET"; payload: DraftColor };
 
 type DraftLayoutAction =
-  | { type: "SET_LAYOUT"; key: string; value: UiLayoutMeta["defaultValue"] }
+  | {
+      type: "SET_LAYOUT";
+      key: string;
+      value: UiLayoutMeta["defaultValue"];
+      defaultValue: UiLayoutMeta["defaultValue"];
+    }
   | { type: "RESET"; payload: DraftLayout };
 
 type DraftTokenAction =
@@ -71,15 +75,17 @@ function draftTokenReducer(
   }
 }
 function draftColorReducer(
-  state: DraftState,
+  state: DraftColor,
   action: DraftColorAction
-): DraftState {
+): DraftColor {
   switch (action.type) {
     case "SET_COLOR":
-      return {
-        ...state,
-        [action.key]: { type: "color", value: action.value },
-      };
+      const { key, value, defaultValue } = action;
+      if (value === defaultValue) {
+        const { [key]: _, ...rest } = state;
+        return rest;
+      }
+      return { ...state, [key]: value };
     case "RESET":
       return action.payload;
     default:
@@ -87,45 +93,26 @@ function draftColorReducer(
   }
 }
 
-// pass original backend data into reducer via closure or context
-function createDraftFontReducer() {
-  return function draftFontReducer(
-    state: DraftFonts,
-    action: DraftFontAction
-  ): DraftFonts {
-    const original = queryClient.getQueryData("GET_FONT_SETTINGS");
-    switch (action.type) {
-      case "SET_FONT": {
-        const { key, value } = action;
-        // if value equals original → remove from draft
-        if (original[key].defaultValue === value) {
-          const { [key]: _, ...rest } = state;
-          return rest;
-        }
-        // else track the change
-        return { ...state, [key]: value };
-      }
-      case "RESET":
-        return {};
-      default:
-        return state;
-    }
-  };
-}
-
-function createDraftLayoutReducer() {
-  return function draftLayoutReducer(
+function createDraftFontLayoutReducer() {
+  const original =
+    queryClient.getQueryData("GET_FONT_AND_LAYOUT_SETTINGS") ||
+    fontsLayoutUI ||
+    {};
+  return function draftFontLayoutReducer(
     state: DraftLayout,
     action: DraftLayoutAction
   ): DraftLayout {
-    const original = queryClient.getQueryData("GET_LAYOUT_SETTINGS");
     switch (action.type) {
       case "SET_LAYOUT": {
-        const { key, value } = action;
-        if (original[key].defaultValue === value) {
+        const { key, value, defaultValue } = action;
+
+        // If the user "sets" a value equal to the default, drop it
+        if (value === defaultValue) {
           const { [key]: _, ...rest } = state;
           return rest;
         }
+
+        // Otherwise, store it as an override
         return { ...state, [key]: value };
       }
       case "RESET":
@@ -137,14 +124,12 @@ function createDraftLayoutReducer() {
 }
 
 interface SettingsContextType {
-  draftColorState: DraftState;
-  draftFontState: DraftFonts;
-  draftLayoutState: DraftLayout;
-  fontDispatch: React.Dispatch<DraftFontAction>;
+  draftColorState: DraftColor;
+  draftFontLayoutState: DraftLayout;
   colorDispatch: React.Dispatch<DraftColorAction>;
   draftTokenState: DraftToken;
   tokenDispatch: React.Dispatch<DraftTokenAction>;
-  layoutDispatch: React.Dispatch<DraftLayoutAction>;
+  fontLayoutDispatch: React.Dispatch<DraftLayoutAction>;
   hasColorChanges: boolean;
   setHasColorChanges: React.Dispatch<React.SetStateAction<boolean>>;
   hasSettingsChanges: boolean;
@@ -161,12 +146,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     tokenColors: {},
     semanticTokenColors: {},
   });
-  const [draftFontState, fontDispatch] = useReducer(
-    createDraftFontReducer(),
-    {}
-  );
-  const [draftLayoutState, layoutDispatch] = useReducer(
-    createDraftLayoutReducer(),
+
+  const [draftFontLayoutState, fontLayoutDispatch] = useReducer(
+    createDraftFontLayoutReducer(),
     {}
   );
 
@@ -176,34 +158,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (
       Object.keys(draftColorState).length > 0 ||
-      Object.keys(draftFontState).length > 0
+      Object.keys(draftTokenState.tokenColors).length > 0 ||
+      Object.keys(draftTokenState.semanticTokenColors).length > 0
     ) {
       setHasColorChanges(true);
     } else {
       setHasColorChanges(false);
     }
 
-    if (
-      Object.keys(draftLayoutState).length > 0 ||
-      Object.keys(draftTokenState.tokenColors).length > 0 ||
-      Object.keys(draftTokenState.semanticTokenColors).length > 0
-    ) {
+    if (Object.keys(draftFontLayoutState).length > 0) {
       setHasSettingsChanges(true);
     } else {
       setHasSettingsChanges(false);
     }
-  }, [draftColorState, draftFontState, draftLayoutState, draftTokenState]);
+  }, [draftColorState, draftFontLayoutState, draftTokenState]);
 
   return (
     <SettingsContext.Provider
       value={{
         draftColorState: draftColorState,
-        draftFontState: draftFontState,
-        draftLayoutState: draftLayoutState,
+        draftFontLayoutState: draftFontLayoutState,
         colorDispatch: colorDispatch,
         draftTokenState: draftTokenState,
-        fontDispatch: fontDispatch,
-        layoutDispatch: layoutDispatch,
+        fontLayoutDispatch: fontLayoutDispatch,
         tokenDispatch: tokenDispatch,
         hasColorChanges: hasColorChanges,
         setHasColorChanges: setHasColorChanges,

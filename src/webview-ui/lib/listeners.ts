@@ -24,8 +24,18 @@ export function startListeners() {
         data: payload,
       });
   });
+  const detachFontAndLayout = attach(
+    "UPDATE_FONT_AND_LAYOUT_SETTINGS",
+    (payload) => {
+      if (payload)
+        queryClient.setData({
+          command: "GET_FONT_AND_LAYOUT_SETTINGS",
+          data: payload,
+        });
+    }
+  );
 
-  detachFns = [detachTheme, detachThemeList];
+  detachFns = [detachTheme, detachThemeList, detachFontAndLayout];
 }
 
 export function stopListeners() {

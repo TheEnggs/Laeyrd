@@ -4,6 +4,7 @@ import {
   ResponseMessage,
   WebViewEvent,
 } from "../../types/event";
+import { log } from "../../lib/debug-logs";
 
 type EventCallback<T = any> = (payload: T) => void;
 
@@ -18,6 +19,7 @@ class PromiseController {
   constructor() {
     window.addEventListener("message", (event) => {
       // 1️⃣ Handle request-response
+      log("new incoming message", event.data);
       const requestId = event.data.requestId;
       if (requestId) {
         const message = event.data as ResponseMessage<
@@ -25,6 +27,7 @@ class PromiseController {
           "payload"
         >;
         const existingPromise = this.pendingRequests.get(message.requestId);
+        log("existingPromise", existingPromise);
         if (existingPromise) {
           if (message.status === "success")
             existingPromise.resolve(message.payload);
@@ -42,11 +45,12 @@ class PromiseController {
         // 2️⃣ Handle push events (no requestId)
         if (message.command) {
           const listeners = this.eventListeners.get(message.command);
-          console.log(listeners, message.command, message.payload);
+          log(listeners, message.command, message.payload);
           if (listeners) {
             listeners.forEach((cb) => cb(message.payload));
           }
         }
+        return;
       }
     });
   }
@@ -57,7 +61,7 @@ class PromiseController {
   }: {
     command: T;
     payload: WebViewEvent[T]["payload"];
-  }): Promise<WebViewEvent[T]["response"]> {
+  }): Promise<ResponseMessage<T, "response">> {
     const requestId = crypto.randomUUID();
     const message: RequestMessage<T> = { requestId, command, payload };
 
@@ -79,7 +83,8 @@ class PromiseController {
         },
       });
 
-      console.log("Sending message:", message);
+      log("this promise set", Object.keys(this.pendingRequests));
+
       this.messenger.postMessage(message);
     });
   }
@@ -89,7 +94,7 @@ class PromiseController {
     command: T,
     cb: (payload: WebViewEvent[T]["payload"]) => void
   ) {
-    console.log("push event", command);
+    log("push event", command);
     if (!this.eventListeners.has(command)) {
       this.eventListeners.set(command, new Set());
     }

@@ -17,6 +17,7 @@ import { cn } from "../lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useMemo, memo } from "react";
 import { ColorSettingsSkeleton } from "./skeleton/color-settings";
+import { log } from "../../lib/debug-logs";
 
 export default function TokenColorSettings() {
   const { draftTokenState, tokenDispatch } = useSettings();
@@ -34,8 +35,8 @@ export default function TokenColorSettings() {
     payload: [],
   });
 
-  console.log("tokenColorsState", tokenColorsState);
-  console.log("semanticTokenColorsState", semanticTokenColorsState);
+  log("tokenColorsState", tokenColorsState);
+  log("semanticTokenColorsState", semanticTokenColorsState);
 
   if (
     !isLoadingTokenColors &&

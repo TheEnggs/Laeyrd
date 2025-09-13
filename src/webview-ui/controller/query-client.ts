@@ -1,4 +1,4 @@
-import { WebViewEvent } from "../../types/event";
+import { ResponseMessage, WebViewEvent } from "../../types/event";
 import { promiseController } from "./promise-controller";
 
 class QueryClient {
@@ -41,8 +41,9 @@ class QueryClient {
   async mutate<T extends keyof WebViewEvent>(
     command: T,
     payload: WebViewEvent[T]["payload"]
-  ): Promise<WebViewEvent[T]["response"]> {
-    return promiseController.create({ command, payload });
+  ): Promise<ResponseMessage<T, "response">> {
+    const promise = promiseController.create({ command, payload });
+    return promise;
   }
 
   private notify<T extends keyof WebViewEvent>({

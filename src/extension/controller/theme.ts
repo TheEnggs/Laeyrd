@@ -12,7 +12,7 @@ import {
   TokenColorsList,
   SemanticTokenColors,
 } from "../../types/theme";
-import { log } from "../utils/debug-logs";
+import { log } from "../../lib/debug-logs";
 import {
   convertTokenColors,
   convertTokenColorsBackToTheme,
@@ -20,6 +20,7 @@ import {
 } from "../utils/colors";
 import { ColorMetaGrouped } from "../../types/theme";
 import { parse } from "jsonc-parser";
+import { DraftColor, DraftToken } from "@webview/contexts/settings-context";
 export function groupColors(colors: Color): GroupedColors {
   return Object.entries(colors).reduce((acc, [key, value]) => {
     const [category, subKey] = (key as `${ColorGroups}.${string}`).split(".");
@@ -80,7 +81,7 @@ export class ThemeController {
         console.warn("Theme info not found inside extension:", themeExt.id);
         return;
       }
-      console.log("themeInfo", themeInfo);
+      log("themeInfo", themeInfo);
       const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
 
       if (!fs.existsSync(themeJsonPath)) {
@@ -88,7 +89,7 @@ export class ThemeController {
         return;
       }
       this.currentThemePath = themeJsonPath;
-      console.log("themeJsonPath", themeJsonPath);
+      log("themeJsonPath", themeJsonPath);
       const parsedTheme = parse(fs.readFileSync(themeJsonPath, "utf8"));
       this.currentTheme = parsedTheme;
     } catch (error) {
@@ -172,8 +173,8 @@ export class ThemeController {
   public overwriteThemeByLabel(
     context: vscode.ExtensionContext,
     themeLabel: string,
-    colors: Record<string, string>,
-    tokenColors: TokenColorItem[] | GroupedTokenColors
+    colors: DraftColor,
+    tokenColors: DraftToken
   ): void {
     try {
       const themes = this.listOwnThemes(context);
@@ -197,17 +198,22 @@ export class ThemeController {
         fs.readFileSync(absoluteThemePath, "utf8")
       );
 
-      const tokensArray = Array.isArray(tokenColors)
-        ? tokenColors
-        : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
+      const tokensArray = convertTokenColorsBackToTheme(tokenColors);
 
       const updatedTheme: Theme = {
         ...themeJson,
         colors: {
-          ...(themeJson.colors || {}),
+          ...this.currentTheme?.colors,
           ...colors,
         },
-        tokenColors: tokensArray as any,
+        semanticTokenColors: {
+          ...this.currentTheme?.semanticTokenColors,
+          ...tokensArray.semanticTokenColors,
+        },
+        tokenColors: [
+          ...(this.currentTheme?.tokenColors ?? []),
+          ...tokensArray.tokenColors,
+        ],
       } as Theme;
 
       fs.writeFileSync(
@@ -229,71 +235,44 @@ export class ThemeController {
   }
 
   /**
-   * Overwrite the current theme JSON
-   */
-  public overwriteTheme(
-    colors: Record<string, string>,
-    tokenColors: TokenColorItem[] | GroupedTokenColors
-  ): void {
-    if (!this.currentThemePath || !this.currentTheme) {
-      console.error("No theme loaded to overwrite");
-      return;
-    }
-
-    const tokensArray = Array.isArray(tokenColors)
-      ? tokenColors
-      : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
-
-    const updatedTheme = {
-      ...this.currentTheme,
-      colors: {
-        ...this.currentTheme.colors,
-        ...colors,
-      },
-      tokenColors: {
-        ...this.currentTheme.tokenColors,
-        ...tokensArray,
-      },
-    };
-
-    fs.writeFileSync(
-      this.currentThemePath,
-      JSON.stringify(updatedTheme, null, 2),
-      "utf8"
-    );
-    this.refreshTheme();
-  }
-
-  /**
    * Create a new theme file inside our extension folder
    */
   public createTheme(
     context: vscode.ExtensionContext,
     themeName: string,
-    colors: Record<string, string>,
-    tokenColors: TokenColorItem[] | TokenColorsList,
+    colors: DraftColor,
+    tokenColors: DraftToken,
     type: "light" | "dark" = "dark"
   ): string {
     try {
-      console.log("creating theme", themeName);
+      log("creating theme", themeName);
       const themesDir = path.join(context.extensionPath, "/src/themes");
-      console.log("themesDir", themesDir);
+      log("themesDir", themesDir);
       if (!fs.existsSync(themesDir)) fs.mkdirSync(themesDir);
-      console.log("themesDir exists", fs.existsSync(themesDir));
+      log("themesDir exists", fs.existsSync(themesDir));
       const themePath = path.join(themesDir, `${themeName}.json`);
-      console.log("themePath", themePath);
+      log("themePath", themePath);
 
-      const tokensArray = Array.isArray(tokenColors)
-        ? tokenColors
-        : convertTokenColorsBackToTheme(tokenColors as TokenColorsList);
-      console.log("tokensArray", tokensArray);
-      const themeJson: Theme = {
+      const tokensArray = convertTokenColorsBackToTheme(tokenColors);
+      log("tokensArray", tokensArray);
+      const themeJson: Theme & { publisher: string } = {
         name: themeName,
         type,
-        colors,
-        tokenColors: tokensArray,
+        publisher: "Theme Your Code",
+        colors: {
+          ...this.currentTheme?.colors,
+          ...colors,
+        },
+        tokenColors: {
+          ...this.currentTheme?.tokenColors,
+          ...tokensArray.tokenColors,
+        },
+        semanticTokenColors: {
+          ...this.currentTheme?.semanticTokenColors,
+          ...tokensArray.semanticTokenColors,
+        },
       };
-      console.log("themeJson", themeJson);
+      log("themeJson", themeJson);
       fs.writeFileSync(themePath, JSON.stringify(themeJson, null, 2), "utf8");
       return themePath;
     } catch (error) {

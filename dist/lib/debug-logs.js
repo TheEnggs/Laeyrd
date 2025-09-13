@@ -4,6 +4,6 @@ exports.log = log;
 const debug = true; // set false for production
 function log(...args) {
     if (debug) {
-        log("[ThemeYourCode]", ...args);
+        console.log("[ThemeYourCode]", ...args);
     }
 }

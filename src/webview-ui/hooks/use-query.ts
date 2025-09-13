@@ -1,3 +1,4 @@
+import { log } from "../../lib/debug-logs";
 import { WebViewEvent } from "../../types/event";
 import { queryClient } from "../controller/query-client";
 import { useEffect, useState } from "react";
@@ -58,25 +59,40 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   return { data, isLoading, error };
 };
 
-export const useMutation = <T extends keyof WebViewEvent>(command: T) => {
-  const [isLoading, setIsPending] = useState(false);
+export const useMutation = <T extends keyof WebViewEvent>(
+  command: T,
+  response?: {
+    onSuccess?: (data: WebViewEvent[T]["response"]["payload"]) => void;
+    onError?: (error: any) => void;
+    onSettled?: () => void;
+  }
+) => {
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<any>(null);
+  const [mutationData, setMutationData] = useState<
+    WebViewEvent[T]["response"]["payload"] | null
+  >(null);
 
   const mutate = (payload: WebViewEvent[T]["payload"]) => {
     setIsPending(true);
     queryClient
       .mutate(command, payload)
       .then((data) => {
-        setIsPending(false);
-        return data;
+        log("mutate success", command, data);
+        setMutationData(data);
+        response?.onSuccess?.(data);
       })
       .catch((error) => {
-        setError(error);
+        setMutationData(null);
+        response?.onError?.(error);
+      })
+      .finally(() => {
         setIsPending(false);
+        response?.onSettled?.();
       });
   };
 
-  return { isLoading, error, mutate };
+  return { isPending, error, mutate, data: mutationData };
 };
 
 export const useSetData = <T extends keyof WebViewEvent>({

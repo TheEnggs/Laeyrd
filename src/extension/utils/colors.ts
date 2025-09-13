@@ -1,10 +1,12 @@
 import {
+  SemanticTokenColors,
   TokenCategory,
   TokenColorItem,
   TokenColorsList,
 } from "../../types/theme";
 import { colorCategoryMap } from "../../lib/colorsList";
 import { tokenColorMap } from "../../lib/tokenList";
+import { DraftToken } from "@webview/contexts/settings-context";
 
 export const generateColors = (colors: Record<string, string>) => {
   const colorsList = colorCategoryMap;
@@ -45,23 +47,27 @@ export function convertTokenColors(
   return map;
 }
 
-export function convertTokenColorsBackToTheme(
-  map: TokenColorsList
-): TokenColorItem[] {
+export function convertTokenColorsBackToTheme(tokens: DraftToken): {
+  tokenColors: TokenColorItem[];
+  semanticTokenColors: SemanticTokenColors;
+} {
   const tokenColors: TokenColorItem[] = [];
-
-  Object.values(map).forEach((entry) => {
+  const semanticTokenColors: SemanticTokenColors = {};
+  const tokenColorsMap = tokens?.tokenColors ?? {};
+  const semanticTokenColorsMap = tokens?.semanticTokenColors ?? {};
+  Object.entries(tokenColorsMap).forEach(([key, value]) => {
     tokenColors.push({
-      scope: entry.displayName, // use the original scope (displayName)
+      scope: key as TokenCategory, // use the original scope (displayName)
       settings: {
-        foreground: entry.defaultColor,
-        fontStyle:
-          entry.defaultFontStyle !== "none"
-            ? entry.defaultFontStyle
-            : undefined,
+        foreground: value.foreground,
+        fontStyle: value.fontStyle !== "none" ? value.fontStyle : undefined,
       },
     });
   });
-
-  return tokenColors;
+  Object.entries(semanticTokenColorsMap).forEach(([key, value]) => {
+    semanticTokenColors[key] = {
+      foreground: value.foreground,
+    };
+  });
+  return { tokenColors, semanticTokenColors };
 }

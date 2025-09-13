@@ -1,13 +1,14 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { log } from "../../lib/debug-logs";
 
 export async function copyCurrentThemeToBase(context: vscode.ExtensionContext) {
   const currentTheme = vscode.workspace
     .getConfiguration("workbench")
     .get<string>("colorTheme");
 
-  console.log("Current active theme:", currentTheme);
+  log("Current active theme:", currentTheme);
 
   // Find theme extension
   const themeExt = vscode.extensions.all.find((ext) => {

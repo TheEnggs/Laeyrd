@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const vscode = __importStar(require("vscode"));
-const debug_logs_1 = require("../utils/debug-logs");
+const debug_logs_1 = require("../../lib/debug-logs");
 class AuthController {
     constructor(context) {
         this.currentUser = null;
@@ -47,9 +47,9 @@ class AuthController {
             githubUrl: "https://github.com/your-org/theme-your-code-server",
             privacyPolicyUrl: "https://theme-your-code.com/privacy",
             termsOfServiceUrl: "https://theme-your-code.com/terms",
-            clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || "pk_test_...", // Replace with your Clerk publishable key
-            clerkSignInUrl: "https://your-clerk-app.accounts.dev/sign-in",
-            clerkSignUpUrl: "https://your-clerk-app.accounts.dev/sign-up",
+            clerkPublishableKey: "pk_test_YXdhcmUtZWVsLTM4LmNsZXJrLmFjY291bnRzLmRldiQ", // Replace with your Clerk publishable key
+            // clerkSignInUrl: "https://your-clerk-app.accounts.dev/sign-in",
+            // clerkSignUpUrl: "https://your-clerk-app.accounts.dev/sign-up",
         };
         this.context = context;
         this.loadStoredAuth();
@@ -135,7 +135,7 @@ class AuthController {
      * Notify all listeners of auth state change
      */
     notifyAuthChanged() {
-        this.listeners.forEach(listener => listener(this.currentUser));
+        this.listeners.forEach((listener) => listener(this.currentUser));
     }
     /**
      * Handle sign-in process - opens external browser for Clerk OAuth
@@ -185,7 +185,8 @@ class AuthController {
      * Build sign-in URL with return parameters
      */
     buildSignInUrl(returnUrl) {
-        const baseUrl = this.serverConfig.clerkSignInUrl || `${this.serverConfig.baseUrl}/auth/sign-in`;
+        const baseUrl = this.serverConfig.clerkSignInUrl ||
+            `${this.serverConfig.baseUrl}/auth/sign-in`;
         const params = new URLSearchParams();
         // Add return URL for post-auth redirect
         params.append("return_url", returnUrl || "vscode://theme-your-code.auth-callback");
@@ -208,7 +209,7 @@ class AuthController {
                 if (authResult.success && authResult.user && authResult.session) {
                     clearInterval(pollInterval);
                     await this.storeAuth(authResult.user, authResult.session);
-                    vscode.window.showInformationMessage(`Welcome back, ${authResult.user.firstName || authResult.user.username || 'User'}!`);
+                    vscode.window.showInformationMessage(`Welcome back, ${authResult.user.firstName || authResult.user.username || "User"}!`);
                 }
                 else if (pollCount >= maxPolls) {
                     clearInterval(pollInterval);

@@ -77,7 +77,7 @@ export default function ColorSettings() {
         key,
         displayName: def.displayName,
         description: def.description,
-        value: draftColorState[key]?.value ?? def.defaultValue ?? "",
+        value: draftColorState[key] ?? def.defaultValue ?? "",
       });
     }
     return tree;
@@ -188,6 +188,7 @@ export default function ColorSettings() {
                                 type: "SET_COLOR",
                                 key: color.key,
                                 value: String(newValue),
+                                defaultValue: color.value,
                               })
                             }
                           />

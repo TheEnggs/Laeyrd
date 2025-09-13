@@ -13,6 +13,7 @@ import {
   AuthSession,
   ServerConfig,
 } from "../../types/user-preferences";
+import { log } from "../../lib/debug-logs";
 
 interface ClerkAuthContextType {
   authUser: AuthUser | null;
@@ -97,7 +98,7 @@ function ClerkAuthWrapper({ children }: { children: ReactNode }) {
   const signIn = async (returnUrl?: string) => {
     try {
       signInMutation.mutate({ returnUrl });
-      console.log("Sign-in initiated");
+      log("Sign-in initiated");
     } catch (error) {
       console.error("Sign-in error:", error);
     }
@@ -112,7 +113,7 @@ function ClerkAuthWrapper({ children }: { children: ReactNode }) {
       signOutMutation.mutate(null);
       setAuthUser(null);
       setAuthSession(null);
-      console.log("Sign-out successful");
+      log("Sign-out successful");
     } catch (error) {
       console.error("Sign-out error:", error);
     }
@@ -144,8 +145,9 @@ export function ClerkAuthProvider({ children }: ClerkAuthProviderProps) {
     command: "GET_SERVER_CONFIG",
     payload: null,
   });
-
-  if (!serverConfig?.clerkPublishableKey) {
+  const CLERK_PUBLISHABLE_KEY =
+    "pk_test_YXdhcmUtZWVsLTM4LmNsZXJrLmFjY291bnRzLmRldiQ";
+  if (!CLERK_PUBLISHABLE_KEY) {
     console.warn("Clerk publishable key not available");
     return (
       <ClerkAuthContext.Provider
@@ -165,7 +167,7 @@ export function ClerkAuthProvider({ children }: ClerkAuthProviderProps) {
 
   return (
     <ClerkProvider
-      publishableKey={serverConfig.clerkPublishableKey}
+      publishableKey={CLERK_PUBLISHABLE_KEY}
       appearance={{
         baseTheme: dark,
         variables: {

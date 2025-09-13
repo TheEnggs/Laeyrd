@@ -1,6 +1,6 @@
 import { UiLayoutMetaGrouped } from "../types/layout";
 
-export const layoutUI: UiLayoutMetaGrouped = {
+export const fontsLayoutUI: UiLayoutMetaGrouped = {
   "editor.fontFamily": {
     category: "editor",
     subcategory: "font",

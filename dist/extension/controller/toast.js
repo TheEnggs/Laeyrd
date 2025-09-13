@@ -33,26 +33,28 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
+exports.ToastController = void 0;
 const vscode = __importStar(require("vscode"));
-const theme_1 = require("./controller/theme");
-const userSettings_1 = require("./controller/userSettings");
-const userPreferences_1 = require("./controller/userPreferences");
-const auth_1 = require("./controller/auth");
-const history_1 = require("./controller/history");
-const panelManager_1 = require("./controller/panelManager");
-let panelManager;
-async function activate(context) {
-    const controllers = {
-        theme: theme_1.ThemeController.getInstance(context),
-        userSettings: new userSettings_1.UserSettingsController(context),
-        preferences: userPreferences_1.UserPreferencesController.getInstance(context),
-        auth: auth_1.AuthController.getInstance(context),
-        history: history_1.HistoryController.getInstance(context),
-    };
-    controllers.userSettings.ensureOriginalBackup();
-    panelManager = new panelManager_1.ThemeYourCodePanelManager(context);
-    const openCommand = vscode.commands.registerCommand("themeYourCode.open", () => panelManager.open());
-    context.subscriptions.push(openCommand, panelManager);
+class ToastController {
+    constructor(context) {
+        this.context = context;
+    }
+    static getInstance(context) {
+        if (!ToastController.instance) {
+            ToastController.instance = new ToastController(context);
+        }
+        return ToastController.instance;
+    }
+    showToast({ message, type, }) {
+        if (type === "info")
+            vscode.window.showInformationMessage(message);
+        else if (type === "warn")
+            vscode.window.showWarningMessage(message);
+        else if (type === "error")
+            vscode.window.showErrorMessage(message);
+        else if (type === "success")
+            vscode.window.showInformationMessage(message);
+        vscode.window.showInformationMessage(message);
+    }
 }
-const isDev = false;
+exports.ToastController = ToastController;

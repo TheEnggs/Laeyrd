@@ -37,18 +37,24 @@ function convertTokenColors(tokenColors) {
     });
     return map;
 }
-function convertTokenColorsBackToTheme(map) {
+function convertTokenColorsBackToTheme(tokens) {
     const tokenColors = [];
-    Object.values(map).forEach((entry) => {
+    const semanticTokenColors = {};
+    const tokenColorsMap = tokens?.tokenColors ?? {};
+    const semanticTokenColorsMap = tokens?.semanticTokenColors ?? {};
+    Object.entries(tokenColorsMap).forEach(([key, value]) => {
         tokenColors.push({
-            scope: entry.displayName, // use the original scope (displayName)
+            scope: key, // use the original scope (displayName)
             settings: {
-                foreground: entry.defaultColor,
-                fontStyle: entry.defaultFontStyle !== "none"
-                    ? entry.defaultFontStyle
-                    : undefined,
+                foreground: value.foreground,
+                fontStyle: value.fontStyle !== "none" ? value.fontStyle : undefined,
             },
         });
     });
-    return tokenColors;
+    Object.entries(semanticTokenColorsMap).forEach(([key, value]) => {
+        semanticTokenColors[key] = {
+            foreground: value.foreground,
+        };
+    });
+    return { tokenColors, semanticTokenColors };
 }

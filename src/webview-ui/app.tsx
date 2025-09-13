@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { SettingsProvider } from "./contexts/settings-context";
-import { ClerkAuthProvider } from "./components/clerk-provider";
+import { HistoryProvider } from "./contexts/history-context";
+// import { ClerkAuthProvider } from "./components/clerk-provider";
 import HeroSection from "./components/hero-section";
 import CustomizationTabs from "./components/customization-tabs";
 import FloatingSave from "./components/floating-save";
@@ -19,18 +20,20 @@ export default function App() {
   }, []);
 
   return (
-    <ClerkAuthProvider>
-      <SettingsProvider>
+    // <ClerkAuthProvider>
+    <SettingsProvider>
+      <HistoryProvider>
         <div className="min-h-screen bg-background text-foreground">
           <div className="p-4 flex flex-col gap-4">
             <HeroSection />
             <CustomizationTabs />
           </div>
-          {/* <FloatingSave /> */}
+          <FloatingSave />
           <UserSettings />
           <Toaster />
         </div>
-      </SettingsProvider>
-    </ClerkAuthProvider>
+      </HistoryProvider>
+    </SettingsProvider>
+    // </ClerkAuthProvider>
   );
 }

@@ -29,6 +29,13 @@
         "command": "themeYourCode.open",
         "title": "Theme Your Code"
       }
+    ],
+    "themes": [
+      {
+        "label": "tyc",
+        "uiTheme": "vs-dark",
+        "path": "./src/themes/tyc.json"
+      }
     ]
   },
   "keywords": [],
@@ -76,7 +83,6 @@
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-switch": "latest",
     "@radix-ui/react-tabs": "latest",
-    "@radix-ui/react-toast": "1.2.4",
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",

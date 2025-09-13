@@ -24,29 +24,32 @@ import {
 import { UiLayoutMeta, UiLayoutMetaGrouped } from "../../types/layout";
 import { cn } from "@webview/lib/utils";
 import { useQuery } from "@webview/hooks/use-query";
-import { layoutUI } from "../../lib/fonts-layout";
+
+type UiLayoutMetaWithKey = UiLayoutMeta & { key: string };
 
 export default function LayoutSettings() {
-  const { draftLayoutState, layoutDispatch } = useSettings();
+  const { draftFontLayoutState, fontLayoutDispatch } = useSettings();
   const { data: layoutState, isLoading: isLoadingLayout } = useQuery({
-    command: "GET_LAYOUT_SETTINGS",
+    command: "GET_FONT_AND_LAYOUT_SETTINGS",
     payload: [],
   });
+  console.log("layoutState", layoutState);
   // Merge draftState with default values and organize by subcategory
   const layoutTree = useMemo(() => {
-    if (!layoutUI) return {};
-    const tree: Record<string, UiLayoutMeta[]> = {};
-    const subcategoryToggles: Record<string, UiLayoutMeta> = {};
+    if (!layoutState) return {};
+    const tree: Record<string, UiLayoutMetaWithKey[]> = {};
+    const subcategoryToggles: Record<string, UiLayoutMetaWithKey> = {};
 
-    Object.values(layoutUI).forEach((item) => {
+    Object.entries(layoutState).forEach(([key, item]) => {
       if (!tree[item.subcategory]) tree[item.subcategory] = [];
-      const draftValue = draftLayoutState[item.displayName];
+      const draftValue = draftFontLayoutState[key];
       const value = draftValue ?? item.defaultValue;
       // Create a new item with the current value, maintaining type safety
       const currentItem = {
         ...item,
+        key: key,
         defaultValue: value,
-      } as UiLayoutMeta;
+      } as UiLayoutMetaWithKey;
 
       // Store subcategory toggles separately
       if (item.isSubCategoryToggle) {
@@ -57,8 +60,8 @@ export default function LayoutSettings() {
     });
 
     return { tree, subcategoryToggles };
-  }, [draftLayoutState, layoutState]); // eslint-disable-line react-hooks/exhaustive-deps
-  console.log("layoutTree", layoutTree);
+  }, [draftFontLayoutState, layoutState]); // eslint-disable-line react-hooks/exhaustive-deps
+
   //   if (!draftState) return <p>No fonts found</p>;
   if (!layoutTree.tree) return <p>No layout found</p>;
 
@@ -89,11 +92,12 @@ export default function LayoutSettings() {
                         .defaultValue as boolean
                     }
                     onCheckedChange={(checked) => {
-                      layoutDispatch({
+                      fontLayoutDispatch({
                         type: "SET_LAYOUT",
-                        key: layoutTree.subcategoryToggles[subCategory]
-                          .displayName,
+                        key: subCategory,
                         value: checked as boolean,
+                        defaultValue: layoutTree.subcategoryToggles[subCategory]
+                          .defaultValue as boolean,
                       });
                     }}
                   />
@@ -142,10 +146,11 @@ export default function LayoutSettings() {
                         <Switch
                           checked={item.defaultValue as boolean}
                           onCheckedChange={(checked) => {
-                            layoutDispatch({
+                            fontLayoutDispatch({
                               type: "SET_LAYOUT",
-                              key: item.displayName,
+                              key: item.key,
                               value: checked as boolean,
+                              defaultValue: item.defaultValue as boolean,
                             });
                           }}
                         />
@@ -159,12 +164,13 @@ export default function LayoutSettings() {
                         value={(item.defaultValue as number).toString()}
                         onChange={(e) => {
                           const numValue = parseFloat(e.target.value);
-                          layoutDispatch({
+                          fontLayoutDispatch({
                             type: "SET_LAYOUT",
-                            key: item.displayName,
+                            key: item.key,
                             value: isNaN(numValue)
                               ? item.defaultValue
                               : numValue,
+                            defaultValue: item.defaultValue as number,
                           });
                         }}
                       />
@@ -172,10 +178,11 @@ export default function LayoutSettings() {
                       <Select
                         value={item.defaultValue as string}
                         onValueChange={(value) => {
-                          layoutDispatch({
+                          fontLayoutDispatch({
                             type: "SET_LAYOUT",
-                            key: item.displayName,
+                            key: item.key,
                             value: value as string,
+                            defaultValue: item.defaultValue as string,
                           });
                         }}
                       >
@@ -194,10 +201,11 @@ export default function LayoutSettings() {
                       <Input
                         value={item.defaultValue as string}
                         onChange={(e) => {
-                          layoutDispatch({
+                          fontLayoutDispatch({
                             type: "SET_LAYOUT",
-                            key: item.displayName,
+                            key: item.key,
                             value: e.target.value as string,
+                            defaultValue: item.defaultValue as string,
                           });
                         }}
                       />

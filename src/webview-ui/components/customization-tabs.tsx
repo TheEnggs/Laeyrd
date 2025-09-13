@@ -2,8 +2,6 @@ import { useState } from "react";
 import {
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
   AnimatedTabsTrigger,
   AnimatedTabsList,
 } from "@webview/components/ui/tabs";
@@ -15,9 +13,6 @@ import {
   CardTitle,
 } from "@webview/components/ui/card";
 import ColorSettings from "./color-settings";
-import FontSettings from "./font-settings";
-// import LayoutSettings from "./layout-settings";
-// import { themeColors } from "../data/theme-colors";
 import { Palette, Type, Layout } from "lucide-react";
 import LayoutSettings from "./layout-settings";
 
@@ -28,12 +23,7 @@ const mainTabs = [
     icon: Palette,
     description: "Customize colors and visual appearance",
   },
-  //   {
-  //     id: "fonts",
-  //     name: "Fonts",
-  //     icon: Type,
-  //     description: "Configure fonts for editor, terminal, and UI",
-  //   },
+
   {
     id: "Fonts & Layout",
     name: "Fonts & Layout",
@@ -96,29 +86,7 @@ export default function CustomizationTabs() {
             </Card>
           </TabsContent>
 
-          {/* Fonts Tab */}
-          {/* <TabsContent
-            value="fonts"
-            className="animate-in fade-in-50 duration-200"
-          >
-            <Card className="bg-transparent border-0 shadow-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-secondary-foreground text-lg font-semibold tracking-tight">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Type className="w-5 h-5 text-primary" />
-                  </div>
-                  Fonts
-                </CardTitle>
-                <CardDescription className="text-secondary-foreground/80 text-sm leading-relaxed">
-                  Configure fonts for editor, terminal, and user interface
-                  elements
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FontSettings />
-              </CardContent>
-            </Card>
-          </TabsContent> */}
+          
 
           {/* Layout & UI Elements Tab */}
           <TabsContent

@@ -6,7 +6,7 @@ import {
   ProgrammingLanguagePreference,
   ServerConfig,
 } from "../../types/user-preferences";
-import { log } from "../utils/debug-logs";
+import { log } from "../../lib/debug-logs";
 
 export class UserPreferencesController {
   private static instance: UserPreferencesController;

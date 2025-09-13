@@ -28,6 +28,8 @@ import {
   Shield,
   ExternalLink,
   Check,
+  NotebookIcon,
+  MessageSquare,
 } from "lucide-react";
 import { useQuery, useMutation } from "@webview/hooks/use-query";
 import { useClerkAuth } from "./clerk-provider";
@@ -38,6 +40,9 @@ import {
   UserConsents,
   ServerConfig,
 } from "../../types/user-preferences";
+import { SignInButton } from "@clerk/clerk-react";
+import { log } from "../../lib/debug-logs";
+import FeedbackDialog from "./feedback-dialog";
 
 interface UserSettingsProps {
   className?: string;
@@ -51,12 +56,12 @@ export default function UserSettings({ className }: UserSettingsProps) {
   >([]);
 
   // Use Clerk authentication
-  const {
-    authUser,
-    isLoading: isAuthLoading,
-    signIn,
-    signOut,
-  } = useClerkAuth();
+  //   const {
+  //     authUser,
+  //     isLoading: isAuthLoading,
+  //     signIn,
+  //     signOut,
+  //   } = useClerkAuth();
 
   // Fetch user preferences and server config
   const { data: userPreferences, isLoading: isLoadingPreferences } = useQuery({
@@ -93,7 +98,7 @@ export default function UserSettings({ className }: UserSettingsProps) {
 
   const handleResetEverything = () => {
     // TODO: Implement reset functionality
-    console.log("Reset everything clicked");
+    log("Reset everything clicked");
   };
 
   const handlePrimaryLanguageChange = (language: string) => {
@@ -191,17 +196,17 @@ export default function UserSettings({ className }: UserSettingsProps) {
     refreshPreferences();
   };
 
-  const handleLoginLogout = async () => {
-    try {
-      if (authUser?.isSignedIn) {
-        await signOut();
-      } else {
-        await signIn();
-      }
-    } catch (error) {
-      console.error("Auth error:", error);
-    }
-  };
+  //   const handleLoginLogout = async () => {
+  //     try {
+  //       if (authUser?.isSignedIn) {
+  //         await signOut();
+  //       } else {
+  //         await signIn();
+  //       }
+  //     } catch (error) {
+  //       console.error("Auth error:", error);
+  //     }
+  //   };
 
   // Handle escape key to close drawer
   useEffect(() => {
@@ -241,7 +246,7 @@ export default function UserSettings({ className }: UserSettingsProps) {
       {/* Backdrop Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 bg-primary/5 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-[2px] transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
           style={{ opacity: isOpen ? 1 : 0 }}
         />
@@ -292,7 +297,7 @@ export default function UserSettings({ className }: UserSettingsProps) {
                 Manage your account and authentication
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            {/* <CardContent>
               <div className="flex items-center justify-between">
                 <div className="space-y-1 flex-1">
                   {authUser?.isSignedIn ? (
@@ -350,8 +355,9 @@ export default function UserSettings({ className }: UserSettingsProps) {
                     </>
                   )}
                 </Button>
+                <SignInButton />
               </div>
-            </CardContent>
+            </CardContent> */}
           </Card>
 
           {/* Programming Language Preferences */}
@@ -632,6 +638,21 @@ export default function UserSettings({ className }: UserSettingsProps) {
                   </>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Feedback
+              </CardTitle>
+              <CardDescription>
+                Provide feedback or report an issue
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FeedbackDialog />
             </CardContent>
           </Card>
 

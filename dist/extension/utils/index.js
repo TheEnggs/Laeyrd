@@ -37,11 +37,12 @@ exports.copyCurrentThemeToBase = copyCurrentThemeToBase;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const debug_logs_1 = require("../../lib/debug-logs");
 async function copyCurrentThemeToBase(context) {
     const currentTheme = vscode.workspace
         .getConfiguration("workbench")
         .get("colorTheme");
-    console.log("Current active theme:", currentTheme);
+    (0, debug_logs_1.log)("Current active theme:", currentTheme);
     // Find theme extension
     const themeExt = vscode.extensions.all.find((ext) => {
         const themes = ext.packageJSON?.contributes?.themes || [];

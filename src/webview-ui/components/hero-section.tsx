@@ -1,19 +1,11 @@
-import {
-  Coffee,
-  Github,
-  Link,
-  Link2,
-  SquareArrowOutUpRight,
-} from "lucide-react";
-import { VSCodeMessenger } from "../hooks/use-vscode-messenger";
-import FeedbackSheet from "./feedback-sheet";
+import { Coffee } from "lucide-react";
+import { useMutation } from "@webview/hooks/use-query";
 
 export default function HeroSection() {
-  const { postMessage } = VSCodeMessenger();
-  const openDonation = () => postMessage({ command: "OPEN_DONATION" });
+  const { mutate: openDonation } = useMutation("OPEN_DONATION");
   return (
     <>
-      <div className="absolute top-6 right-24 mb-10 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs text-secondary-foreground shadow-xs">
+      {/* <div className="absolute top-6 right-24 mb-10 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs text-secondary-foreground shadow-xs">
         <Github size={14} className="opacity-80" />
         <span className="hidden sm:inline">Going open source soon</span>
         <a
@@ -24,7 +16,7 @@ export default function HeroSection() {
           Hang tight
           <SquareArrowOutUpRight size={12} />
         </a>
-      </div>
+      </div> */}
       <section className="text-center py-2 relative">
         <div className="relative max-w-4xl mx-auto">
           <div className="mb-10 flex items-center justify-center gap-3">
@@ -32,14 +24,13 @@ export default function HeroSection() {
               <Coffee size={14} className="opacity-80" />
               <span className="hidden sm:inline">Fuel the theme wizardry</span>
               <button
-                onClick={openDonation}
+                onClick={() => openDonation({ command: "OPEN_DONATION" })}
                 className="ml-1 inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:opacity-90 active:opacity-100"
                 aria-label="Donate"
               >
                 Donate
               </button>
             </div>
-            <FeedbackSheet />
           </div>
 
           <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-foreground tracking-tight">

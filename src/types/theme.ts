@@ -1,3 +1,5 @@
+import { DraftColor } from "@webview/contexts/settings-context";
+
 // new colors
 export type Category =
   | "Base"

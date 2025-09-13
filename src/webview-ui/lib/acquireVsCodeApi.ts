@@ -1,5 +1,7 @@
 "use client";
 
+import { log } from "../../lib/debug-logs";
+
 export type VsCodeApi = {
   postMessage: (message: any) => void;
   getState: <T = unknown>() => T | undefined;
@@ -11,13 +13,13 @@ function createFallbackApi(): VsCodeApi {
   return {
     postMessage: (message: any) => {
       // eslint-disable-next-line no-console
-      console.log("[Mock vscode.postMessage]", message);
+      log("[Mock vscode.postMessage]", message);
     },
     getState: <T>() => state as T,
     setState: (newState: unknown) => {
       state = newState;
       // eslint-disable-next-line no-console
-      console.log("[Mock vscode.setState]", newState);
+      log("[Mock vscode.setState]", newState);
     },
   };
 }

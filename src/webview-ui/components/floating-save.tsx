@@ -4,6 +4,7 @@ import { Button } from "@webview/components/ui/button";
 import { Badge } from "@webview/components/ui/badge";
 import { useSettings } from "../contexts/settings-context";
 import { Save, RotateCcw, MonitorPlay } from "lucide-react";
+import HistoryDialog from "./history-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,22 +26,24 @@ import {
   SelectValue,
 } from "@webview/components/ui/select";
 import { buildVSCodeSettingsFromState } from "@webview/lib/utils";
-import { useQuery } from "@webview/hooks/use-query";
+import { useMutation, useQuery } from "@webview/hooks/use-query";
+import useToast from "@webview/hooks/use-toast";
+import { useHistory } from "../contexts/history-context";
+import { HistoryController } from "../../extension/controller/history";
 
 export default function FloatingSave() {
   const {
     hasColorChanges,
     hasSettingsChanges,
-    draftFontState,
-    draftLayoutState,
+    draftFontLayoutState,
+    draftColorState,
+    draftTokenState,
+    fontLayoutDispatch,
   } = useSettings();
-  const { postMessage } = VSCodeMessenger();
-  const { data: themesList, isLoading: isLoadingThemes } = useQuery({
-    command: "GET_THEMES_LIST",
-    payload: [],
-  });
-  const { data: activeThemeLabel, isLoading: isLoadingActiveTheme } = useQuery({
-    command: "GET_ACTIVE_THEME_LABEL",
+  const toast = useToast();
+  const { addHistoryEntry } = useHistory();
+  const { data: themesData, isLoading: isLoadingThemes } = useQuery({
+    command: "GET_THEME_LIST",
     payload: [],
   });
   const [livePreview, setLivePreview] = useState(false);
@@ -50,41 +53,122 @@ export default function FloatingSave() {
   const [overwriteLabel, setOverwriteLabel] = useState<string | undefined>(
     undefined
   );
-  const [loading, setLoading] = useState(false);
-  console.log(themesList);
   const sortedThemes = useMemo(() => {
-    return (themesList || [])
-      ?.slice()
-      ?.sort((a: any, b: any) => a.label.localeCompare(b.label));
-  }, [themesList]);
+    if (!themesData) return [];
+    return themesData.themes?.sort((a: any, b: any) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [themesData]);
+
+  const { mutate: saveTheme, isPending: isSavingTheme } = useMutation(
+    "SAVE_THEME",
+    {
+      onSuccess: () => {
+        // Add history entry for theme save
+        const hasThemeChanges =
+          Object.keys(draftColorState).length > 0 ||
+          Object.keys(draftTokenState.tokenColors).length > 0 ||
+          Object.keys(draftTokenState.semanticTokenColors).length > 0;
+
+        if (hasThemeChanges) {
+          const changes: any = {};
+          const originalValues: any = {};
+
+          if (Object.keys(draftColorState).length > 0) {
+            changes.colors = { ...draftColorState };
+            originalValues.colors = {}; // Would need to capture from theme controller
+          }
+
+          if (Object.keys(draftTokenState.tokenColors).length > 0) {
+            changes.tokenColors = { ...draftTokenState.tokenColors };
+            originalValues.tokenColors = {};
+          }
+
+          if (Object.keys(draftTokenState.semanticTokenColors).length > 0) {
+            changes.semanticTokenColors = {
+              ...draftTokenState.semanticTokenColors,
+            };
+            originalValues.semanticTokenColors = {};
+          }
+
+          const saveThemeName =
+            mode === "overwrite" ? overwriteLabel : themeName;
+          const description = `Saved theme "${saveThemeName}" with ${HistoryController.createDescription(
+            changes
+          )}`;
+
+          addHistoryEntry({
+            description,
+            type: hasSettingsChanges ? "both" : "theme",
+            changes,
+            originalValues,
+          });
+        }
+
+        return toast({
+          message: "Theme saved",
+          type: "success",
+        });
+      },
+      onError: () => {
+        return toast({
+          message: "Failed to save theme",
+          type: "error",
+        });
+      },
+    }
+  );
+  const { mutate: saveSettings } = useMutation("SAVE_SETTINGS", {
+    onSuccess: () => {
+      fontLayoutDispatch({ type: "RESET", payload: {} });
+      return toast({
+        message: "Settings saved",
+        type: "success",
+      });
+    },
+    onError: () => {
+      return toast({
+        message: "Failed to save settings",
+        type: "error",
+      });
+    },
+  });
 
   const handleSave = () => {
-    setLoading(true);
-    if (mode === "overwrite") {
-      postMessage({
-        command: "SAVE_THEME",
-        payload: {
-          themeName: overwriteLabel,
-        },
-      });
-    } else if (mode === "create") {
-      postMessage({
-        command: "SAVE_THEME",
-        payload: {
-          themeName: themeName,
-        },
+    if (hasSettingsChanges && !hasColorChanges) {
+      saveSettings({
+        settings: buildVSCodeSettingsFromState(
+          draftFontLayoutState,
+          draftFontLayoutState
+        ),
       });
     }
-    if (hasSettingsChanges) {
-      postMessage({
-        command: "SAVE_SETTINGS",
-        payload: {
-          settings: buildVSCodeSettingsFromState(
-            draftFontState,
-            draftLayoutState
-          ),
-        },
+    if (hasColorChanges) {
+      if (mode === "overwrite" && !overwriteLabel)
+        return toast({
+          message: "Please select a theme to overwrite",
+          type: "error",
+        });
+
+      if (mode === "create" && !themeName)
+        return toast({
+          message: "Please enter a theme name",
+          type: "error",
+        });
+      saveTheme({
+        mode,
+        themeName: mode === "overwrite" ? overwriteLabel! : themeName,
+        colors: draftColorState,
+        tokenColors: draftTokenState,
       });
+      if (hasSettingsChanges) {
+        saveSettings({
+          settings: buildVSCodeSettingsFromState(
+            draftFontLayoutState,
+            draftFontLayoutState
+          ),
+        });
+      }
     }
   };
 
@@ -125,6 +209,9 @@ export default function FloatingSave() {
           <MonitorPlay className="w-4 h-4 mr-2" />
           {livePreview ? "Live Preview On" : "Live Preview"}
         </Button>
+        {/* History Button */}
+        <HistoryDialog />
+
         {/* Divider */}
         <div className="w-px h-6 bg-border/40"></div>
 
@@ -168,11 +255,13 @@ export default function FloatingSave() {
           <AlertDialogTrigger asChild>
             <Button
               size="sm"
-              disabled={!hasColorChanges || !hasSettingsChanges || loading}
+              disabled={
+                (!hasColorChanges && !hasSettingsChanges) || isSavingTheme
+              }
               className="px-6 font-medium bg-gradient-to-r from-primary/90 to-primary/80 hover:from-primary hover:to-primary/90 transition-all duration-200 shadow-sm text-primary-foreground rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
-              {loading ? "Saving..." : "Save"}
+              {isSavingTheme ? "Saving..." : "Save"}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent className="bg-card/95 border border-border/40 rounded-2xl shadow-xl backdrop-blur-xl">
@@ -212,18 +301,24 @@ export default function FloatingSave() {
                           <SelectValue placeholder="Select theme to overwrite" />
                         </SelectTrigger>
                         <SelectContent>
-                          {sortedThemes.map((t: any) => (
-                            <SelectItem key={t.label} value={t.label}>
-                              <div className="flex items-center gap-2">
-                                <span>{t.label}</span>
-                                {activeThemeLabel === t.label && (
-                                  <Badge className="ml-2" variant="secondary">
-                                    Current
-                                  </Badge>
-                                )}
-                              </div>
+                          {themesData ? (
+                            sortedThemes.map((t: any) => (
+                              <SelectItem key={t.label} value={t.label}>
+                                <div className="flex items-center gap-2">
+                                  <span>{t.label}</span>
+                                  {themesData.active === t.label && (
+                                    <Badge className="ml-2" variant="secondary">
+                                      Current
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="No themes found">
+                              No themes found
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -250,6 +345,12 @@ export default function FloatingSave() {
                     onChange={(e) => setThemeName(e.target.value)}
                   />
                 </div>
+              </div>
+            ) : hasSettingsChanges ? (
+              <div className="space-y-4 py-2">
+                <AlertDialogDescription className="text-muted-foreground">
+                  Are you sure you want to save settings?
+                </AlertDialogDescription>
               </div>
             ) : null}
             <AlertDialogFooter>

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.layoutUI = void 0;
-exports.layoutUI = {
+exports.fontsLayoutUI = void 0;
+exports.fontsLayoutUI = {
     "editor.fontFamily": {
         category: "editor",
         subcategory: "font",

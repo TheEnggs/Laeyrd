@@ -2,17 +2,17 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import { parse } from "jsonc-parser";
 import { detectFork, getSettingsPath } from "../utils/getSettings";
-import { log } from "../utils/debug-logs";
+import { log } from "../../lib/debug-logs";
 import { fontListMap } from "../../lib/fontsList";
 import { uiLayoutCategoryMap } from "../../lib/layoutList";
-import { getFontSettings } from "../utils/settings";
-import { FontMetaGrouped } from "../../types/font";
 import { getLayoutSettings } from "../utils/settings";
+import { FontMetaGrouped } from "../../types/font";
 import { UiLayoutMetaGrouped } from "../../types/layout";
+import { fontsLayoutUI } from "../../lib/fonts-layout";
 
 export interface UserSettings {
-  fontSettings: Record<string, string>;
-  layoutSettings: Record<string, string | number | boolean>;
+  fontLayoutSettings: Record<string, string | number | boolean>;
+  mergedSettings: Record<keyof typeof fontsLayoutUI, number | boolean | string>;
   raw?: Record<string, unknown>;
 }
 
@@ -39,8 +39,8 @@ export class SettingsController {
     this.listeners.forEach((cb) =>
       cb(
         this.currentSettings || {
-          fontSettings: {},
-          layoutSettings: {},
+          mergedSettings: {},
+          fontLayoutSettings: {},
           raw: {},
         }
       )
@@ -57,6 +57,46 @@ export class SettingsController {
   }
 
   /**
+   * Merge settings with proper priority order:
+   * 1. Default values from fontsLayoutUI
+   * 2. VS Code configuration values
+   * 3. Parsed settings from JSON file (highest priority)
+   */
+  private mergeSettingsWithDefaults(
+    parsedSettings: Record<string, string | number | boolean>,
+    config: vscode.WorkspaceConfiguration
+  ): Record<keyof typeof fontsLayoutUI, number | boolean | string> {
+    const merged: Record<string, string | number | boolean> = {};
+
+    // Get all keys from fontsLayoutUI
+    const fontAndLayoutKeys = Object.keys(fontsLayoutUI);
+
+    fontAndLayoutKeys.forEach((key) => {
+      // Start with default value from fontsLayoutUI
+      let value: string | number | boolean =
+        fontsLayoutUI[key as keyof typeof fontsLayoutUI].defaultValue;
+
+      // Override with VS Code configuration value if available
+      const configValue = config.get(key);
+      if (configValue !== undefined) {
+        value = configValue as string | number | boolean;
+      }
+
+      // Override with parsed settings value if available (highest priority)
+      if (parsedSettings[key] !== undefined) {
+        value = parsedSettings[key];
+      }
+
+      merged[key] = value;
+    });
+
+    return merged as Record<
+      keyof typeof fontsLayoutUI,
+      number | boolean | string
+    >;
+  }
+
+  /**
    * Load the currently active settings file for the detected fork
    */
   private loadCurrentSettings(): void {
@@ -64,8 +104,8 @@ export class SettingsController {
       const fork = detectFork();
       const settingsPath = getSettingsPath(fork);
       this.currentSettingsPath = settingsPath;
-      console.log("settingsPath", settingsPath);
-      console.log("fork", fork);
+      log("settingsPath", settingsPath);
+      log("fork", fork);
       if (!fs.existsSync(settingsPath)) {
         log(`[SettingsController] Settings file not found: ${settingsPath}`);
         this.currentSettings = undefined;
@@ -76,27 +116,33 @@ export class SettingsController {
       const parsed = parse(fileContent); // supports comments
 
       // Separate font and layout settings for easy access
-      const fontSettings: Record<string, string> = {};
-      const layoutSettings: Record<string, string | number | boolean> = {};
+      const fontsLayoutSettings: Record<string, string | number | boolean> = {};
 
       // You can add all your font/layout keys from fontListMap & uiLayoutCategoryMap
-      const fontKeys = Object.keys(fontListMap);
-      const layoutKeys = Object.keys(uiLayoutCategoryMap);
+      const fontAndLayoutKeys = Object.keys(fontsLayoutUI);
 
-      fontKeys.forEach((key) => {
+      fontAndLayoutKeys.forEach((key) => {
         if (parsed[key] !== undefined)
-          fontSettings[key] = parsed[key] as string;
-      });
-
-      layoutKeys.forEach((key) => {
-        if (parsed[key] !== undefined)
-          layoutSettings[key] = parsed[key] as string | number | boolean;
+          fontsLayoutSettings[key] = parsed[key] as string | number | boolean;
       });
 
       const config = vscode.workspace.getConfiguration();
-      console.log("config", config.editor);
-      this.currentSettings = { fontSettings, layoutSettings, raw: parsed };
+      const mergedSettings = this.mergeSettingsWithDefaults(
+        fontsLayoutSettings,
+        config
+      );
+
+      this.currentSettings = {
+        fontLayoutSettings: fontsLayoutSettings,
+        mergedSettings,
+        raw: parsed,
+      };
       log(`[SettingsController] Settings loaded for fork: ${fork}`);
+      log(
+        `[SettingsController] Merged ${
+          Object.keys(mergedSettings).length
+        } settings from defaults, config, and parsed settings`
+      );
     } catch (error) {
       console.error("Error loading settings:", error);
       this.currentSettings = undefined;
@@ -108,7 +154,7 @@ export class SettingsController {
    */
   public refreshSettings(): void {
     log("Refreshing user settings...");
-    // this.loadCurrentSettings();
+    this.loadCurrentSettings();
     this.notifySettingsChanged();
   }
 
@@ -141,42 +187,56 @@ export class SettingsController {
   }
 
   /**
-   * Get current font settings
+   * Get merged settings (defaults + config + parsed settings)
    */
-  public getFontSettings(): FontMetaGrouped | undefined {
-    return getFontSettings(this.currentSettings?.fontSettings || {});
+  public getMergedSettings() {
+    return getLayoutSettings(this.currentSettings?.mergedSettings || {});
   }
 
   /**
-   * Get current layout settings
+   * Get current settings object
    */
-  public getLayoutSettings(): UiLayoutMetaGrouped | undefined {
-    return getLayoutSettings(this.currentSettings?.layoutSettings || {});
+  public getCurrentSettings(): UserSettings | undefined {
+    return this.currentSettings;
+  }
+
+  /**
+   * Force reload settings and notify listeners
+   * This is called when VS Code configuration changes
+   */
+  public handleConfigurationChange(): void {
+    log(
+      "[SettingsController] Configuration change detected, reloading settings..."
+    );
+    this.loadCurrentSettings();
+    this.notifySettingsChanged();
+  }
+
+  /**
+   * Test method to simulate settings changes
+   * This is useful for debugging and testing the settings change flow
+   */
+  public testSettingsChange(): void {
+    log("[SettingsController] Testing settings change notification...");
+    this.notifySettingsChanged();
   }
 
   /**
    * Overwrite the current settings JSON with updated font & layout values
    */
   public overwriteSettingsJson(
-    fontSettings: Record<string, string>,
-    layoutSettings: Record<string, string | number | boolean>
+    settings: Record<string, string | number | boolean | undefined>
   ): void {
     if (!this.currentSettingsPath || !this.currentSettings) {
       console.error("No settings loaded to overwrite");
       return;
     }
-
-    const updatedSettings = {
-      ...this.currentSettings.raw, // preserve all other keys
-      ...fontSettings,
-      ...layoutSettings,
-    };
-
-    fs.writeFileSync(
-      this.currentSettingsPath,
-      JSON.stringify(updatedSettings, null, 2),
-      "utf8"
-    );
+    log("settings", settings);
+    for (const [key, value] of Object.entries(settings)) {
+      vscode.workspace
+        .getConfiguration()
+        .update(key, value, vscode.ConfigurationTarget.Global);
+    }
     this.refreshSettings();
     log(
       `[SettingsController] Settings overwritten at: ${this.currentSettingsPath}`
