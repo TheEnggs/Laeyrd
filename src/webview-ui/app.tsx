@@ -3,11 +3,10 @@
 import { useEffect } from "react";
 import { SettingsProvider } from "./contexts/settings-context";
 import { HistoryProvider } from "./contexts/history-context";
-// import { ClerkAuthProvider } from "./components/clerk-provider";
+import { AuthProvider } from "./components/auth-provider";
 import HeroSection from "./components/hero-section";
 import CustomizationTabs from "./components/customization-tabs";
 import FloatingSave from "./components/floating-save";
-import UserSettings from "./components/user-settings";
 import { Toaster } from "./components/ui/sonner";
 import { startListeners, stopListeners } from "@webview/lib/listeners";
 
@@ -20,20 +19,19 @@ export default function App() {
   }, []);
 
   return (
-    // <ClerkAuthProvider>
-    <SettingsProvider>
-      <HistoryProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          <div className="p-4 flex flex-col gap-4">
-            <HeroSection />
-            <CustomizationTabs />
+    <AuthProvider>
+      <SettingsProvider>
+        <HistoryProvider>
+          <div className="min-h-screen bg-background text-foreground">
+            <div className="p-4 flex flex-col gap-4">
+              <HeroSection />
+              <CustomizationTabs />
+            </div>
+            <FloatingSave />
+            <Toaster />
           </div>
-          <FloatingSave />
-          <UserSettings />
-          <Toaster />
-        </div>
-      </HistoryProvider>
-    </SettingsProvider>
-    // </ClerkAuthProvider>
+        </HistoryProvider>
+      </SettingsProvider>
+    </AuthProvider>
   );
 }

@@ -158,14 +158,14 @@ class MessageHandler {
                     executor: () => auth_1.AuthController.getInstance(this.context).getServerConfig(),
                 });
                 break;
-            case "CLERK_SIGN_IN":
+            case "WEBAPP_SIGN_IN":
                 this.responseHandler({
                     command,
                     requestId: message.requestId,
                     executor: () => auth_1.AuthController.getInstance(this.context).signIn(message.payload?.returnUrl),
                 });
                 break;
-            case "CLERK_SIGN_OUT":
+            case "SIGN_OUT":
                 this.responseHandler({
                     command,
                     requestId: message.requestId,

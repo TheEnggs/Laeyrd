@@ -15,7 +15,8 @@ export class UserPreferencesController {
 
   // Server configuration - replace with your actual server details
   private serverConfig: ServerConfig = {
-    baseUrl: "https://api.theme-your-code.com", // Replace with your server URL
+    baseUrl: "http://localhost:3000", // Replace with your server URL
+    webappUrl: "http://localhost:3000",
     githubUrl: "https://github.com/your-org/theme-your-code-server", // Replace with your GitHub repo
     privacyPolicyUrl: "https://theme-your-code.com/privacy",
     termsOfServiceUrl: "https://theme-your-code.com/terms",

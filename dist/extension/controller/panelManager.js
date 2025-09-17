@@ -60,20 +60,23 @@ class ThemeYourCodePanelManager {
                 vscode.Uri.file(path_1.default.join(this.context.extensionPath, "dist", "webview-ui")),
             ],
         });
-        const handler = new message_1.MessageHandler(this.context, this.panel);
+        this.initMessageHandler(this.panel);
         this.panel.webview.html = getWebviewHtml(this.panel.webview, this.context.extensionPath);
         this.disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
+            if (!this.messageHandler) {
+                return;
+            }
             if (event.affectsConfiguration("workbench.colorTheme")) {
-                handler.configurationChanged({
+                this.messageHandler.configurationChanged({
                     updateThemeColor: true,
                     updateThemeList: true,
                 });
             }
             // Listen for font and layout settings changes
             if (this.isFontOrLayoutSetting(event)) {
-                handler.settingsChanged();
+                this.messageHandler.settingsChanged();
             }
-        }), this.panel.webview.onDidReceiveMessage((message) => handler.handle(message.command, message)), this.panel.onDidDispose(() => this.disposePanel()));
+        }), this.panel.webview.onDidReceiveMessage((message) => this.messageHandler?.handle(message.command, message)), this.panel.onDidDispose(() => this.disposePanel()));
     }
     disposePanel() {
         this.panel = undefined;
@@ -84,6 +87,9 @@ class ThemeYourCodePanelManager {
             const d = this.disposables.pop();
             d?.dispose();
         }
+    }
+    initMessageHandler(panel) {
+        this.messageHandler = new message_1.MessageHandler(this.context, panel);
     }
     /**
      * Check if a configuration change affects font or layout settings

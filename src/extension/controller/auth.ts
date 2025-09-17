@@ -5,6 +5,7 @@ import {
   ServerConfig,
 } from "../../types/user-preferences";
 import { log } from "../../lib/debug-logs";
+import { AuthServer } from "../lib/auth-server";
 
 export class AuthController {
   private static instance: AuthController;
@@ -12,16 +13,15 @@ export class AuthController {
   private currentUser: AuthUser | null = null;
   private currentSession: AuthSession | null = null;
   private listeners: Array<(user: AuthUser | null) => void> = [];
-
-  // Server configuration - replace with your actual Clerk setup
+  private authServer: AuthServer | null = null;
+  // Server configuration - webapp URL for authentication
   private serverConfig: ServerConfig = {
     baseUrl: "https://api.theme-your-code.com",
     githubUrl: "https://github.com/your-org/theme-your-code-server",
     privacyPolicyUrl: "https://theme-your-code.com/privacy",
     termsOfServiceUrl: "https://theme-your-code.com/terms",
-    clerkPublishableKey: "pk_test_YXdhcmUtZWVsLTM4LmNsZXJrLmFjY291bnRzLmRldiQ", // Replace with your Clerk publishable key
-    // clerkSignInUrl: "https://your-clerk-app.accounts.dev/sign-in",
-    // clerkSignUpUrl: "https://your-clerk-app.accounts.dev/sign-up",
+    clerkPublishableKey: "", // No longer needed
+    webappUrl: "http://localhost:3000", // Your webapp URL
   };
 
   private constructor(context: vscode.ExtensionContext) {
@@ -123,24 +123,28 @@ export class AuthController {
   }
 
   /**
-   * Handle sign-in process - opens external browser for Clerk OAuth
+   * Handle sign-in process - opens webapp for authentication
    */
   public async signIn(
     returnUrl?: string
   ): Promise<{ success: boolean; redirectUrl?: string }> {
     try {
-      const signInUrl = this.buildSignInUrl(returnUrl);
+      if (!this.authServer) {
+        this.authServer = new AuthServer();
+        await this.authServer.start();
 
-      // Open external browser for Clerk authentication
+        // Set up the auth callback
+        this.authServer.setAuthCallback(async (authData) => {
+          await this.handleAuthCallback(authData);
+        });
+      }
+      const signInUrl = this.buildWebappSignInUrl();
+
+      // Open webapp in external browser for authentication
       const opened = await vscode.env.openExternal(vscode.Uri.parse(signInUrl));
 
       if (opened) {
-        log("[AuthController] Opened sign-in URL in external browser");
-
-        // Start polling for authentication completion
-        // In a real implementation, you'd have a callback URL that posts back to the extension
-        this.startAuthPolling();
-
+        log("[AuthController] Opened webapp sign-in URL in external browser");
         return { success: true, redirectUrl: signInUrl };
       } else {
         return { success: false };
@@ -174,91 +178,25 @@ export class AuthController {
   }
 
   /**
-   * Build sign-in URL with return parameters
+   * Build webapp sign-in URL with return parameters
    */
-  private buildSignInUrl(returnUrl?: string): string {
-    const baseUrl =
-      this.serverConfig.clerkSignInUrl ||
-      `${this.serverConfig.baseUrl}/auth/sign-in`;
+  private buildWebappSignInUrl(): string {
+    const baseUrl = `${this.serverConfig.webappUrl}/sign-in`;
     const params = new URLSearchParams();
-
+    if (!this.authServer) {
+      throw new Error("Auth server not initialized");
+    }
+    const callbackUrl = this.authServer.getCallbackUrl();
+    const appName = vscode.env.appName;
     // Add return URL for post-auth redirect
-    params.append(
-      "return_url",
-      returnUrl || "vscode://theme-your-code.auth-callback"
-    );
+    params.append("callback_url", callbackUrl);
 
     // Add VS Code integration flag
-    params.append("integration", "vscode");
+    params.append("integration", "extension");
+    params.append("app", appName);
 
     return `${baseUrl}?${params.toString()}`;
   }
-
-  /**
-   * Start polling for authentication completion
-   * In production, you'd use a proper callback mechanism
-   */
-  private startAuthPolling(): void {
-    let pollCount = 0;
-    const maxPolls = 60; // Poll for 5 minutes max (5s intervals)
-
-    const pollInterval = setInterval(async () => {
-      pollCount++;
-
-      try {
-        // Check if auth was completed by checking your server endpoint
-        const authResult = await this.checkAuthCompletion();
-
-        if (authResult.success && authResult.user && authResult.session) {
-          clearInterval(pollInterval);
-          await this.storeAuth(authResult.user, authResult.session);
-
-          vscode.window.showInformationMessage(
-            `Welcome back, ${
-              authResult.user.firstName || authResult.user.username || "User"
-            }!`
-          );
-        } else if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-          log("[AuthController] Auth polling timeout");
-        }
-      } catch (error) {
-        log(`[AuthController] Auth polling error: ${error}`);
-        if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-        }
-      }
-    }, 5000); // Poll every 5 seconds
-  }
-
-  /**
-   * Check if authentication was completed
-   * This would call your server to check for a completed auth session
-   */
-  private async checkAuthCompletion(): Promise<{
-    success: boolean;
-    user?: AuthUser;
-    session?: AuthSession;
-  }> {
-    try {
-      // TODO: Implement actual server check
-      // This is a placeholder - replace with your server endpoint
-
-      // const response = await fetch(`${this.serverConfig.baseUrl}/auth/check-session`, {
-      //   method: 'GET',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      // });
-
-      // For now, return false to indicate auth not complete
-      return { success: false };
-    } catch (error) {
-      log(`[AuthController] Error checking auth completion: ${error}`);
-      return { success: false };
-    }
-  }
-
   /**
    * Invalidate server session
    */
@@ -314,8 +252,8 @@ export class AuthController {
   }
 
   /**
-   * Handle authentication callback from external source
-   * This would be called when the user completes OAuth in the browser
+   * Handle authentication callback from webapp
+   * This is called when the user completes authentication in the webapp
    */
   public async handleAuthCallback(authData: {
     user: AuthUser;
@@ -324,9 +262,31 @@ export class AuthController {
     try {
       await this.storeAuth(authData.user, authData.session);
       log("[AuthController] Authentication callback processed successfully");
+
+      // Show welcome message
+      vscode.window.showInformationMessage(
+        `Welcome back, ${
+          authData.user.firstName || authData.user.username || "User"
+        }!`
+      );
+
+
+      // Stop the auth server after successful authentication
+      if (this.authServer) {
+        this.authServer.stop();
+        this.authServer = null;
+      }
     } catch (error) {
       log(`[AuthController] Error handling auth callback: ${error}`);
+      vscode.window.showErrorMessage(
+        "Authentication failed. Please try again."
+      );
       throw error;
     }
   }
+
+  /**
+   * Cleanup resources when extension is deactivated
+   */
+  public dispose(): void {}
 }

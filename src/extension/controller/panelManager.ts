@@ -9,7 +9,7 @@ const isDev = false;
 export class ThemeYourCodePanelManager implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private disposables: vscode.Disposable[] = [];
-
+  public messageHandler: MessageHandler | undefined;
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   public open() {
@@ -33,29 +33,31 @@ export class ThemeYourCodePanelManager implements vscode.Disposable {
       }
     );
 
-    const handler = new MessageHandler(this.context, this.panel);
+    this.initMessageHandler(this.panel);
 
     this.panel.webview.html = getWebviewHtml(
       this.panel.webview,
       this.context.extensionPath
     );
-
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
+        if (!this.messageHandler) {
+          return;
+        }
         if (event.affectsConfiguration("workbench.colorTheme")) {
-          handler.configurationChanged({
+          this.messageHandler.configurationChanged({
             updateThemeColor: true,
             updateThemeList: true,
           });
         }
         // Listen for font and layout settings changes
         if (this.isFontOrLayoutSetting(event)) {
-          handler.settingsChanged();
+          this.messageHandler.settingsChanged();
         }
       }),
 
       this.panel.webview.onDidReceiveMessage((message) =>
-        handler.handle(message.command, message)
+        this.messageHandler?.handle(message.command, message)
       ),
 
       this.panel.onDidDispose(() => this.disposePanel())
@@ -72,6 +74,10 @@ export class ThemeYourCodePanelManager implements vscode.Disposable {
       const d = this.disposables.pop();
       d?.dispose();
     }
+  }
+
+  private initMessageHandler(panel: vscode.WebviewPanel) {
+    this.messageHandler = new MessageHandler(this.context, panel);
   }
 
   /**

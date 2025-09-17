@@ -32,7 +32,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useQuery, useMutation } from "@webview/hooks/use-query";
-import { useClerkAuth } from "./clerk-provider";
+import { useAuth } from "./auth-provider";
 import {
   UserPreferences,
   PROGRAMMING_LANGUAGES,
@@ -61,7 +61,7 @@ export default function UserSettings({ className }: UserSettingsProps) {
   //     isLoading: isAuthLoading,
   //     signIn,
   //     signOut,
-  //   } = useClerkAuth();
+  //   } = useAuth();
 
   // Fetch user preferences and server config
   const { data: userPreferences, isLoading: isLoadingPreferences } = useQuery({

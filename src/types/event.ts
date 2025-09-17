@@ -129,6 +129,14 @@ export type WebViewEvent = {
     payload: { url: string };
     response: { success: boolean };
   };
+  WEBAPP_SIGN_IN: {
+    payload: null;
+    response: { success: boolean; redirectUrl?: string };
+  };
+  SIGN_OUT: {
+    payload: null;
+    response: { success: boolean };
+  };
   // History Events
   GET_HISTORY: {
     payload: any;

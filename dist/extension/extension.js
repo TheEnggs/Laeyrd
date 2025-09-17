@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
+exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const theme_1 = require("./controller/theme");
 const userSettings_1 = require("./controller/userSettings");
@@ -42,17 +43,34 @@ const auth_1 = require("./controller/auth");
 const history_1 = require("./controller/history");
 const panelManager_1 = require("./controller/panelManager");
 let panelManager;
+let authController;
 async function activate(context) {
     const controllers = {
         theme: theme_1.ThemeController.getInstance(context),
         userSettings: new userSettings_1.UserSettingsController(context),
-        preferences: userPreferences_1.UserPreferencesController.getInstance(context),
         auth: auth_1.AuthController.getInstance(context),
+        preferences: userPreferences_1.UserPreferencesController.getInstance(context),
         history: history_1.HistoryController.getInstance(context),
     };
+    // Store auth controller reference for cleanup
     controllers.userSettings.ensureOriginalBackup();
     panelManager = new panelManager_1.ThemeYourCodePanelManager(context);
+    authController = controllers.auth;
+    authController.onAuthChanged((user) => {
+        panelManager.messageHandler?.POST_MESSAGE({
+            command: "UPDATE_AUTH_USER",
+            payload: user || undefined,
+            requestId: "",
+            status: "success",
+        });
+    });
     const openCommand = vscode.commands.registerCommand("themeYourCode.open", () => panelManager.open());
     context.subscriptions.push(openCommand, panelManager);
+}
+function deactivate() {
+    // Cleanup auth server when extension is deactivated
+    if (authController) {
+        authController.dispose();
+    }
 }
 const isDev = false;

@@ -13,8 +13,10 @@ import {
   CardTitle,
 } from "@webview/components/ui/card";
 import ColorSettings from "./color-settings";
-import { Palette, Type, Layout } from "lucide-react";
+import { Palette, Type, Layout, Settings, Store } from "lucide-react";
 import LayoutSettings from "./layout-settings";
+import UserSettingsContent from "./user-settings-content";
+import MarketplaceContent from "./marketplace-content";
 
 const mainTabs = [
   {
@@ -29,6 +31,13 @@ const mainTabs = [
     name: "Fonts & Layout",
     icon: Layout,
     description: "Adjust layout, panels, and UI behavior",
+  },
+
+  {
+    id: "settings",
+    name: "Settings",
+    icon: Settings,
+    description: "Manage your account and preferences",
   },
 ];
 
@@ -45,7 +54,7 @@ export default function CustomizationTabs() {
         <AnimatedTabsList
           activeTab={activeTab}
           tabValues={mainTabs.map((tab) => tab.id)}
-          className="w-full max-w-2xl gap-1 grid grid-cols-2 justify-center [mask-image:none]"
+          className="w-full max-w-4xl gap-1 grid grid-cols-3 justify-center [mask-image:none]"
         >
           {mainTabs.map((tab) => {
             const IconComponent = tab.icon;
@@ -86,8 +95,6 @@ export default function CustomizationTabs() {
             </Card>
           </TabsContent>
 
-          
-
           {/* Layout & UI Elements Tab */}
           <TabsContent
             value="Fonts & Layout"
@@ -107,6 +114,52 @@ export default function CustomizationTabs() {
               </CardHeader>
               <CardContent>
                 <LayoutSettings />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Marketplace Tab */}
+          {/* <TabsContent
+            value="marketplace"
+            className="animate-in fade-in-50 duration-200"
+          >
+            <Card className="bg-transparent border-0 shadow-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-secondary-foreground text-lg font-semibold tracking-tight">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Store className="w-5 h-5 text-primary" />
+                  </div>
+                  Marketplace
+                </CardTitle>
+                <CardDescription className="text-secondary-foreground/80 text-sm leading-relaxed">
+                  Discover and install themes, extensions, and development tools
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MarketplaceContent />
+              </CardContent>
+            </Card>
+          </TabsContent> */}
+
+          {/* User Settings Tab */}
+          <TabsContent
+            value="settings"
+            className="animate-in fade-in-50 duration-200"
+          >
+            <Card className="bg-transparent border-0 shadow-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-secondary-foreground text-lg font-semibold tracking-tight">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Settings className="w-5 h-5 text-primary" />
+                  </div>
+                  Settings
+                </CardTitle>
+                <CardDescription className="text-secondary-foreground/80 text-sm leading-relaxed">
+                  Manage your account, preferences, and application settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserSettingsContent />
               </CardContent>
             </Card>
           </TabsContent>

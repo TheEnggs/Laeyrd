@@ -34,8 +34,20 @@ export function startListeners() {
         });
     }
   );
+  const detachAuthUser = attach("UPDATE_AUTH_USER", (payload) => {
+    if (payload)
+      queryClient.setData({
+        command: "GET_AUTH_USER",
+        data: payload,
+      });
+  });
 
-  detachFns = [detachTheme, detachThemeList, detachFontAndLayout];
+  detachFns = [
+    detachTheme,
+    detachThemeList,
+    detachFontAndLayout,
+    detachAuthUser,
+  ];
 }
 
 export function stopListeners() {

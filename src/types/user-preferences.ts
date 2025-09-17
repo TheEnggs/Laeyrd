@@ -55,6 +55,7 @@ export interface ServerConfig {
   privacyPolicyUrl: string;
   termsOfServiceUrl: string;
   clerkPublishableKey: string;
+  webappUrl: string;
   clerkSignInUrl?: string;
   clerkSignUpUrl?: string;
 }
