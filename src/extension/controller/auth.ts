@@ -3,172 +3,216 @@ import {
   AuthUser,
   AuthSession,
   ServerConfig,
-} from "../../types/user-preferences";
+} from "@src/types/user-preferences";
 import { log } from "../../lib/debug-logs";
-import { AuthServer } from "../lib/auth-server";
+import { SERVER_CONFIG } from "@extension/lib/constants";
+import os from "os";
+import { v4 as uuidv4 } from "uuid";
+export interface DeviceInfo {
+  machineId?: string;
+  appName?: string;
+  deviceName?: string;
+  os?: string;
+  extensionVersion?: string;
+  ipAddress?: string; // optional if you want to fetch external IP
+}
 
 export class AuthController {
-  private static instance: AuthController;
-  private context: vscode.ExtensionContext;
+  private static instance?: AuthController;
   private currentUser: AuthUser | null = null;
   private currentSession: AuthSession | null = null;
   private listeners: Array<(user: AuthUser | null) => void> = [];
-  private authServer: AuthServer | null = null;
-  // Server configuration - webapp URL for authentication
-  private serverConfig: ServerConfig = {
-    baseUrl: "https://api.theme-your-code.com",
-    githubUrl: "https://github.com/your-org/theme-your-code-server",
-    privacyPolicyUrl: "https://theme-your-code.com/privacy",
-    termsOfServiceUrl: "https://theme-your-code.com/terms",
-    clerkPublishableKey: "", // No longer needed
-    webappUrl: "http://localhost:3000", // Your webapp URL
-  };
+  private serverConfig: ServerConfig = { ...SERVER_CONFIG };
+  private context?: vscode.ExtensionContext;
 
-  private constructor(context: vscode.ExtensionContext) {
-    this.context = context;
-    this.loadStoredAuth();
-  }
+  private constructor() {}
 
-  public static getInstance(context: vscode.ExtensionContext): AuthController {
+  public static getInstance(): AuthController {
     if (!AuthController.instance) {
-      AuthController.instance = new AuthController(context);
+      AuthController.instance = new AuthController();
     }
     return AuthController.instance;
   }
 
-  /**
-   * Load stored authentication data from VS Code's global state
-   */
-  private async loadStoredAuth(): Promise<void> {
-    try {
-      const storedUser = this.context.globalState.get<AuthUser>("auth_user");
-      const storedSession =
-        this.context.globalState.get<AuthSession>("auth_session");
+  public setContext(context: vscode.ExtensionContext) {
+    this.context = context;
+  }
 
-      if (storedUser && storedSession) {
-        // Validate session is still active
-        const now = new Date();
-        const expireAt = new Date(storedSession.expireAt);
+  /** Load stored authentication data from VS Code global state */
+  public async getStoredUserAndSession() {
+    if (!this.context) return { storedUser: null, storedSession: null };
+    const storedUser = JSON.parse(
+      (await this.context.secrets.get("auth_user")) || "{}"
+    );
+    const storedSession = JSON.parse(
+      (await this.context.secrets.get("auth_session")) || "{}"
+    );
 
-        if (expireAt > now && storedSession.status === "active") {
-          this.currentUser = storedUser;
-          this.currentSession = storedSession;
-          log("[AuthController] Restored valid authentication session");
-        } else {
-          // Session expired, clear stored data
-          await this.clearStoredAuth();
-          log("[AuthController] Cleared expired authentication session");
-        }
-      }
-    } catch (error) {
-      log(`[AuthController] Error loading stored auth: ${error}`);
-      await this.clearStoredAuth();
+    return { storedUser, storedSession };
+  }
+
+  public async loadStoredAuth(): Promise<void> {
+    const { storedUser, storedSession } = await this.getStoredUserAndSession();
+    if (storedUser && storedSession) {
+      this.currentUser = storedUser;
+      this.currentSession = storedSession;
+      log("[AuthController] Restored authentication session");
     }
   }
 
-  /**
-   * Clear stored authentication data
-   */
-  private async clearStoredAuth(): Promise<void> {
+  public async clearStoredAuth(): Promise<void> {
+    if (!this.context) return;
     await this.context.globalState.update("auth_user", undefined);
     await this.context.globalState.update("auth_session", undefined);
     this.currentUser = null;
     this.currentSession = null;
+    this.notifyAuthChanged();
   }
 
-  /**
-   * Store authentication data securely
-   */
   private async storeAuth(user: AuthUser, session: AuthSession): Promise<void> {
-    await this.context.globalState.update("auth_user", user);
-    await this.context.globalState.update("auth_session", session);
+    if (!this.context) return;
+    await this.context.secrets.store("auth_session", JSON.stringify(session));
+    await this.context.secrets.store("auth_user", JSON.stringify(user));
     this.currentUser = user;
     this.currentSession = session;
     this.notifyAuthChanged();
   }
 
-  /**
-   * Get current authenticated user
-   */
   public getCurrentUser(): AuthUser | null {
     return this.currentUser;
   }
 
-  /**
-   * Get current session
-   */
   public getCurrentSession(): AuthSession | null {
     return this.currentSession;
   }
 
-  /**
-   * Get server configuration including Clerk settings
-   */
   public getServerConfig(): ServerConfig {
     return this.serverConfig;
   }
 
-  /**
-   * Register auth state change listener
-   */
   public onAuthChanged(listener: (user: AuthUser | null) => void): void {
     this.listeners.push(listener);
   }
 
-  /**
-   * Notify all listeners of auth state change
-   */
   private notifyAuthChanged(): void {
-    this.listeners.forEach((listener) => listener(this.currentUser));
-  }
-
-  /**
-   * Handle sign-in process - opens webapp for authentication
-   */
-  public async signIn(
-    returnUrl?: string
-  ): Promise<{ success: boolean; redirectUrl?: string }> {
     try {
-      if (!this.authServer) {
-        this.authServer = new AuthServer();
-        await this.authServer.start();
-
-        // Set up the auth callback
-        this.authServer.setAuthCallback(async (authData) => {
-          await this.handleAuthCallback(authData);
-        });
-      }
-      const signInUrl = this.buildWebappSignInUrl();
-
-      // Open webapp in external browser for authentication
-      const opened = await vscode.env.openExternal(vscode.Uri.parse(signInUrl));
-
-      if (opened) {
-        log("[AuthController] Opened webapp sign-in URL in external browser");
-        return { success: true, redirectUrl: signInUrl };
-      } else {
-        return { success: false };
-      }
+      this.listeners.forEach((listener) => listener(this.currentUser));
     } catch (error) {
-      log(`[AuthController] Sign-in error: ${error}`);
-      return { success: false };
+      log("error notifying auth listeners", error);
     }
   }
 
   /**
-   * Handle sign-out process
+   * Starts device flow by requesting device/user codes from the backend
+   */
+  public async startDeviceFlow() {
+    this.currentSession = null;
+    this.currentUser = null;
+    const deviceInfo = await this.getDeviceInfo();
+    const res = await fetch(
+      `${SERVER_CONFIG.webappUrl}/api/device-auth/start`,
+      {
+        method: "POST",
+        body: JSON.stringify(deviceInfo),
+      }
+    );
+    if (!res.ok) throw new Error("Failed to start device flow");
+    const data = (await res.json()) as {
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      expires_in: number;
+    };
+    this.pollDeviceApproval(data.device_code, data.expires_in);
+
+    return data;
+  }
+
+  /**
+   * Poll backend to check if device was approved
+   */
+  public async pollDeviceApproval(
+    deviceCode: string,
+    expiresIn: number
+  ): Promise<void> {
+    const timeoutMs = expiresIn * 1000 + 60000; // expiresIn + 1 minute buffer
+    const intervalMs = 5000; // 5 seconds
+    const startTime = Date.now();
+
+    const result = await new Promise<{ session: AuthSession; user: AuthUser }>(
+      (resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            // Check timeout
+            if (Date.now() - startTime > timeoutMs) {
+              clearInterval(interval);
+              return reject(
+                new Error(
+                  `Device approval timed out after ${expiresIn} seconds`
+                )
+              );
+            }
+
+            const res = await fetch(
+              `${SERVER_CONFIG.webappUrl}/api/device-auth/token`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deviceCode }),
+              }
+            );
+
+            if (!res.ok) {
+              // Not approved yet, just wait for next interval
+              log(
+                "device not approved yet, retrying...",
+                res.status,
+                res.statusText
+              );
+              return;
+            }
+            const json = (await res.json()) as {
+              authData: {
+                user: AuthUser;
+                session: AuthSession;
+              };
+              success: boolean;
+              userIs: string;
+            };
+            const authData = json.authData;
+            log("device approved", authData);
+
+            // Success! Device approved
+            clearInterval(interval);
+
+            const session: AuthSession = authData.session;
+
+            const user: AuthUser = authData.user;
+
+            resolve({ session, user });
+          } catch (err) {
+            console.log("Device not approved yet, retrying...", err);
+          }
+        }, intervalMs);
+      }
+    );
+    log("approval result", result);
+    this.currentSession = result.session;
+    this.currentUser = result.user as AuthUser;
+    if (!this.currentSession || !this.currentUser)
+      throw new Error("Failed to store auth");
+    await this.storeAuth(this.currentUser, this.currentSession);
+
+    this.notifyAuthChanged();
+    return;
+  }
+
+  /**
+   * Sign out current user
    */
   public async signOut(): Promise<{ success: boolean }> {
     try {
-      // If we have a current session, invalidate it on the server
-      if (this.currentSession) {
-        await this.invalidateServerSession();
-      }
-
-      // Clear local auth data
       await this.clearStoredAuth();
-      this.notifyAuthChanged();
-
       log("[AuthController] User signed out successfully");
       return { success: true };
     } catch (error) {
@@ -178,68 +222,7 @@ export class AuthController {
   }
 
   /**
-   * Build webapp sign-in URL with return parameters
-   */
-  private buildWebappSignInUrl(): string {
-    const baseUrl = `${this.serverConfig.webappUrl}/sign-in`;
-    const params = new URLSearchParams();
-    if (!this.authServer) {
-      throw new Error("Auth server not initialized");
-    }
-    const callbackUrl = this.authServer.getCallbackUrl();
-    const appName = vscode.env.appName;
-    // Add return URL for post-auth redirect
-    params.append("callback_url", callbackUrl);
-
-    // Add VS Code integration flag
-    params.append("integration", "extension");
-    params.append("app", appName);
-
-    return `${baseUrl}?${params.toString()}`;
-  }
-  /**
-   * Invalidate server session
-   */
-  private async invalidateServerSession(): Promise<void> {
-    try {
-      if (!this.currentSession) return;
-
-      // TODO: Implement actual server session invalidation
-      // const response = await fetch(`${this.serverConfig.baseUrl}/auth/invalidate`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${this.currentSession.id}`,
-      //   },
-      // });
-
-      log("[AuthController] Server session invalidated");
-    } catch (error) {
-      log(`[AuthController] Error invalidating server session: ${error}`);
-    }
-  }
-
-  /**
-   * Update user information (called when user data changes)
-   */
-  public async updateUser(user: AuthUser): Promise<AuthUser> {
-    try {
-      if (this.currentUser) {
-        const updatedUser = { ...this.currentUser, ...user };
-        await this.context.globalState.update("auth_user", updatedUser);
-        this.currentUser = updatedUser;
-        this.notifyAuthChanged();
-        return updatedUser;
-      }
-      throw new Error("No authenticated user to update");
-    } catch (error) {
-      log(`[AuthController] Error updating user: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Open external URL (helper for opening links in browser)
+   * Open external URL in user's default browser
    */
   public async openExternalUrl(url: string): Promise<{ success: boolean }> {
     try {
@@ -252,41 +235,55 @@ export class AuthController {
   }
 
   /**
-   * Handle authentication callback from webapp
-   * This is called when the user completes authentication in the webapp
+   * Update user info locally
    */
-  public async handleAuthCallback(authData: {
-    user: AuthUser;
-    session: AuthSession;
-  }): Promise<void> {
-    try {
-      await this.storeAuth(authData.user, authData.session);
-      log("[AuthController] Authentication callback processed successfully");
-
-      // Show welcome message
-      vscode.window.showInformationMessage(
-        `Welcome back, ${
-          authData.user.firstName || authData.user.username || "User"
-        }!`
-      );
-
-
-      // Stop the auth server after successful authentication
-      if (this.authServer) {
-        this.authServer.stop();
-        this.authServer = null;
-      }
-    } catch (error) {
-      log(`[AuthController] Error handling auth callback: ${error}`);
-      vscode.window.showErrorMessage(
-        "Authentication failed. Please try again."
-      );
-      throw error;
-    }
+  public async updateUser(user: AuthUser): Promise<AuthUser> {
+    if (!this.context) throw new Error("Context not set");
+    if (!this.currentUser) throw new Error("No authenticated user to update");
+    const updatedUser = { ...this.currentUser, ...user };
+    await this.context.globalState.update("auth_user", updatedUser);
+    this.currentUser = updatedUser;
+    this.notifyAuthChanged();
+    return updatedUser;
   }
 
-  /**
-   * Cleanup resources when extension is deactivated
-   */
-  public dispose(): void {}
+  async getDeviceInfo(): Promise<DeviceInfo> {
+    // Unique machine ID (can be generated once and stored in global state)
+    let machineId =
+      vscode.workspace
+        .getConfiguration("laeyrd")
+        .get<string>("deviceMachineId") || uuidv4();
+
+    // Save machineId so it persists
+    await vscode.workspace
+      .getConfiguration("laeyrd")
+      .update("deviceMachineId", machineId, vscode.ConfigurationTarget.Global);
+
+    const deviceInfo: DeviceInfo = {
+      machineId,
+      appName: vscode.env.appName,
+      deviceName: os.hostname(),
+      os: `${os.type()} ${os.arch()} ${os.release()}`,
+      extensionVersion:
+        vscode.extensions.getExtension("your.extension.id")?.packageJSON
+          .version || "unknown",
+      ipAddress: undefined, // optionally fetch via external service
+    };
+
+    // Optional: fetch public IP if needed
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      const data = await res.json();
+      deviceInfo.ipAddress = data.ip;
+    } catch (err) {
+      console.warn("Failed to fetch public IP", err);
+    }
+    log("deviceInfo", deviceInfo);
+    return deviceInfo;
+  }
+
+  public dispose(): void {
+    this.listeners = [];
+    AuthController.instance = undefined;
+  }
 }

@@ -36,16 +36,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ThemeYourCodePanelManager = void 0;
+exports.LaeyrdPanelManager = void 0;
 const vscode = __importStar(require("vscode"));
-const message_1 = require("./message");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const fonts_layout_1 = require("../../lib/fonts-layout");
+const fonts_layout_1 = require("../../lib/data/fonts-layout");
 const isDev = false;
-class ThemeYourCodePanelManager {
-    constructor(context) {
+class LaeyrdPanelManager {
+    constructor(context, messageHandler) {
         this.context = context;
+        this.messageHandler = messageHandler;
         this.disposables = [];
     }
     open() {
@@ -53,30 +53,41 @@ class ThemeYourCodePanelManager {
             this.panel.reveal(vscode.ViewColumn.One);
             return;
         }
-        this.panel = vscode.window.createWebviewPanel("themeYourCode", "Theme Your Code", vscode.ViewColumn.One, {
+        this.panel = vscode.window.createWebviewPanel("laeyrd", "Laeyrd", vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true,
             localResourceRoots: [
                 vscode.Uri.file(path_1.default.join(this.context.extensionPath, "dist", "webview-ui")),
             ],
         });
-        this.initMessageHandler(this.panel);
-        this.panel.webview.html = getWebviewHtml(this.panel.webview, this.context.extensionPath);
+        // Inject the panel into MessageHandler
+        this.messageHandler.setPanel(this.panel);
+        this.panel.webview.html = this.getWebviewHtml(this.panel.webview);
+        this.registerEventListeners();
+    }
+    registerEventListeners() {
+        if (!this.panel)
+            return;
+        // Configuration changes
         this.disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
-            if (!this.messageHandler) {
-                return;
-            }
             if (event.affectsConfiguration("workbench.colorTheme")) {
-                this.messageHandler.configurationChanged({
+                this.messageHandler
+                    .configurationChanged({
                     updateThemeColor: true,
                     updateThemeList: true,
-                });
+                })
+                    .catch((err) => console.log("something went wrong while updating theme"));
             }
-            // Listen for font and layout settings changes
             if (this.isFontOrLayoutSetting(event)) {
-                this.messageHandler.settingsChanged();
+                this.messageHandler
+                    .settingsChanged()
+                    .catch((err) => console.log("something went wrong while updating settings"));
             }
-        }), this.panel.webview.onDidReceiveMessage((message) => this.messageHandler?.handle(message.command, message)), this.panel.onDidDispose(() => this.disposePanel()));
+        }));
+        // Webview messages
+        this.disposables.push(this.panel.webview.onDidReceiveMessage((message) => this.messageHandler.handle(message.command, message)));
+        // Panel dispose
+        this.disposables.push(this.panel.onDidDispose(() => this.disposePanel()));
     }
     disposePanel() {
         this.panel = undefined;
@@ -88,52 +99,43 @@ class ThemeYourCodePanelManager {
             d?.dispose();
         }
     }
-    initMessageHandler(panel) {
-        this.messageHandler = new message_1.MessageHandler(this.context, panel);
-    }
-    /**
-     * Check if a configuration change affects font or layout settings
-     */
     isFontOrLayoutSetting(event) {
-        const fontAndLayoutKeys = Object.keys(fonts_layout_1.fontsLayoutUI);
-        const affectedKeys = fontAndLayoutKeys.filter((key) => {
-            return event.affectsConfiguration(key);
-        });
-        if (affectedKeys.length > 0) {
-            console.log(`[PanelManager] Font/Layout settings changed: ${affectedKeys.join(", ")}`);
+        const keys = Object.keys(fonts_layout_1.fontsLayoutUI);
+        const affected = keys.filter((k) => event.affectsConfiguration(k));
+        if (affected.length > 0) {
+            console.log(`[PanelManager] Font/Layout changed: ${affected.join(", ")}`);
             return true;
         }
         return false;
     }
-}
-exports.ThemeYourCodePanelManager = ThemeYourCodePanelManager;
-function getWebviewHtml(webview, extensionPath) {
-    if (isDev) {
-        return `
+    getWebviewHtml(webview) {
+        if (isDev) {
+            return `
           <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta http-equiv="Content-Security-Policy"
-          content="default-src 'none';
-                   img-src https: data:;
-                   script-src 'unsafe-inline' http://localhost:5173;
-                   style-src 'unsafe-inline' http://localhost:5173;
-                   connect-src http://localhost:5173;">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Vite Dev Webview</title>
-      </head>
-      <body>
-        <div id="root"></div>
-        <script type="module" src="http://localhost:5173/src/main.tsx"></script>
-      </body>
-    </html>
-  `;
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta http-equiv="Content-Security-Policy"
+                content="default-src 'none';
+                         img-src https: data:;
+                         script-src 'unsafe-inline' http://localhost:5173;
+                         style-src 'unsafe-inline' http://localhost:5173;
+                         connect-src http://localhost:5173;">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Vite Dev Webview</title>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="http://localhost:5173/src/main.tsx"></script>
+            </body>
+          </html>
+        `;
+        }
+        const html = fs_1.default.readFileSync(path_1.default.join(this.context.extensionPath, "dist/webview-ui/index.html"), "utf8");
+        return html.replace(/(href|src)="\/(.*?)"/g, (_, attr, file) => {
+            const resource = webview.asWebviewUri(vscode.Uri.file(path_1.default.join(this.context.extensionPath, "dist/webview-ui", file)));
+            return `${attr}="${resource}"`;
+        });
     }
-    // PRODUCTION
-    const html = fs_1.default.readFileSync(path_1.default.join(extensionPath, "dist/webview-ui/index.html"), "utf8");
-    return html.replace(/(href|src)="\/(.*?)"/g, (_, attr, file) => {
-        const resource = webview.asWebviewUri(vscode.Uri.file(path_1.default.join(extensionPath, "dist", "webview-ui", file)));
-        return `${attr}="${resource}"`;
-    });
 }
+exports.LaeyrdPanelManager = LaeyrdPanelManager;

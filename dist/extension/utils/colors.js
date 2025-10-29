@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateColors = void 0;
 exports.convertTokenColors = convertTokenColors;
 exports.convertTokenColorsBackToTheme = convertTokenColorsBackToTheme;
-const colorsList_1 = require("../../lib/colorsList");
-const tokenList_1 = require("../../lib/tokenList");
+const colorsList_1 = require("../../lib/data/colorsList");
+const tokenList_1 = require("../../lib/data/tokenList");
 const generateColors = (colors) => {
     const colorsList = colorsList_1.colorCategoryMap;
     for (const key in colors) {

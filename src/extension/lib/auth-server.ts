@@ -1,7 +1,22 @@
 import * as http from "http";
 import * as vscode from "vscode";
-import { AuthUser, AuthSession } from "../../types/user-preferences";
+import { AuthUser, AuthSession } from "@src/types/user-preferences";
 import { log } from "../../lib/debug-logs";
+import os from "os";
+function getDeviceInfo() {
+  return {
+    app: vscode.env.appName,
+    vscodeVersion: vscode.version,
+    extensionVersion: require("../../package.json").version,
+    os: {
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+    },
+    machineId: vscode.env.machineId,
+    sessionId: vscode.env.sessionId,
+  };
+}
 
 export class AuthServer {
   private server: http.Server | null = null;
@@ -142,6 +157,36 @@ export class AuthServer {
         res.end(JSON.stringify({ error: "Invalid JSON" }));
       }
     });
+  }
+
+  public async postAuthComplete(
+    backendUrl: string,
+    token: string,
+    authData: { user: AuthUser; session: AuthSession }
+  ) {
+    const deviceInfo = getDeviceInfo();
+
+    const res = await fetch(`${backendUrl}/auth/complete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Clerk session JWT
+      },
+      body: JSON.stringify({
+        user: authData.user,
+        session: authData.session,
+        deviceInfo,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `[AuthServer] Failed to complete auth: ${res.status} ${text}`
+      );
+    }
+
+    return res.json();
   }
 
   /**

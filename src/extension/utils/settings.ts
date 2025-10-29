@@ -1,7 +1,5 @@
-import { fontListMap } from "../../lib/fontsList";
-import { FontMetaGrouped } from "../../types/font";
-import { fontsLayoutUI } from "../../lib/fonts-layout";
-import { UiLayoutMetaGrouped } from "../../types/layout";
+import { fontsLayoutUI } from "../../lib/data/fonts-layout";
+import { UiLayoutMetaGrouped } from "@src/types/layout";
 
 export const getLayoutSettings = (
   layout: Record<string, string | number | boolean>

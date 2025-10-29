@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { UserSettingsController } from "./userSettings";
-import { LivePreviewController } from "./livePreview";
 import {
   RequestMessage,
   ResponseMessage,
+  SaveThemeModes,
   WebViewEvent,
-} from "../../types/event";
+} from "@src/types/event";
 import { SettingsController } from "./settings";
 import { UserPreferencesController } from "./userPreferences";
 import { AuthController } from "./auth";
@@ -14,14 +14,48 @@ import { ToastController } from "./toast";
 import { HistoryController } from "./history";
 import { DraftColor, DraftToken } from "@webview/contexts/settings-context";
 import { log } from "../../lib/debug-logs";
+import SyncController from "./sync";
 
-export class MessageHandler {
-  private toastController: ToastController;
+export class MessageController {
+  private _themeController?: ThemeController;
+  private _authController?: AuthController;
+  private _userPreferenceController?: UserPreferencesController;
+  private panel?: vscode.WebviewPanel;
+
   constructor(
     private context: vscode.ExtensionContext,
-    private panel: vscode.WebviewPanel
+    themeController?: ThemeController
   ) {
-    this.toastController = ToastController.getInstance(this.context);
+    this._themeController = themeController;
+  }
+
+  private async themeController(): Promise<ThemeController> {
+    if (!this._themeController) {
+      this._themeController = await ThemeController.create();
+    }
+    return this._themeController;
+  }
+
+  public get showToast(): typeof ToastController.showToast {
+    return ToastController.showToast;
+  }
+
+  private get authController(): AuthController {
+    if (!this._authController)
+      this._authController = AuthController.getInstance();
+    return this._authController;
+  }
+
+  private get userPreferencesController(): UserPreferencesController {
+    if (!this._userPreferenceController)
+      this._userPreferenceController = new UserPreferencesController(
+        this.context
+      );
+    return this._userPreferenceController;
+  }
+
+  setPanel(panel: vscode.WebviewPanel) {
+    this.panel = panel;
   }
 
   public async handle<T extends keyof WebViewEvent>(
@@ -31,7 +65,7 @@ export class MessageHandler {
     // Validate message structure
     if (!message || typeof message !== "object") {
       console.error("Invalid message received:", message);
-      this.toastController.showToast({
+      this.showToast({
         message: "Invalid message received",
         type: "error",
       });
@@ -41,7 +75,7 @@ export class MessageHandler {
     log("incoming command", command, message);
     switch (command) {
       case "SHOW_TOAST":
-        this.toastController.showToast({
+        this.showToast({
           message: message.payload.message,
           type: message.payload.type,
         });
@@ -50,28 +84,35 @@ export class MessageHandler {
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () => ThemeController.getInstance(this.context).getColors(),
+          executor: async () => {
+            const tc = await this.themeController();
+            return tc.getColors();
+          },
         });
         break;
       case "GET_THEME_TOKEN_COLORS":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            ThemeController.getInstance(this.context).getTokenColors(),
+          executor: async () => {
+            const tc = await this.themeController();
+            return tc.getTokenColors();
+          },
         });
         break;
       case "GET_SEMANTIC_TOKEN_COLORS":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            ThemeController.getInstance(this.context).getSemanticTokenColors(),
+          executor: async () => {
+            const tc = await this.themeController();
+            tc.getSemanticTokenColors();
+          },
         });
         break;
       case "GET_THEME_LIST": {
-        const tc = ThemeController.getInstance(this.context);
-        const list = tc.listOwnThemes(this.context);
+        const tc = await this.themeController();
+        const list = await tc.listOwnThemes(this.context);
         const active = tc.getActiveThemeLabel();
         this.responseHandler({
           command,
@@ -84,7 +125,7 @@ export class MessageHandler {
         break;
       }
       case "SAVE_THEME":
-        this.responseHandler({
+        this.responseHandler<"SAVE_THEME", "response">({
           command,
           requestId: message.requestId,
           executor: () => this.handleSaveTheme(message.payload),
@@ -105,10 +146,7 @@ export class MessageHandler {
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            UserPreferencesController.getInstance(
-              this.context
-            ).getUserPreferences(),
+          executor: () => this.userPreferencesController.getUserPreferences(),
         });
         break;
       case "UPDATE_USER_PREFERENCES":
@@ -116,9 +154,9 @@ export class MessageHandler {
           command,
           requestId: message.requestId,
           executor: () =>
-            UserPreferencesController.getInstance(
-              this.context
-            ).updateUserPreferences(message.payload),
+            this.userPreferencesController.updateUserPreferences(
+              message.payload
+            ),
         });
         break;
       case "SYNC_USER_PREFERENCES":
@@ -126,11 +164,10 @@ export class MessageHandler {
           command,
           requestId: message.requestId,
           executor: async () => {
-            const controller = UserPreferencesController.getInstance(
-              this.context
-            );
             // First update preferences, then sync
-            await controller.updateUserPreferences(message.payload);
+            await this.userPreferencesController.updateUserPreferences(
+              message.payload
+            );
             // Return sync result (placeholder for now)
             return {
               success: true,
@@ -143,51 +180,50 @@ export class MessageHandler {
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            AuthController.getInstance(this.context).getServerConfig(),
+          executor: () => this.authController.getServerConfig(),
         });
         break;
       case "WEBAPP_SIGN_IN":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            AuthController.getInstance(this.context).signIn(
-              message.payload?.returnUrl
-            ),
+          executor: async () => {
+            const res = await this.authController.startDeviceFlow();
+            log("WEBAPP_SIGN_IN response", res);
+            return {
+              user_code: res.user_code,
+              verificationUri: res.verification_uri,
+              expiresIn: res.expires_in,
+            };
+          },
         });
         break;
       case "SIGN_OUT":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () => AuthController.getInstance(this.context).signOut(),
+          executor: () => this.authController.signOut(),
         });
         break;
       case "GET_AUTH_USER":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            AuthController.getInstance(this.context).getCurrentUser(),
+          executor: () => this.authController.getCurrentUser(),
         });
         break;
       case "UPDATE_AUTH_USER":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            AuthController.getInstance(this.context).updateUser(
-              message.payload
-            ),
+          executor: () => this.authController.updateUser(message.payload),
         });
         break;
       case "GET_AUTH_SESSION":
         this.responseHandler({
           command,
           requestId: message.requestId,
-          executor: () =>
-            AuthController.getInstance(this.context).getCurrentSession(),
+          executor: () => this.authController.getCurrentSession(),
         });
         break;
       case "OPEN_EXTERNAL_URL":
@@ -195,46 +231,18 @@ export class MessageHandler {
           command,
           requestId: message.requestId,
           executor: () =>
-            AuthController.getInstance(this.context).openExternalUrl(
-              message.payload.url
-            ),
+            this.authController.openExternalUrl(message.payload.url),
         });
         break;
 
-      case "ENABLE_LIVE_PREVIEW": {
-        const lp = LivePreviewController.getInstance(this.context);
-        await lp.enable();
-        break;
-      }
-      case "DISABLE_LIVE_PREVIEW": {
-        const lp = LivePreviewController.getInstance(this.context);
-        await lp.disable(false);
-        break;
-      }
-      case "LIVE_PREVIEW_APPLY": {
-        const tc = ThemeController.getInstance(this.context);
-        // Apply to live-preview theme in place
-        tc.overwriteThemeByLabel(
-          this.context,
-          "live-preview",
-          message.payload.colors || {},
-          message.payload.tokenColors || []
-        );
-        // Apply settings live (fonts/layout); do not include color customizations here
-        if (message.payload.vscodeSettings) {
-          const settings = new UserSettingsController(this.context);
-          settings.applySettings(message.payload.vscodeSettings);
-        }
-        break;
-      }
       case "OPEN_DONATION": {
-        const url = vscode.Uri.parse("https://buymeacoffee.com/themeYourCode");
+        const url = vscode.Uri.parse("https://buymeacoffee.com/laeyrd");
         vscode.env.openExternal(url);
         break;
       }
 
       case "GET_FONT_AND_LAYOUT_SETTINGS": {
-        const settings = SettingsController.getInstance(this.context);
+        const settings = await SettingsController.getInstance(this.context);
         this.responseHandler({
           command,
           requestId: message.requestId,
@@ -243,37 +251,24 @@ export class MessageHandler {
         break;
       }
       case "TEST_SETTINGS_CHANGE": {
-        const settings = SettingsController.getInstance(this.context);
+        const settings = await SettingsController.getInstance(this.context);
         settings.testSettingsChange();
         this.settingsChanged();
         break;
       }
-      // History handlers
-      case "GET_HISTORY": {
-        const historyController = HistoryController.getInstance(this.context);
-        this.responseHandler({
+      case "SYNC": {
+        const userId = this._authController?.getCurrentUser()?.id;
+        if (!userId) throw new Error("User id is missing");
+        const syncController = new SyncController(
+          this.context,
+          this.POST_MESSAGE,
+          userId
+        );
+        syncController.loadOrCreateLocalVersions();
+        this.responseHandler<"SYNC", "response">({
           command,
           requestId: message.requestId,
-          executor: () => historyController.getHistory(),
-        });
-        break;
-      }
-      case "ADD_HISTORY_ENTRY": {
-        const historyController = HistoryController.getInstance(this.context);
-        historyController.addEntry(message.payload);
-        break;
-      }
-      case "CLEAR_HISTORY": {
-        const historyController = HistoryController.getInstance(this.context);
-        historyController.clearHistory();
-        break;
-      }
-      case "RESET_TO_HISTORY_ENTRY": {
-        this.responseHandler({
-          command,
-          requestId: message.requestId,
-          executor: () =>
-            this.handleResetToHistoryEntry(message.payload.entryId),
+          executor: async () => await syncController.syncAll(),
         });
         break;
       }
@@ -283,136 +278,32 @@ export class MessageHandler {
   }
 
   private async handleSaveTheme(payload: {
-    mode: "create" | "overwrite";
-    themeName?: string;
+    mode: keyof typeof SaveThemeModes;
+    themeName: string;
     colors: DraftColor;
     tokens: DraftToken;
+    type: "dark" | "light";
   }) {
-    const themeController = ThemeController.getInstance(this.context);
     log("SAVE_THEME", payload);
-    if (!payload.themeName) {
-      this.handle("SHOW_TOAST", {
-        command: "SHOW_TOAST",
-        requestId: "",
-        payload: {
-          message: "Please enter a theme name",
-          type: "error",
-        },
-      });
-      return;
-    }
-    if (payload.mode === "overwrite") {
-      themeController.overwriteThemeByLabel(
-        this.context,
-        payload.themeName,
-        payload.colors,
-        payload.tokens
-      );
-    } else {
-      const themeName = payload.themeName || "Untitled Theme";
-      themeController.createTheme(
-        this.context,
-        themeName,
-        payload.colors,
-        payload.tokens
-      );
-      themeController.addThemeToPackageJson(
-        this.context,
-        themeName,
-        themeName + ".json",
-        "dark"
-      );
-    }
-    // Apply VS Code settings (fonts/layout) if provided
-    // if (payload.vscodeSettings) {
-    //   const settings = new UserSettingsController(this.context);
-    //   settings.ensureOriginalBackup();
-    //   settings.applySettings(payload.payload.vscodeSettings);
-    // }
-    return null;
+    if (!payload.themeName) throw new Error("Invalid theme name");
+    const tc = await this.themeController();
+
+    return tc.handleSaveTheme(payload, this.context);
   }
 
   private async handleOverwriteSettings(payload: {
     settings: Record<string, string | number | boolean>;
   }) {
-    const settingsController = SettingsController.getInstance(this.context);
+    const settingsController = await SettingsController.getInstance(
+      this.context
+    );
     settingsController.overwriteSettingsJson(payload.settings);
     return null;
   }
 
-  private async handleResetToHistoryEntry(entryId: string) {
-    const historyController = HistoryController.getInstance(this.context);
-    const entry = historyController.getEntryById(entryId);
-
-    if (!entry) {
-      throw new Error("History entry not found");
-    }
-
-    const themeController = ThemeController.getInstance(this.context);
-    const settingsController = SettingsController.getInstance(this.context);
-
-    try {
-      // Reset colors if they exist in the entry
-      if (entry.originalValues.colors) {
-        // Apply the original colors from before this change
-        const resetColors = entry.originalValues.colors;
-
-        // Find active theme to apply reset to
-        const activeTheme = themeController.getActiveThemeLabel();
-        if (activeTheme) {
-          themeController.overwriteThemeByLabel(
-            this.context,
-            activeTheme,
-            resetColors,
-            { tokenColors: {}, semanticTokenColors: {} } // We'll handle tokens separately
-          );
-        }
-      }
-
-      // Reset token colors if they exist
-      if (
-        entry.originalValues.tokenColors ||
-        entry.originalValues.semanticTokenColors
-      ) {
-        const tokenColors = entry.originalValues.tokenColors || {};
-        const semanticTokenColors =
-          entry.originalValues.semanticTokenColors || {};
-
-        const activeTheme = themeController.getActiveThemeLabel();
-        if (activeTheme) {
-          themeController.overwriteThemeByLabel(
-            this.context,
-            activeTheme,
-            {},
-            { tokenColors, semanticTokenColors }
-          );
-        }
-      }
-
-      // Reset font and layout settings if they exist
-      if (entry.originalValues.fontLayoutSettings) {
-        const fontLayoutSettings =
-          entry.originalValues.fontLayoutSettings || {};
-        this.handleOverwriteSettings({
-          settings: {
-            ...fontLayoutSettings,
-          },
-        });
-      }
-
-      log(
-        `[MessageHandler] Successfully reset to history entry: ${entry.description}`
-      );
-      return { success: true };
-    } catch (error) {
-      log(`[MessageHandler] Error resetting to history entry: ${error}`);
-      throw error;
-    }
-  }
-
   public async responseHandler<
     T extends keyof WebViewEvent,
-    K extends "payload" | "response"
+    K extends "payload" | "response",
   >({
     command,
     mode = "response" as K,
@@ -424,7 +315,6 @@ export class MessageHandler {
     requestId: string;
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
-    log("outgoing response", command, requestId);
     try {
       const response = await executor();
       this.POST_MESSAGE<T, K>({
@@ -434,7 +324,7 @@ export class MessageHandler {
         payload: response,
       });
     } catch (err) {
-      log("error occured in response handler", err);
+      log("error occurred in response handler", err);
       this.POST_MESSAGE<T, K>({
         command,
         requestId,
@@ -446,10 +336,14 @@ export class MessageHandler {
 
   public POST_MESSAGE<
     T extends keyof WebViewEvent,
-    K extends "payload" | "response"
-  >({ command, payload, requestId, status }: ResponseMessage<T, K>) {
-    const messageData = { command, payload, requestId, status };
+    K extends "payload" | "response",
+  >({ command, payload, requestId, status, error }: ResponseMessage<T, K>) {
+    const messageData = { command, payload, requestId, status, error };
     try {
+      if (!this.panel) {
+        log("Panel not found");
+        return;
+      }
       this.panel.webview.postMessage(messageData);
     } catch (error) {
       console.error("Invalid message data:", error);
@@ -458,21 +352,24 @@ export class MessageHandler {
     }
   }
 
-  public configurationChanged({
+  public async configurationChanged({
     updateThemeColor,
     updateThemeList,
   }: {
     updateThemeColor: boolean;
     updateThemeList: boolean;
   }) {
-    const themeController = ThemeController.getInstance(this.context);
-    themeController.refreshTheme();
+    const tc = await this.themeController();
+    await tc.refreshTheme();
     if (updateThemeColor) {
       this.responseHandler({
         command: "UPDATE_THEME_COLORS",
         requestId: "",
         mode: "payload",
-        executor: async () => themeController.getColors(),
+        executor: async () => {
+          const tc = await this.themeController();
+          return tc.getColors();
+        },
       });
     }
     if (updateThemeList) {
@@ -480,9 +377,10 @@ export class MessageHandler {
         command: "UPDATE_THEME_LIST",
         requestId: "",
         mode: "payload",
-        executor: () => {
-          const list = themeController.listOwnThemes(this.context);
-          const active = themeController.getActiveThemeLabel() || "";
+        executor: async () => {
+          const tc = await this.themeController();
+          const list = await tc.listOwnThemes(this.context);
+          const active = tc.getActiveThemeLabel() || "";
           return {
             themes: list,
             active,
@@ -495,11 +393,13 @@ export class MessageHandler {
   /**
    * Handle font and layout settings changes and notify the frontend
    */
-  public settingsChanged() {
-    const settingsController = SettingsController.getInstance(this.context);
+  public async settingsChanged() {
+    const settingsController = await SettingsController.getInstance(
+      this.context
+    );
 
     // Handle configuration change and reload settings
-    settingsController.handleConfigurationChange();
+    await settingsController.handleConfigurationChange();
 
     // Get the updated merged settings
     const mergedSettings = settingsController.getMergedSettings();

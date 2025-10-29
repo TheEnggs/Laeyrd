@@ -13,7 +13,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@src": path.resolve(__dirname, "src"),
       "@webview": path.resolve(__dirname, "src/webview-ui"),
+      "@lib": path.resolve(__dirname, "src/lib"),
     },
   },
   server: {

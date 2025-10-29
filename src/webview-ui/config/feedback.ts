@@ -5,8 +5,8 @@ export const FEEDBACK_CONFIG = {
 
   // Issue labels to automatically add
   DEFAULT_LABELS: {
-    BUG: ["bug", "theme-your-code"],
-    FEATURE: ["enhancement", "theme-your-code"],
+    BUG: ["bug", "laeyrd"],
+    FEATURE: ["enhancement", "laeyrd"],
   },
 
   // Issue templates
@@ -42,7 +42,7 @@ ${data.actual}
 `
           : ""
       }---
-*Submitted via Theme Your Code Feedback*`,
+*Submitted via Laeyrd Feedback*`,
     },
     FEATURE: {
       title: "Feature Request",
@@ -54,7 +54,7 @@ ${data.description}
 **Type:** Feature Request
 
 ---
-*Submitted via Theme Your Code Feedback*`,
+*Submitted via Laeyrd Feedback*`,
     },
   },
 };

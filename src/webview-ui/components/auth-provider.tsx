@@ -1,6 +1,6 @@
 "use client";
 
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -8,15 +8,16 @@ import React, {
   ReactNode,
 } from "react";
 import { useQuery, useMutation } from "../hooks/use-query";
-import { AuthUser, AuthSession } from "../../types/user-preferences";
+import { AuthUser } from "@src/types/user-preferences";
+import useToast from "../hooks/use-toast";
 
 interface AuthContextType {
   authUser: AuthUser | null;
-  authSession: AuthSession | null;
   isLoading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshAuth: () => void;
+  deviceFlow: DeviceFlow;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,11 +25,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 interface AuthProviderProps {
   children: ReactNode;
 }
-
+export type DeviceFlow = {
+  user_code: string;
+  verificationUri: string;
+  expiresIn: number;
+} | null;
 export function AuthProvider({ children }: AuthProviderProps) {
+  const toast = useToast();
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deviceFlow, setDeviceFlow] = useState<DeviceFlow>(null);
 
   // VS Code extension backend communication
   const { data: backendUser } = useQuery({
@@ -36,12 +42,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     payload: null,
   });
 
-  const { data: backendSession } = useQuery({
-    command: "GET_AUTH_SESSION",
-    payload: null,
+  const signInMutation = useMutation("WEBAPP_SIGN_IN", {
+    onSuccess: (data) => {
+      if (!data) throw new Error("Failed to sign in");
+      if (!data.user_code || !data.verificationUri || !data.expiresIn)
+        throw new Error("Failed to sign in");
+      setDeviceFlow({
+        user_code: data.user_code,
+        verificationUri: data.verificationUri,
+        expiresIn: data.expiresIn,
+      });
+    },
+    onError: (error) => {
+      toast({
+        message: "Failed to sign in",
+        type: "error",
+      });
+    },
   });
-
-  const signInMutation = useMutation("WEBAPP_SIGN_IN");
   const signOutMutation = useMutation("SIGN_OUT");
   const updateUserMutation = useMutation("UPDATE_AUTH_USER");
 
@@ -55,16 +73,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [backendUser]);
 
   useEffect(() => {
-    if (backendSession) {
-      setAuthSession(backendSession);
-    } else {
-      setAuthSession(null);
-    }
-  }, [backendSession]);
-
-  useEffect(() => {
     setIsLoading(false);
-  }, [backendUser, backendSession]);
+  }, [backendUser]);
 
   const signIn = async () => {
     try {
@@ -79,7 +89,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await signOutMutation.mutate(null);
       setAuthUser(null);
-      setAuthSession(null);
     } catch (error) {
       console.error("Sign out failed:", error);
       throw error;
@@ -93,11 +102,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     authUser,
-    authSession,
     isLoading,
     signIn,
     signOut,
     refreshAuth,
+    deviceFlow,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

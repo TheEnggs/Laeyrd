@@ -1,4 +1,4 @@
-import { SettingsState, VSCodeSettings } from "../../types/theme";
+import { SettingsState, VSCodeSettings } from "@src/types/theme";
 
 export const initialSettings: VSCodeSettings = {
   fonts: {

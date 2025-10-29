@@ -1,21 +1,32 @@
 {
-  "name": "tyc",
-  "version": "1.0.0",
+  "name": "laeyrd",
+  "version": "0.0.1",
   "description": "",
   "main": "dist/extension/extension.js",
-  "publisher": "theme-your-code",
+  "publisher": "theenggs",
+  "icon": "dist/media/logo.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theenggs/laeyrd"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npm-run-all --parallel dev:*",
     "dev:js": "tsc --watch",
     "dev:webview": "vite",
-    "build:ts": "tsc -b",
+    "build:ts": "tsc -b && tsc-alias",
     "build:webview": "vite build",
-    "build": "npm-run-all build:ts build:webview copy:themes copy:snippets",
+    "build": "npm-run-all build:ts build:webview copy:themes copy:snippets copy:media",
     "copy:themes": "cp -r src/themes dist/",
+    "copy:media": "mkdir -p dist/media && cp -r src/media/* dist/media/",
     "copy:snippets": "mkdir -p dist/extension && cp -r src/extension/snippets dist/extension/",
     "prepublishOnly": "npm run build",
-    "package": "vsce package"
+    "package": "mkdir -p dist/release && vsce package --out dist/release/$(node -p \"require('./package.json').name\")-$(node -p \"require('./package.json').version\").vsix"
   },
   "engines": {
     "vscode": "^1.80.0"
@@ -24,23 +35,34 @@
     "onStartupFinished"
   ],
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "laeyrd.deviceMachineId": {
+          "type": "string",
+          "default": "",
+          "description": "Unique machine ID for device authentication"
+        }
+      }
+    },
     "commands": [
       {
-        "command": "themeYourCode.open",
-        "title": "Theme Your Code"
+        "command": "laeyrd.open",
+        "title": "Laeyrd | TheEnggs",
+        "icon": "dist/media/logo.png",
+        "category": "Customization"
       }
     ],
     "themes": [
       {
-        "label": "tyc",
+        "label": "Live Preview - Laeyrd",
         "uiTheme": "vs-dark",
-        "path": "./src/themes/tyc.json"
+        "path": "/themes/livepreview-laeyrd.json"
       }
     ]
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
@@ -51,7 +73,9 @@
     "@types/vscode": "^1.80.0",
     "npm-run-all": "^4.1.5",
     "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.2",
     "vite": "latest"
   },
@@ -91,6 +115,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "4.1.0",
+    "diff": "^8.0.2",
     "embla-carousel-react": "8.5.1",
     "framer-motion": "^12.23.12",
     "geist": "^1.3.1",
@@ -119,7 +144,9 @@
     "terser": "latest",
     "tsx": "latest",
     "tw-animate-css": "^1.3.6",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.6",
+    "vsce": "^2.15.0",
     "yaml": "latest",
     "zod": "^3.24.1"
   }

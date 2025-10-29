@@ -29,14 +29,11 @@ export interface AuthUser {
 }
 
 export interface AuthSession {
-  id: string;
+  id: string; // sessionId
+  token: string;
   userId: string;
   status: "active" | "expired" | "ended";
   lastActiveAt: string;
-  expireAt: string;
-  actor?: {
-    sub: string;
-  };
 }
 
 export interface UserPreferences {

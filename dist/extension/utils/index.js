@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.copyCurrentThemeToBase = copyCurrentThemeToBase;
+exports.isExpired = isExpired;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -64,8 +65,21 @@ async function copyCurrentThemeToBase(context) {
     const myThemeFolder = path.join(context.extensionPath, "./src/themes");
     if (!fs.existsSync(myThemeFolder))
         fs.mkdirSync(myThemeFolder, { recursive: true });
-    const myThemePath = path.join(myThemeFolder, "tyc.json");
+    const myThemePath = path.join(myThemeFolder, "laeyrd.json");
     fs.writeFileSync(myThemePath, JSON.stringify(themeJson, null, 2));
     // Do not auto-apply theme here to avoid forcing user's selection
-    // If needed, provide a command to apply: workbench.colorTheme = "Theme Your Code"
+    // If needed, provide a command to apply: workbench.colorTheme = "Laeyrd"
+}
+function isExpired(token, graceSeconds = 30) {
+    try {
+        const [, payloadBase64] = token.split(".");
+        const payload = JSON.parse(Buffer.from(payloadBase64, "base64").toString("utf8"));
+        const exp = payload.exp;
+        if (!exp)
+            return true;
+        return Date.now() >= (exp - graceSeconds) * 1000;
+    }
+    catch {
+        return true;
+    }
 }

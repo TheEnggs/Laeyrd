@@ -35,16 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ToastController = void 0;
 const vscode = __importStar(require("vscode"));
-class ToastController {
-    constructor(context) {
-        this.context = context;
-    }
-    static getInstance(context) {
-        if (!ToastController.instance) {
-            ToastController.instance = new ToastController(context);
-        }
-        return ToastController.instance;
-    }
+exports.ToastController = {
     showToast({ message, type, }) {
         if (type === "info")
             vscode.window.showInformationMessage(message);
@@ -55,6 +46,5 @@ class ToastController {
         else if (type === "success")
             vscode.window.showInformationMessage(message);
         vscode.window.showInformationMessage(message);
-    }
-}
-exports.ToastController = ToastController;
+    },
+};

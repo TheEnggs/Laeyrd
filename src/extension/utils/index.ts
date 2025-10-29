@@ -44,9 +44,23 @@ export async function copyCurrentThemeToBase(context: vscode.ExtensionContext) {
   if (!fs.existsSync(myThemeFolder))
     fs.mkdirSync(myThemeFolder, { recursive: true });
 
-  const myThemePath = path.join(myThemeFolder, "tyc.json");
+  const myThemePath = path.join(myThemeFolder, "laeyrd.json");
   fs.writeFileSync(myThemePath, JSON.stringify(themeJson, null, 2));
 
   // Do not auto-apply theme here to avoid forcing user's selection
-  // If needed, provide a command to apply: workbench.colorTheme = "Theme Your Code"
+  // If needed, provide a command to apply: workbench.colorTheme = "Laeyrd"
+}
+
+export function isExpired(token: string, graceSeconds = 30): boolean {
+  try {
+    const [, payloadBase64] = token.split(".");
+    const payload = JSON.parse(
+      Buffer.from(payloadBase64, "base64").toString("utf8")
+    );
+    const exp = payload.exp;
+    if (!exp) return true;
+    return Date.now() >= (exp - graceSeconds) * 1000;
+  } catch {
+    return true;
+  }
 }

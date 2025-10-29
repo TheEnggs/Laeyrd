@@ -35,19 +35,34 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsController = void 0;
 const vscode = __importStar(require("vscode"));
-const fs = __importStar(require("fs"));
 const jsonc_parser_1 = require("jsonc-parser");
 const getSettings_1 = require("../utils/getSettings");
 const debug_logs_1 = require("../../lib/debug-logs");
 const settings_1 = require("../utils/settings");
-const fonts_layout_1 = require("../../lib/fonts-layout");
+const fonts_layout_1 = require("../../lib/data/fonts-layout");
 class SettingsController {
     constructor(context) {
         this.listeners = [];
         this.context = context;
-        this.loadCurrentSettings();
-        this.startWatching();
     }
+    /**
+     * Factory method - async initialization
+     */
+    static async getInstance(context) {
+        if (SettingsController.instance)
+            return SettingsController.instance;
+        const controller = new SettingsController(context);
+        await controller.loadCurrentSettings();
+        controller.startWatching();
+        SettingsController.instance = controller;
+        return controller;
+    }
+    // ========== Helper Functions ==========
+    async readFileUtf8(uri) {
+        const raw = await vscode.workspace.fs.readFile(uri);
+        return new TextDecoder("utf8").decode(raw);
+    }
+    // ========== Observers ==========
     onSettingsChanged(listener) {
         this.listeners.push(listener);
     }
@@ -58,58 +73,40 @@ class SettingsController {
             raw: {},
         }));
     }
-    static getInstance(context) {
-        if (!SettingsController.instance) {
-            SettingsController.instance = new SettingsController(context);
-        }
-        return SettingsController.instance;
-    }
-    /**
-     * Merge settings with proper priority order:
-     * 1. Default values from fontsLayoutUI
-     * 2. VS Code configuration values
-     * 3. Parsed settings from JSON file (highest priority)
-     */
+    // ========== Core Logic ==========
     mergeSettingsWithDefaults(parsedSettings, config) {
         const merged = {};
-        // Get all keys from fontsLayoutUI
         const fontAndLayoutKeys = Object.keys(fonts_layout_1.fontsLayoutUI);
         fontAndLayoutKeys.forEach((key) => {
-            // Start with default value from fontsLayoutUI
             let value = fonts_layout_1.fontsLayoutUI[key].defaultValue;
-            // Override with VS Code configuration value if available
             const configValue = config.get(key);
-            if (configValue !== undefined) {
+            if (configValue !== undefined)
                 value = configValue;
-            }
-            // Override with parsed settings value if available (highest priority)
-            if (parsedSettings[key] !== undefined) {
+            if (parsedSettings[key] !== undefined)
                 value = parsedSettings[key];
-            }
             merged[key] = value;
         });
         return merged;
     }
-    /**
-     * Load the currently active settings file for the detected fork
-     */
-    loadCurrentSettings() {
+    async loadCurrentSettings() {
         try {
             const fork = (0, getSettings_1.detectFork)();
             const settingsPath = (0, getSettings_1.getSettingsPath)(fork);
-            this.currentSettingsPath = settingsPath;
+            const uri = vscode.Uri.file(settingsPath);
+            this.currentSettingsPath = uri;
             (0, debug_logs_1.log)("settingsPath", settingsPath);
             (0, debug_logs_1.log)("fork", fork);
-            if (!fs.existsSync(settingsPath)) {
+            try {
+                await vscode.workspace.fs.stat(uri);
+            }
+            catch {
                 (0, debug_logs_1.log)(`[SettingsController] Settings file not found: ${settingsPath}`);
                 this.currentSettings = undefined;
                 return;
             }
-            const fileContent = fs.readFileSync(settingsPath, "utf8");
-            const parsed = (0, jsonc_parser_1.parse)(fileContent); // supports comments
-            // Separate font and layout settings for easy access
+            const fileContent = await this.readFileUtf8(uri);
+            const parsed = (0, jsonc_parser_1.parse)(fileContent);
             const fontsLayoutSettings = {};
-            // You can add all your font/layout keys from fontListMap & uiLayoutCategoryMap
             const fontAndLayoutKeys = Object.keys(fonts_layout_1.fontsLayoutUI);
             fontAndLayoutKeys.forEach((key) => {
                 if (parsed[key] !== undefined)
@@ -123,35 +120,25 @@ class SettingsController {
                 raw: parsed,
             };
             (0, debug_logs_1.log)(`[SettingsController] Settings loaded for fork: ${fork}`);
-            (0, debug_logs_1.log)(`[SettingsController] Merged ${Object.keys(mergedSettings).length} settings from defaults, config, and parsed settings`);
+            (0, debug_logs_1.log)(`[SettingsController] Merged ${Object.keys(mergedSettings).length} settings`);
         }
         catch (error) {
             console.error("Error loading settings:", error);
             this.currentSettings = undefined;
         }
     }
-    /**
-     * Force reload settings from disk
-     */
-    refreshSettings() {
-        (0, debug_logs_1.log)("Refreshing user settings...");
-        this.loadCurrentSettings();
-        this.notifySettingsChanged();
-    }
-    /**
-     * Start watching for external changes to the settings.json
-     */
+    // ========== Watching ==========
     startWatching() {
         if (!this.currentSettingsPath)
             return;
-        const watcher = vscode.workspace.createFileSystemWatcher(this.currentSettingsPath);
-        watcher.onDidChange(() => {
+        const watcher = vscode.workspace.createFileSystemWatcher(this.currentSettingsPath.fsPath);
+        watcher.onDidChange(async () => {
             (0, debug_logs_1.log)("Detected change in settings.json");
-            this.refreshSettings();
+            await this.refreshSettings();
         });
-        watcher.onDidCreate(() => {
+        watcher.onDidCreate(async () => {
             (0, debug_logs_1.log)("settings.json created");
-            this.refreshSettings();
+            await this.refreshSettings();
         });
         watcher.onDidDelete(() => {
             (0, debug_logs_1.log)("settings.json deleted");
@@ -159,64 +146,52 @@ class SettingsController {
         });
         this.watcher = watcher;
     }
-    /**
-     * Get merged settings (defaults + config + parsed settings)
-     */
+    // ========== Public APIs ==========
+    async refreshSettings() {
+        (0, debug_logs_1.log)("Refreshing user settings...");
+        await this.loadCurrentSettings();
+        this.notifySettingsChanged();
+    }
     getMergedSettings() {
         return (0, settings_1.getLayoutSettings)(this.currentSettings?.mergedSettings || {});
     }
-    /**
-     * Get current settings object
-     */
     getCurrentSettings() {
         return this.currentSettings;
     }
-    /**
-     * Force reload settings and notify listeners
-     * This is called when VS Code configuration changes
-     */
-    handleConfigurationChange() {
+    async handleConfigurationChange() {
         (0, debug_logs_1.log)("[SettingsController] Configuration change detected, reloading settings...");
-        this.loadCurrentSettings();
+        await this.loadCurrentSettings();
         this.notifySettingsChanged();
     }
-    /**
-     * Test method to simulate settings changes
-     * This is useful for debugging and testing the settings change flow
-     */
     testSettingsChange() {
         (0, debug_logs_1.log)("[SettingsController] Testing settings change notification...");
         this.notifySettingsChanged();
     }
-    /**
-     * Overwrite the current settings JSON with updated font & layout values
-     */
-    overwriteSettingsJson(settings) {
-        if (!this.currentSettingsPath || !this.currentSettings) {
+    async overwriteSettingsJson(settings) {
+        if (!this.currentSettings) {
             console.error("No settings loaded to overwrite");
             return;
         }
         (0, debug_logs_1.log)("settings", settings);
         for (const [key, value] of Object.entries(settings)) {
-            vscode.workspace
+            await vscode.workspace
                 .getConfiguration()
                 .update(key, value, vscode.ConfigurationTarget.Global);
         }
-        this.refreshSettings();
-        (0, debug_logs_1.log)(`[SettingsController] Settings overwritten at: ${this.currentSettingsPath}`);
+        await this.refreshSettings();
+        (0, debug_logs_1.log)(`[SettingsController] Settings updated via VS Code API`);
     }
-    /**
-     * Optional: update a single key
-     */
-    updateSetting(key, value) {
-        if (!this.currentSettingsPath || !this.currentSettings)
+    async updateSetting(key, value) {
+        if (!this.currentSettings)
             return;
-        const updated = { ...this.currentSettings.raw, [key]: value };
-        fs.writeFileSync(this.currentSettingsPath, JSON.stringify(updated, null, 2), "utf8");
-        this.refreshSettings();
+        await vscode.workspace
+            .getConfiguration()
+            .update(key, value, vscode.ConfigurationTarget.Global);
+        await this.refreshSettings();
     }
     dispose() {
         this.watcher?.dispose();
     }
 }
 exports.SettingsController = SettingsController;
+SettingsController.instance = null;

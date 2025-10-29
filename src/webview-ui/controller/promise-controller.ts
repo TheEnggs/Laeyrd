@@ -3,7 +3,7 @@ import {
   RequestMessage,
   ResponseMessage,
   WebViewEvent,
-} from "../../types/event";
+} from "@src/types/event";
 import { log } from "../../lib/debug-logs";
 
 type EventCallback<T = any> = (payload: T) => void;
@@ -27,7 +27,6 @@ class PromiseController {
           "payload"
         >;
         const existingPromise = this.pendingRequests.get(message.requestId);
-        log("existingPromise", existingPromise);
         if (existingPromise) {
           if (message.status === "success")
             existingPromise.resolve(message.payload);

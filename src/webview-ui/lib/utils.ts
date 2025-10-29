@@ -1,5 +1,5 @@
-import { FontMeta } from "../../types/font";
-import { UiLayoutMeta } from "../../types/layout";
+import { FontMeta } from "@src/types/font";
+import { UiLayoutMeta } from "@src/types/layout";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -16,4 +16,25 @@ export function buildVSCodeSettingsFromState(
     ...layoutState,
   };
   return settings;
+}
+
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  delay: number
+) {
+  let timer: NodeJS.Timeout | null = null;
+
+  const debounced = (...args: Parameters<T>) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+
+  debounced.cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  return debounced as T & { cancel: () => void };
 }

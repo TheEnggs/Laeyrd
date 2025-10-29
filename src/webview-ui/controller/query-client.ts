@@ -1,4 +1,4 @@
-import { ResponseMessage, WebViewEvent } from "../../types/event";
+import { ResponseMessage, WebViewEvent } from "@src/types/event";
 import { promiseController } from "./promise-controller";
 
 class QueryClient {

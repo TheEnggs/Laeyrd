@@ -7,12 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@webview/components/ui/card";
-import { fontListMap } from "../../lib/fontsList";
-import { useSettings } from "../contexts/settings-context";
-// import FontInput from "@webview/components/ui/font-input";
-import { FontMeta } from "../../types/font";
+import { useSettings } from "@webview/contexts/settings-context";
 import { ColorSettingsSkeleton } from "./skeleton/color-settings";
-import { Input } from "./ui/input";
+import { Input } from "@webview/components/ui/input";
 import { Switch } from "./ui/switch";
 import {
   Select,
@@ -21,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { UiLayoutMeta, UiLayoutMetaGrouped } from "../../types/layout";
+import { UiLayoutMeta, UiLayoutMetaGrouped } from "@src/types/layout";
 import { cn } from "@webview/lib/utils";
 import { useQuery } from "@webview/hooks/use-query";
 

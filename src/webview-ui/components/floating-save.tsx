@@ -4,7 +4,6 @@ import { Button } from "@webview/components/ui/button";
 import { Badge } from "@webview/components/ui/badge";
 import { useSettings } from "../contexts/settings-context";
 import { Save, RotateCcw, MonitorPlay } from "lucide-react";
-import HistoryDialog from "./history-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@webview/components/ui/alert-dialog";
-import { VSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -28,9 +26,9 @@ import {
 import { buildVSCodeSettingsFromState } from "@webview/lib/utils";
 import { useMutation, useQuery } from "@webview/hooks/use-query";
 import useToast from "@webview/hooks/use-toast";
-import { useHistory } from "../contexts/history-context";
-import { HistoryController } from "../../extension/controller/history";
-
+import { SaveThemeModes } from "@src/types/event";
+import { log } from "@src/lib/debug-logs";
+import { useLivePreview } from "../hooks/use-live-preview";
 export default function FloatingSave() {
   const {
     hasColorChanges,
@@ -41,14 +39,14 @@ export default function FloatingSave() {
     fontLayoutDispatch,
   } = useSettings();
   const toast = useToast();
-  const { addHistoryEntry } = useHistory();
   const { data: themesData, isLoading: isLoadingThemes } = useQuery({
     command: "GET_THEME_LIST",
     payload: [],
   });
   const [livePreview, setLivePreview] = useState(false);
-
-  const [mode, setMode] = useState<"overwrite" | "create">("overwrite");
+  const [mode, setMode] = useState<keyof typeof SaveThemeModes>(
+    SaveThemeModes.OVERWRITE
+  );
   const [themeName, setThemeName] = useState<string>("");
   const [overwriteLabel, setOverwriteLabel] = useState<string | undefined>(
     undefined
@@ -64,53 +62,13 @@ export default function FloatingSave() {
     "SAVE_THEME",
     {
       onSuccess: () => {
-        // Add history entry for theme save
-        const hasThemeChanges =
-          Object.keys(draftColorState).length > 0 ||
-          Object.keys(draftTokenState.tokenColors).length > 0 ||
-          Object.keys(draftTokenState.semanticTokenColors).length > 0;
-
-        if (hasThemeChanges) {
-          const changes: any = {};
-          const originalValues: any = {};
-
-          if (Object.keys(draftColorState).length > 0) {
-            changes.colors = { ...draftColorState };
-            originalValues.colors = {}; // Would need to capture from theme controller
-          }
-
-          if (Object.keys(draftTokenState.tokenColors).length > 0) {
-            changes.tokenColors = { ...draftTokenState.tokenColors };
-            originalValues.tokenColors = {};
-          }
-
-          if (Object.keys(draftTokenState.semanticTokenColors).length > 0) {
-            changes.semanticTokenColors = {
-              ...draftTokenState.semanticTokenColors,
-            };
-            originalValues.semanticTokenColors = {};
-          }
-
-          const saveThemeName =
-            mode === "overwrite" ? overwriteLabel : themeName;
-          const description = `Saved theme "${saveThemeName}" with ${HistoryController.createDescription(
-            changes
-          )}`;
-
-          addHistoryEntry({
-            description,
-            type: hasSettingsChanges ? "both" : "theme",
-            changes,
-            originalValues,
-          });
-        }
-
         return toast({
           message: "Theme saved",
           type: "success",
         });
       },
-      onError: () => {
+      onError: (error) => {
+        log(error);
         return toast({
           message: "Failed to save theme",
           type: "error",
@@ -118,6 +76,13 @@ export default function FloatingSave() {
       },
     }
   );
+  useLivePreview({
+    livePreview,
+    hasColorChanges,
+    draftColorState,
+    draftTokenState,
+    saveTheme,
+  });
   const { mutate: saveSettings } = useMutation("SAVE_SETTINGS", {
     onSuccess: () => {
       fontLayoutDispatch({ type: "RESET", payload: {} });
@@ -144,20 +109,21 @@ export default function FloatingSave() {
       });
     }
     if (hasColorChanges) {
-      if (mode === "overwrite" && !overwriteLabel)
+      if (mode === SaveThemeModes.OVERWRITE && !overwriteLabel)
         return toast({
           message: "Please select a theme to overwrite",
           type: "error",
         });
 
-      if (mode === "create" && !themeName)
+      if (mode === SaveThemeModes.CREATE && !themeName)
         return toast({
           message: "Please enter a theme name",
           type: "error",
         });
       saveTheme({
         mode,
-        themeName: mode === "overwrite" ? overwriteLabel! : themeName,
+        themeName:
+          mode === SaveThemeModes.OVERWRITE ? overwriteLabel! : themeName,
         colors: draftColorState,
         tokenColors: draftTokenState,
       });
@@ -173,27 +139,16 @@ export default function FloatingSave() {
   };
 
   const toggleLivePreview = () => {
-    const next = !livePreview;
-    setLivePreview(next);
-    postMessage({
-      command: next ? "ENABLE_LIVE_PREVIEW" : "DISABLE_LIVE_PREVIEW",
+    setLivePreview(!livePreview);
+    toast({
+      message:
+        "Live Preview " +
+        (livePreview
+          ? "enabled"
+          : "disabled. Make sure to save these changes into another theme. "),
+      type: "success",
     });
   };
-
-  if (!hasColorChanges && !hasSettingsChanges) return null;
-
-  //   // Auto-save while live preview is on
-  //   useEffect(() => {
-  //     if (!livePreview) return;
-  //     postMessage({
-  //       command: "LIVE_PREVIEW_APPLY",
-  //       payload: {
-  //         colors: colorsState,
-  //         tokenColors: tokenColorsState,
-  //         vscodeSettings: buildVSCodeSettingsFromState(state.settings),
-  //       },
-  //     });
-  //   }, [livePreview, colorsState, tokenColorsState, state.settings, postMessage]);
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
@@ -210,13 +165,13 @@ export default function FloatingSave() {
           {livePreview ? "Live Preview On" : "Live Preview"}
         </Button>
         {/* History Button */}
-        <HistoryDialog />
+        {/* <HistoryDialog /> */}
 
         {/* Divider */}
         <div className="w-px h-6 bg-border/40"></div>
 
         {/* Reset Button with Confirmation */}
-        <AlertDialog>
+        {/* <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="outline"
@@ -248,7 +203,7 @@ export default function FloatingSave() {
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
-        </AlertDialog>
+        </AlertDialog> */}
 
         {/* Save Button with Confirmation */}
         <AlertDialog>
@@ -286,12 +241,12 @@ export default function FloatingSave() {
                       type="radio"
                       name="save-mode"
                       value="overwrite"
-                      checked={mode === "overwrite"}
-                      onChange={() => setMode("overwrite")}
+                      checked={mode === SaveThemeModes.OVERWRITE}
+                      onChange={() => setMode(SaveThemeModes.OVERWRITE)}
                     />
                     Overwrite theme
                   </label>
-                  {mode === "overwrite" && (
+                  {mode === SaveThemeModes.OVERWRITE && (
                     <div className="flex items-center gap-2 w-2/3">
                       <Select
                         value={overwriteLabel}
@@ -330,8 +285,8 @@ export default function FloatingSave() {
                       type="radio"
                       name="save-mode"
                       value="create"
-                      checked={mode === "create"}
-                      onChange={() => setMode("create")}
+                      checked={mode === SaveThemeModes.CREATE}
+                      onChange={() => setMode(SaveThemeModes.CREATE)}
                     />
                     Create new
                   </label>
@@ -340,7 +295,7 @@ export default function FloatingSave() {
                     type="text"
                     placeholder="Theme Name"
                     className=" px-3 w-2/3 py-2 rounded-md bg-background/60 border border-border/40 text-sm"
-                    disabled={mode !== "create"}
+                    disabled={mode !== SaveThemeModes.CREATE}
                     value={themeName}
                     onChange={(e) => setThemeName(e.target.value)}
                   />

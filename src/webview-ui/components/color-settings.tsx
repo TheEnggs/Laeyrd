@@ -48,6 +48,9 @@ export default function ColorSettings() {
     command: "GET_THEME_COLORS",
     payload: [],
   });
+
+  console.log("colorsState", colorsState);
+
   const [activeTab, setActiveTab] = useState<string>(mainTabs[0]);
 
   // 🔹 Memoized tree: category → subcategory → colors[]
@@ -160,8 +163,8 @@ export default function ColorSettings() {
                         colors.length >= 3
                           ? "xl:grid-cols-3 md:grid-cols-2"
                           : colors.length === 2
-                          ? "md:grid-cols-2"
-                          : "md:grid-cols-1"
+                            ? "md:grid-cols-2"
+                            : "md:grid-cols-1"
                       )}
                     >
                       {colors.map((color) => (

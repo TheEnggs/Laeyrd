@@ -1,5 +1,5 @@
 import { queryClient } from "@webview/controller/query-client";
-import { WebViewEvent } from "../../types/event";
+import { WebViewEvent } from "@src/types/event";
 import { promiseController } from "@webview/controller/promise-controller";
 
 let isAttached = false;

@@ -1,4 +1,4 @@
-import { WebViewEvent } from "../../types/event";
+import { WebViewEvent } from "@src/types/event";
 import { log } from "../../lib/debug-logs";
 
 export function reportError(error: Error) {

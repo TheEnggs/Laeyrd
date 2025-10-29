@@ -1,5 +1,5 @@
 import { log } from "../../lib/debug-logs";
-import { WebViewEvent } from "../../types/event";
+import { WebViewEvent } from "@src/types/event";
 import { queryClient } from "../controller/query-client";
 import { useEffect, useState } from "react";
 
@@ -62,7 +62,7 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
 export const useMutation = <T extends keyof WebViewEvent>(
   command: T,
   response?: {
-    onSuccess?: (data: WebViewEvent[T]["response"]["payload"]) => void;
+    onSuccess?: (data: WebViewEvent[T]["response"]) => void;
     onError?: (error: any) => void;
     onSettled?: () => void;
   }
@@ -70,7 +70,7 @@ export const useMutation = <T extends keyof WebViewEvent>(
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<any>(null);
   const [mutationData, setMutationData] = useState<
-    WebViewEvent[T]["response"]["payload"] | null
+    WebViewEvent[T]["response"] | null
   >(null);
 
   const mutate = (payload: WebViewEvent[T]["payload"]) => {
@@ -84,6 +84,7 @@ export const useMutation = <T extends keyof WebViewEvent>(
       })
       .catch((error) => {
         setMutationData(null);
+        setError(error);
         response?.onError?.(error);
       })
       .finally(() => {

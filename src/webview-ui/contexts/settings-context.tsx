@@ -9,11 +9,9 @@ import {
   useEffect,
 } from "react";
 import { queryClient } from "@webview/controller/query-client";
-import { FontMeta } from "../../types/font";
-import { UiLayoutMeta } from "../../types/layout";
-import { fontsLayoutUI } from "../../lib/fonts-layout";
-import { Color } from "../../types/theme";
-import { log } from "../../lib/debug-logs";
+import { UiLayoutMeta } from "@src/types/layout";
+import { fontsLayoutUI } from "../../lib/data/fonts-layout";
+import { Color } from "@src/types/theme";
 // ---------- Initial state ----------
 
 export type DraftColor = Color;
@@ -93,34 +91,28 @@ function draftColorReducer(
   }
 }
 
-function createDraftFontLayoutReducer() {
-  const original =
-    queryClient.getQueryData("GET_FONT_AND_LAYOUT_SETTINGS") ||
-    fontsLayoutUI ||
-    {};
-  return function draftFontLayoutReducer(
-    state: DraftLayout,
-    action: DraftLayoutAction
-  ): DraftLayout {
-    switch (action.type) {
-      case "SET_LAYOUT": {
-        const { key, value, defaultValue } = action;
+function draftFontLayoutReducer(
+  state: DraftLayout,
+  action: DraftLayoutAction
+): DraftLayout {
+  switch (action.type) {
+    case "SET_LAYOUT": {
+      const { key, value, defaultValue } = action;
 
-        // If the user "sets" a value equal to the default, drop it
-        if (value === defaultValue) {
-          const { [key]: _, ...rest } = state;
-          return rest;
-        }
-
-        // Otherwise, store it as an override
-        return { ...state, [key]: value };
+      // If the user "sets" a value equal to the default, drop it
+      if (value === defaultValue) {
+        const { [key]: _, ...rest } = state;
+        return rest;
       }
-      case "RESET":
-        return {};
-      default:
-        return state;
+
+      // Otherwise, store it as an override
+      return { ...state, [key]: value };
     }
-  };
+    case "RESET":
+      return {};
+    default:
+      return state;
+  }
 }
 
 interface SettingsContextType {
@@ -148,7 +140,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   });
 
   const [draftFontLayoutState, fontLayoutDispatch] = useReducer(
-    createDraftFontLayoutReducer(),
+    draftFontLayoutReducer,
     {}
   );
 

@@ -14,14 +14,13 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "src",
     "paths": {
-      "@components/*": ["components/*"],
-      "@utils/*": ["utils/*"],
+      "@src/*": ["*"],
+      "@extension/*": ["extension/*"],
       "@webview/*": ["webview-ui/*"],
-      "@types/*": ["types/*"],
       "@lib/*": ["lib/*"]
     }
   },
 
-  "include": ["src", "settings"],
+  "include": ["src", "src/extension/controller/themes/.ts"],
   "exclude": ["node_modules", "dist", "src/extension/snippets/**/*"]
 }

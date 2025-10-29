@@ -1,49 +1,32 @@
 import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
-import { log } from "../lib/debug-logs";
-import { MessageHandler } from "./controller/message";
-import { ThemeController } from "./controller/theme";
-import { UserSettingsController } from "./controller/userSettings";
-import { LivePreviewController } from "./controller/livePreview";
-import { UserPreferencesController } from "./controller/userPreferences";
 import { AuthController } from "./controller/auth";
-import { HistoryController } from "./controller/history";
-import { ThemeYourCodePanelManager } from "./controller/panelManager";
+import { LaeyrdPanelManager } from "./controller/panelManager";
+import { MessageController } from "./controller/message";
 
-let panelManager: ThemeYourCodePanelManager;
+let panelManager: LaeyrdPanelManager;
 let authController: AuthController;
 
 export async function activate(context: vscode.ExtensionContext) {
-  const controllers = {
-    theme: ThemeController.getInstance(context),
-    userSettings: new UserSettingsController(context),
-    auth: AuthController.getInstance(context),
-    preferences: UserPreferencesController.getInstance(context),
-    history: HistoryController.getInstance(context),
-  };
-
-  // Store auth controller reference for cleanup
-
-  controllers.userSettings.ensureOriginalBackup();
-
-  panelManager = new ThemeYourCodePanelManager(context);
-  authController = controllers.auth;
-  authController.onAuthChanged((user) => {
-    panelManager.messageHandler?.POST_MESSAGE({
-      command: "UPDATE_AUTH_USER",
-      payload: user || undefined,
-      requestId: "",
-      status: "success",
-    });
+  const openCommand = vscode.commands.registerCommand("laeyrd.open", () => {
+    const messageHandler = new MessageController(context);
+    panelManager = new LaeyrdPanelManager(context, messageHandler);
+    panelManager.open();
+    // controllers
+    authController = AuthController.getInstance();
+    authController.setContext(context);
+    //   authController.clearStoredAuth();
+    authController.loadStoredAuth();
+    authController.onAuthChanged((user) =>
+      messageHandler.POST_MESSAGE({
+        command: "UPDATE_AUTH_USER",
+        payload: user || undefined,
+        requestId: "",
+        status: "success",
+      })
+    );
   });
 
-  const openCommand = vscode.commands.registerCommand(
-    "themeYourCode.open",
-    () => panelManager.open()
-  );
-
-  context.subscriptions.push(openCommand, panelManager);
+  context.subscriptions.push(openCommand, panelManager, authController);
 }
 
 export function deactivate() {
@@ -52,4 +35,3 @@ export function deactivate() {
     authController.dispose();
   }
 }
-const isDev = false;

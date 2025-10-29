@@ -13,10 +13,10 @@ import {
   CardTitle,
 } from "@webview/components/ui/card";
 import ColorSettings from "./color-settings";
-import { Palette, Type, Layout, Settings, Store } from "lucide-react";
+import { Palette, Layout, Settings, Store } from "lucide-react";
 import LayoutSettings from "./layout-settings";
 import UserSettingsContent from "./user-settings-content";
-import MarketplaceContent from "./marketplace-content";
+import FloatingSave from "./floating-save";
 
 const mainTabs = [
   {
@@ -27,7 +27,7 @@ const mainTabs = [
   },
 
   {
-    id: "Fonts & Layout",
+    id: "fonts-layout",
     name: "Fonts & Layout",
     icon: Layout,
     description: "Adjust layout, panels, and UI behavior",
@@ -39,17 +39,18 @@ const mainTabs = [
     icon: Settings,
     description: "Manage your account and preferences",
   },
-];
+] as const;
+type Tabs = (typeof mainTabs)[number]["id"];
 
 export default function CustomizationTabs() {
-  const [activeTab, setActiveTab] = useState("colors");
+  const [activeTab, setActiveTab] = useState<Tabs>("colors");
 
   return (
     <div className="w-full max-w-7xl mx-auto">
       <Tabs
         defaultValue="colors"
         className="flex flex-col items-center w-full justify-start"
-        onValueChange={setActiveTab}
+        onValueChange={(value) => setActiveTab(value as Tabs)}
       >
         <AnimatedTabsList
           activeTab={activeTab}
@@ -97,7 +98,7 @@ export default function CustomizationTabs() {
 
           {/* Layout & UI Elements Tab */}
           <TabsContent
-            value="Fonts & Layout"
+            value="fonts-layout"
             className="animate-in fade-in-50 duration-200"
           >
             <Card className="bg-transparent border-0 shadow-none">
@@ -117,29 +118,6 @@ export default function CustomizationTabs() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Marketplace Tab */}
-          {/* <TabsContent
-            value="marketplace"
-            className="animate-in fade-in-50 duration-200"
-          >
-            <Card className="bg-transparent border-0 shadow-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-secondary-foreground text-lg font-semibold tracking-tight">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Store className="w-5 h-5 text-primary" />
-                  </div>
-                  Marketplace
-                </CardTitle>
-                <CardDescription className="text-secondary-foreground/80 text-sm leading-relaxed">
-                  Discover and install themes, extensions, and development tools
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MarketplaceContent />
-              </CardContent>
-            </Card>
-          </TabsContent> */}
 
           {/* User Settings Tab */}
           <TabsContent
@@ -165,6 +143,10 @@ export default function CustomizationTabs() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {activeTab === "colors" || activeTab === "fonts-layout" ? (
+        <FloatingSave />
+      ) : null}
     </div>
   );
 }

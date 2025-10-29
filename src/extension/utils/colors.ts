@@ -3,9 +3,9 @@ import {
   TokenCategory,
   TokenColorItem,
   TokenColorsList,
-} from "../../types/theme";
-import { colorCategoryMap } from "../../lib/colorsList";
-import { tokenColorMap } from "../../lib/tokenList";
+} from "@src/types/theme";
+import { colorCategoryMap } from "../../lib/data/colorsList";
+import { tokenColorMap } from "../../lib/data/tokenList";
 import { DraftToken } from "@webview/contexts/settings-context";
 
 export const generateColors = (colors: Record<string, string>) => {

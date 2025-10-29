@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLayoutSettings = void 0;
-const fonts_layout_1 = require("../../lib/fonts-layout");
+const fonts_layout_1 = require("../../lib/data/fonts-layout");
 const getLayoutSettings = (layout) => {
     const layoutList = fonts_layout_1.fontsLayoutUI;
     for (const key in layout) {

@@ -36,11 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeController = void 0;
 exports.groupColors = groupColors;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
-const fs = __importStar(require("fs"));
 const debug_logs_1 = require("../../lib/debug-logs");
 const colors_1 = require("../utils/colors");
+const event_1 = require("../../types/event");
 const jsonc_parser_1 = require("jsonc-parser");
+const toast_1 = require("./toast");
 function groupColors(colors) {
     return Object.entries(colors).reduce((acc, [key, value]) => {
         const [category, subKey] = key.split(".");
@@ -51,20 +51,14 @@ function groupColors(colors) {
     }, {});
 }
 class ThemeController {
-    constructor(context) {
-        this.context = context;
-        this.loadCurrentTheme();
+    constructor() { }
+    static async create() {
+        const controller = new ThemeController();
+        await controller.loadCurrentTheme();
+        return controller;
     }
-    static getInstance(context) {
-        if (!ThemeController.instance) {
-            ThemeController.instance = new ThemeController(context);
-        }
-        return ThemeController.instance;
-    }
-    /**
-     * Load the currently active theme JSON into memory.
-     */
-    loadCurrentTheme() {
+    /** Load the currently active theme JSON into memory */
+    async loadCurrentTheme() {
         try {
             const activeThemeName = vscode.workspace
                 .getConfiguration("workbench")
@@ -73,12 +67,10 @@ class ThemeController {
                 console.warn("No active theme detected");
                 return;
             }
-            (0, debug_logs_1.log)("activeThemeName", activeThemeName);
             const themeExt = vscode.extensions.all.find((ext) => {
                 const themes = ext.packageJSON?.contributes?.themes || [];
                 return themes.some((t) => t.label === activeThemeName || t.id === activeThemeName);
             });
-            (0, debug_logs_1.log)("themeExt", themeExt);
             if (!themeExt) {
                 console.warn("Theme extension not found for:", activeThemeName);
                 return;
@@ -88,35 +80,29 @@ class ThemeController {
                 console.warn("Theme info not found inside extension:", themeExt.id);
                 return;
             }
-            (0, debug_logs_1.log)("themeInfo", themeInfo);
-            const themeJsonPath = path.join(themeExt.extensionPath, themeInfo.path);
-            if (!fs.existsSync(themeJsonPath)) {
-                console.error("Theme JSON file not found:", themeJsonPath);
-                return;
-            }
-            this.currentThemePath = themeJsonPath;
-            (0, debug_logs_1.log)("themeJsonPath", themeJsonPath);
-            const parsedTheme = (0, jsonc_parser_1.parse)(fs.readFileSync(themeJsonPath, "utf8"));
-            this.currentTheme = parsedTheme;
+            const themeUri = vscode.Uri.joinPath(themeExt.extensionUri, themeInfo.path);
+            this.currentThemeUri = themeUri;
+            const themeContent = await vscode.workspace.fs.readFile(themeUri);
+            this.currentTheme = (0, jsonc_parser_1.parse)(Buffer.from(themeContent).toString("utf8"));
         }
         catch (error) {
             console.error("Error loading current theme", error);
         }
     }
-    /**
-     * Force reload theme from disk
-     */
-    refreshTheme() {
+    /** Force reload theme from disk */
+    async refreshTheme() {
         (0, debug_logs_1.log)("refreshing theme");
-        this.loadCurrentTheme();
+        await this.loadCurrentTheme();
     }
     getColors() {
+        console.log("current theme", this.currentTheme);
         const colors = this.currentTheme?.colors;
         return colors ? (0, colors_1.generateColors)(colors) : undefined;
     }
     getTokenColors() {
-        const tokenColors = this.currentTheme?.tokenColors;
-        return tokenColors ? (0, colors_1.convertTokenColors)(tokenColors) : undefined;
+        return this.currentTheme?.tokenColors
+            ? (0, colors_1.convertTokenColors)(this.currentTheme.tokenColors)
+            : undefined;
     }
     getSemanticTokenColors() {
         return this.currentTheme?.semanticTokenColors;
@@ -128,153 +114,172 @@ class ThemeController {
         return this.currentTheme?.type;
     }
     isOurTheme() {
-        return !!this.currentTheme?.name?.includes("Theme Your Code");
+        return !!this.currentTheme?.name?.includes("Laeyrd");
     }
-    getThemePath() {
-        return this.currentThemePath;
+    /** List themes contributed by this extension (from package.json) */
+    async listOwnThemes(context) {
+        const packageUri = vscode.Uri.joinPath(context.extensionUri, "package.json");
+        const content = await vscode.workspace.fs.readFile(packageUri);
+        const pkg = JSON.parse(Buffer.from(content).toString("utf8"));
+        const themes = pkg?.contributes?.themes?.map((t) => ({
+            label: t.label,
+            path: t.path,
+            uiTheme: t.uiTheme,
+        })) || [];
+        return themes;
     }
-    /**
-     * Return themes contributed by this extension (from package.json)
-     */
-    listOwnThemes(context) {
-        try {
-            const packageJsonPath = path.join(context.extensionPath, "package.json");
-            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-            const themes = pkg?.contributes?.themes?.map((t) => ({
-                label: t.label,
-                path: t.path,
-                uiTheme: t.uiTheme,
-            })) || [];
-            return themes;
-        }
-        catch (error) {
-            console.error("Failed to read extension themes from package.json", error);
-            return [];
-        }
-    }
-    /**
-     * Return currently active theme label as configured in VS Code
-     */
     getActiveThemeLabel() {
-        const activeThemeName = vscode.workspace
+        return vscode.workspace
             .getConfiguration("workbench")
             .get("colorTheme");
-        return activeThemeName;
     }
-    /**
-     * Overwrite a theme JSON by its label from our extension package.json
-     */
-    overwriteThemeByLabel(context, themeLabel, colors, tokenColors) {
+    async setActiveThemeByLabel(themeName) {
+        await vscode.workspace
+            .getConfiguration("workbench")
+            .update("colorTheme", themeName, vscode.ConfigurationTarget.Global);
+        toast_1.ToastController.showToast;
+    }
+    /** Handles live theme mode */
+    async handleLiveMode(context, themeName, colors, tokenColors, type = "dark") {
+        const themes = await this.listOwnThemes(context);
+        const target = themes.find((t) => t.label === themeName);
+        const activeThemeName = this.getActiveThemeLabel();
+        const currTheme = this.currentTheme;
+        const finalColors = { ...currTheme?.colors, ...colors };
+        const finalTokenColors = { ...currTheme?.tokenColors, ...tokenColors };
+        if (target) {
+            await this.overwriteThemeByLabel(context, themeName, finalColors, finalTokenColors);
+        }
+        else {
+            await this.createTheme(context, themeName, finalColors, finalTokenColors, type);
+            await this.addThemeToPackageJson(context, themeName, `${themeName}.json`, type);
+        }
+        if (activeThemeName !== themeName)
+            await this.setActiveThemeByLabel(themeName);
+    }
+    async handleSaveTheme(payload, context) {
         try {
-            const themes = this.listOwnThemes(context);
-            const target = themes.find((t) => t.label === themeLabel);
-            if (!target) {
-                vscode.window.showErrorMessage(`Theme "${themeLabel}" not found in this extension.`);
-                return;
+            if (payload.mode === event_1.SaveThemeModes.OVERWRITE) {
+                await this.overwriteThemeByLabel(context, payload.themeName, payload.colors, payload.tokens);
             }
-            const absoluteThemePath = path.join(context.extensionPath, target.path);
-            if (!fs.existsSync(absoluteThemePath)) {
-                vscode.window.showErrorMessage(`Theme file not found at ${absoluteThemePath}`);
-                return;
+            else if (payload.mode === event_1.SaveThemeModes.LIVE) {
+                await this.handleLiveMode(context, "Live Preview - Laeyrd", payload.colors, payload.tokens, payload.type);
             }
-            const themeJson = JSON.parse(fs.readFileSync(absoluteThemePath, "utf8"));
-            const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
-            const updatedTheme = {
-                ...themeJson,
-                colors: {
-                    ...this.currentTheme?.colors,
-                    ...colors,
-                },
-                semanticTokenColors: {
-                    ...this.currentTheme?.semanticTokenColors,
-                    ...tokensArray.semanticTokenColors,
-                },
-                tokenColors: [
-                    ...(this.currentTheme?.tokenColors ?? []),
-                    ...tokensArray.tokenColors,
-                ],
-            };
-            fs.writeFileSync(absoluteThemePath, JSON.stringify(updatedTheme, null, 2), "utf8");
-            // If we just overwrote the active theme, refresh in-memory cache
-            const activeLabel = this.getActiveThemeLabel();
-            if (activeLabel && activeLabel === themeLabel) {
-                this.currentThemePath = absoluteThemePath;
-                this.currentTheme = updatedTheme;
-                this.refreshTheme();
+            else {
+                const themeName = payload.themeName || "Untitled Theme";
+                const res = await this.createTheme(context, themeName, payload.colors, payload.tokens, payload.type);
+                if (!res.success)
+                    throw new Error("Failed to create theme");
+                await this.addThemeToPackageJson(context, themeName, `${themeName}.json`, payload.type);
             }
+            return { success: true };
         }
-        catch (error) {
-            console.error("Failed to overwrite theme by label", error);
+        catch (e) {
+            throw e;
         }
     }
-    /**
-     * Create a new theme file inside our extension folder
-     */
-    createTheme(context, themeName, colors, tokenColors, type = "dark") {
+    /** Overwrite a theme JSON by its label from our extension package.json */
+    async overwriteThemeByLabel(context, themeLabel, colors, tokenColors) {
+        const themes = await this.listOwnThemes(context);
+        const target = themes.find((t) => t.label === themeLabel);
+        if (!target) {
+            vscode.window.showErrorMessage(`Theme "${themeLabel}" not found in this extension.`);
+            return;
+        }
+        const themeUri = vscode.Uri.joinPath(context.extensionUri, target.path);
+        const themeContent = await vscode.workspace.fs.readFile(themeUri);
+        const themeJson = JSON.parse(Buffer.from(themeContent).toString("utf8"));
+        const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
+        const updatedTheme = {
+            ...themeJson,
+            colors: { ...(this.currentTheme?.colors ?? {}), ...colors },
+            semanticTokenColors: {
+                ...(this.currentTheme?.semanticTokenColors ?? {}),
+                ...tokensArray.semanticTokenColors,
+            },
+            tokenColors: [
+                ...(this.currentTheme?.tokenColors ?? []),
+                ...tokensArray.tokenColors,
+            ],
+        };
+        await vscode.workspace.fs.writeFile(themeUri, new TextEncoder().encode(JSON.stringify(updatedTheme, null, 2)));
+        // Refresh if this was active theme
+        if (this.getActiveThemeLabel() === themeLabel) {
+            this.currentThemeUri = themeUri;
+            this.currentTheme = updatedTheme;
+            await this.refreshTheme();
+        }
+    }
+    overwriteThemeContent(themeId, content, context) {
+        if (!themeId || !content)
+            throw new Error("Theme name or content not present");
+    }
+    /** Ensure themes folder exists */
+    async ensureThemesFolder(context) {
+        if (!this.themesDirUri) {
+            this.themesDirUri = vscode.Uri.joinPath(context.globalStorageUri, "themes");
+            await vscode.workspace.fs.createDirectory(this.themesDirUri);
+        }
+        return this.themesDirUri;
+    }
+    async getThemePath(themeName, context) {
+        const dir = await this.ensureThemesFolder(context);
+        return vscode.Uri.joinPath(dir, `${themeName}.json`);
+    }
+    async writeToThemeFile(context, themeName, themeJson) {
         try {
-            (0, debug_logs_1.log)("creating theme", themeName);
-            const themesDir = path.join(context.extensionPath, "/src/themes");
-            (0, debug_logs_1.log)("themesDir", themesDir);
-            if (!fs.existsSync(themesDir))
-                fs.mkdirSync(themesDir);
-            (0, debug_logs_1.log)("themesDir exists", fs.existsSync(themesDir));
-            const themePath = path.join(themesDir, `${themeName}.json`);
-            (0, debug_logs_1.log)("themePath", themePath);
-            const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
-            (0, debug_logs_1.log)("tokensArray", tokensArray);
-            const themeJson = {
-                name: themeName,
-                type,
-                publisher: "Theme Your Code",
-                colors: {
-                    ...this.currentTheme?.colors,
-                    ...colors,
-                },
-                tokenColors: {
-                    ...this.currentTheme?.tokenColors,
-                    ...tokensArray.tokenColors,
-                },
-                semanticTokenColors: {
-                    ...this.currentTheme?.semanticTokenColors,
-                    ...tokensArray.semanticTokenColors,
-                },
-            };
-            (0, debug_logs_1.log)("themeJson", themeJson);
-            fs.writeFileSync(themePath, JSON.stringify(themeJson, null, 2), "utf8");
-            return themePath;
+            const fileUri = await this.getThemePath(themeName, context);
+            await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(JSON.stringify(themeJson, null, 2)));
+            vscode.window.showInformationMessage(`Theme "${themeName}" created successfully!`);
+            return { success: true };
         }
-        catch (error) {
-            console.error("Error creating theme", error);
-            return "";
+        catch (err) {
+            vscode.window.showErrorMessage(`Failed to create theme "${themeName}"`);
+            return { success: false };
         }
     }
-    addThemeToPackageJson(context, themeName, themeFile, type = "dark") {
-        const packageJsonPath = path.join(context.extensionPath, "package.json");
-        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-        // Ensure "contributes" & "themes" exist
+    async createTheme(context, themeName, colors, tokenColors, type = "dark") {
+        if (!themeName || /[\\/:*?"<>|]/.test(themeName))
+            throw new Error("Invalid theme name");
+        const tokensArray = (0, colors_1.convertTokenColorsBackToTheme)(tokenColors);
+        const themeJson = {
+            name: themeName,
+            type,
+            publisher: "Laeyrd",
+            colors: { ...(this.currentTheme?.colors ?? {}), ...colors },
+            tokenColors: {
+                ...(this.currentTheme?.tokenColors ?? {}),
+                ...tokensArray.tokenColors,
+            },
+            semanticTokenColors: {
+                ...(this.currentTheme?.semanticTokenColors ?? {}),
+                ...tokensArray.semanticTokenColors,
+            },
+        };
+        return this.writeToThemeFile(context, themeName, themeJson);
+    }
+    async addThemeToPackageJson(context, themeName, themeFile, type = "dark") {
+        const packageUri = vscode.Uri.joinPath(context.extensionUri, "package.json");
+        const content = await vscode.workspace.fs.readFile(packageUri);
+        const pkg = JSON.parse(Buffer.from(content).toString("utf8"));
         if (!pkg.contributes)
             pkg.contributes = {};
         if (!pkg.contributes.themes)
             pkg.contributes.themes = [];
-        // Avoid duplicates
         const alreadyExists = pkg.contributes.themes.some((t) => t.label === themeName);
-        if (alreadyExists) {
-            vscode.window.showWarningMessage(`Theme "${themeName}" already exists in package.json.`);
-            return;
-        }
-        // Add new theme entry
+        if (alreadyExists)
+            throw new Error(`Theme "${themeName}" already exists in package.json.`);
         pkg.contributes.themes.push({
             label: themeName,
             uiTheme: type === "dark" ? "vs-dark" : "vs",
-            path: `./src/themes/${themeFile}`,
+            path: `themes/${themeFile}`, // relative path inside extension
         });
-        fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2), "utf8");
+        await vscode.workspace.fs.writeFile(packageUri, new TextEncoder().encode(JSON.stringify(pkg, null, 2)));
         vscode.window
             .showInformationMessage(`Theme "${themeName}" added! Reload to activate.`, "Reload Now")
             .then((selection) => {
-            if (selection === "Reload Now") {
+            if (selection === "Reload Now")
                 vscode.commands.executeCommand("workbench.action.reloadWindow");
-            }
         });
     }
 }

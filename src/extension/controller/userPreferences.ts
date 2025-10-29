@@ -5,44 +5,20 @@ import {
   UserConsents,
   ProgrammingLanguagePreference,
   ServerConfig,
-} from "../../types/user-preferences";
+} from "@src/types/user-preferences";
 import { log } from "../../lib/debug-logs";
 
 export class UserPreferencesController {
-  private static instance: UserPreferencesController;
   private context: vscode.ExtensionContext;
-  private encryptionKey: string;
 
-  // Server configuration - replace with your actual server details
-  private serverConfig: ServerConfig = {
-    baseUrl: "http://localhost:3000", // Replace with your server URL
-    webappUrl: "http://localhost:3000",
-    githubUrl: "https://github.com/your-org/theme-your-code-server", // Replace with your GitHub repo
-    privacyPolicyUrl: "https://theme-your-code.com/privacy",
-    termsOfServiceUrl: "https://theme-your-code.com/terms",
-    clerkPublishableKey: "pk_test_your-clerk-key", // Replace with your Clerk publishable key
-  };
-
-  private constructor(context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.encryptionKey = this.getOrCreateEncryptionKey();
-  }
-
-  public static getInstance(
-    context: vscode.ExtensionContext
-  ): UserPreferencesController {
-    if (!UserPreferencesController.instance) {
-      UserPreferencesController.instance = new UserPreferencesController(
-        context
-      );
-    }
-    return UserPreferencesController.instance;
   }
 
   /**
    * Get or create encryption key for securing user data locally
    */
-  private getOrCreateEncryptionKey(): string {
+  private get getEncryptionKey(): string {
     const key = this.context.globalState.get<string>("encryption_key");
     if (key) {
       return key;
@@ -61,7 +37,7 @@ export class UserPreferencesController {
   private encrypt(data: string): string {
     try {
       const iv = crypto.randomBytes(16);
-      const key = Buffer.from(this.encryptionKey, "hex");
+      const key = Buffer.from(this.getEncryptionKey, "hex");
       const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
       let encrypted = cipher.update(data, "utf8", "hex");
       encrypted += cipher.final("hex");
@@ -79,7 +55,7 @@ export class UserPreferencesController {
     try {
       const [ivHex, encrypted] = encryptedData.split(":");
       const iv = Buffer.from(ivHex, "hex");
-      const key = Buffer.from(this.encryptionKey, "hex");
+      const key = Buffer.from(this.getEncryptionKey, "hex");
       const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
       let decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");
@@ -255,13 +231,6 @@ export class UserPreferencesController {
       log(`[UserPreferencesController] Server sync error: ${error}`);
       return { success: false, message: "Failed to sync with server" };
     }
-  }
-
-  /**
-   * Get server configuration
-   */
-  public getServerConfig(): ServerConfig {
-    return this.serverConfig;
   }
 
   /**

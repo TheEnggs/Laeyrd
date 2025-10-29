@@ -1,20 +1,6 @@
 import * as vscode from "vscode";
-export class ToastController {
-  private static instance: ToastController;
-  private context: vscode.ExtensionContext;
-
-  private constructor(context: vscode.ExtensionContext) {
-    this.context = context;
-  }
-
-  public static getInstance(context: vscode.ExtensionContext): ToastController {
-    if (!ToastController.instance) {
-      ToastController.instance = new ToastController(context);
-    }
-    return ToastController.instance;
-  }
-
-  public showToast({
+export const ToastController = {
+  showToast({
     message,
     type,
   }: {
@@ -26,5 +12,5 @@ export class ToastController {
     else if (type === "error") vscode.window.showErrorMessage(message);
     else if (type === "success") vscode.window.showInformationMessage(message);
     vscode.window.showInformationMessage(message);
-  }
-}
+  },
+};

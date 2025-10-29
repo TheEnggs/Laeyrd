@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { HistoryEntry, HistoryState } from "../../types/history";
-import { log } from "../../lib/debug-logs";
+import type { HistoryEntry, HistoryState } from "@src/types/history";
+import { log } from "@lib/debug-logs";
 
 export class HistoryController {
   private static instance: HistoryController;

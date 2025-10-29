@@ -1,0 +1,28 @@
+# Ignore everything not needed in production
+node_modules/
+src/
+out/
+tests/
+test/
+.vscode/
+.vscode-test/
+coverage/
+*.log
+*.map
+*.ts
+*.tsx
+
+# Build output except final bundle
+dist/*
+!dist/extension.js
+!dist/release/*.vsix
+
+# Git and CI
+.git/
+.github/
+.gitignore
+.editorconfig
+
+# Docs and configs
+*.md
+LICENSE.txt

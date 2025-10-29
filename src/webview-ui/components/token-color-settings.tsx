@@ -3,7 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { AlertCircle } from "lucide-react";
 import { useQuery } from "../hooks/use-query";
-import { SemanticTokenColors, TokenColorsList } from "../../types/theme";
+import { SemanticTokenColors, TokenColorsList } from "@src/types/theme";
 import { useSettings } from "../contexts/settings-context";
 import ColorPicker from "./ui/color-picker";
 import {
@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { cn } from "../lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useMemo, memo } from "react";
 import { ColorSettingsSkeleton } from "./skeleton/color-settings";
@@ -200,67 +199,71 @@ const VirtualizedTokenColors = memo(function VirtualizedTokenColors({
                           {meta.description}
                         </p> */}
                       </div>
+                      <div className="flex items-center justify-start gap-4 flex-wrap">
+                        {/* Color Picker */}
+                        <div className="space-y-2 shrink-0 min-w-1/4">
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Color
+                          </label>
+                          <ColorPicker
+                            value={currentForeground || "#000000"}
+                            onChange={(newValue) =>
+                              tokenDispatch({
+                                type: "SET_TOKEN_COLOR",
+                                key: category,
+                                value: {
+                                  ...currentTokenColor,
+                                  foreground: String(newValue),
+                                },
+                              })
+                            }
+                          />
+                        </div>
 
-                      {/* Color Picker */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Color
-                        </label>
-                        <ColorPicker
-                          value={currentForeground || "#000000"}
-                          onChange={(newValue) =>
-                            tokenDispatch({
-                              type: "SET_TOKEN_COLOR",
-                              key: category,
-                              value: {
-                                ...currentTokenColor,
-                                foreground: String(newValue),
-                              },
-                            })
-                          }
-                        />
-                      </div>
-
-                      {/* Font Style Selector */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Font Style
-                        </label>
-                        <Select
-                          value={currentFontStyle || "none"}
-                          onValueChange={(value) =>
-                            tokenDispatch({
-                              type: "SET_TOKEN_COLOR",
-                              key: category,
-                              value: {
-                                ...currentTokenColor,
-                                fontStyle: value === "none" ? undefined : value,
-                              },
-                            })
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select font style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Normal</SelectItem>
-                            <SelectItem value="bold">Bold</SelectItem>
-                            <SelectItem value="italic">Italic</SelectItem>
-                            <SelectItem value="underline">Underline</SelectItem>
-                            <SelectItem value="bold italic">
-                              Bold Italic
-                            </SelectItem>
-                            <SelectItem value="bold underline">
-                              Bold Underline
-                            </SelectItem>
-                            <SelectItem value="italic underline">
-                              Italic Underline
-                            </SelectItem>
-                            <SelectItem value="bold italic underline">
-                              Bold Italic Underline
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {/* Font Style Selector */}
+                        <div className="space-y-2 shrink-0 min-w-1/4">
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Font Style
+                          </label>
+                          <Select
+                            value={currentFontStyle || "none"}
+                            onValueChange={(value) =>
+                              tokenDispatch({
+                                type: "SET_TOKEN_COLOR",
+                                key: category,
+                                value: {
+                                  ...currentTokenColor,
+                                  fontStyle:
+                                    value === "none" ? undefined : value,
+                                },
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select font style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Normal</SelectItem>
+                              <SelectItem value="bold">Bold</SelectItem>
+                              <SelectItem value="italic">Italic</SelectItem>
+                              <SelectItem value="underline">
+                                Underline
+                              </SelectItem>
+                              <SelectItem value="bold italic">
+                                Bold Italic
+                              </SelectItem>
+                              <SelectItem value="bold underline">
+                                Bold Underline
+                              </SelectItem>
+                              <SelectItem value="italic underline">
+                                Italic Underline
+                              </SelectItem>
+                              <SelectItem value="bold italic underline">
+                                Bold Italic Underline
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   </div>

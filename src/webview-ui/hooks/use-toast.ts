@@ -1,4 +1,4 @@
-import { WebViewEvent } from "../../types/event";
+import { WebViewEvent } from "@src/types/event";
 import { VSCodeMessenger } from "./use-vscode-messenger";
 
 export default function useToast() {

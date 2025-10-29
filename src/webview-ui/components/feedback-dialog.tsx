@@ -23,7 +23,6 @@ import {
 } from "./ui/select";
 import { Badge } from "./ui/badge";
 import { MessageSquare, Bug, Sparkles, Send, Loader2 } from "lucide-react";
-import { cn } from "../lib/utils";
 import { FEEDBACK_CONFIG } from "../config/feedback";
 
 type FeedbackType = "bug" | "feature";

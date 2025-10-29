@@ -1,14 +1,18 @@
 import { DraftColor, DraftToken } from "@webview/contexts/settings-context";
-import { FontMetaGrouped } from "./font";
 import { UiLayoutMetaGrouped } from "./layout";
 import {
   ColorMetaGrouped,
   TokenColorsList,
   SemanticTokenColors,
-  TokenColorItemDetailed,
 } from "./theme";
-import { HistoryEntry, HistoryState } from "./history";
-import { fontsLayoutUI } from "../lib/fonts-layout";
+import { fontsLayoutUI } from "@lib/data/fonts-layout";
+import { LocalVersionFile, SyncResponse } from "./sync";
+
+export const SaveThemeModes = {
+  CREATE: "CREATE",
+  OVERWRITE: "OVERWRITE",
+  LIVE: "LIVE",
+} as const;
 
 export type WebViewEvent = {
   SHOW_TOAST: {
@@ -69,12 +73,12 @@ export type WebViewEvent = {
   DISABLE_LIVE_PREVIEW: { payload: any; response: undefined };
   SAVE_THEME: {
     payload: {
-      mode: "create" | "overwrite";
+      mode: keyof typeof SaveThemeModes;
       themeName: string;
       colors: DraftColor;
       tokenColors: DraftToken;
     };
-    response: undefined;
+    response: { success: boolean };
   };
   SAVE_SETTINGS: {
     payload: {
@@ -131,32 +135,65 @@ export type WebViewEvent = {
   };
   WEBAPP_SIGN_IN: {
     payload: null;
-    response: { success: boolean; redirectUrl?: string };
+    response: {
+      user_code: string;
+      verificationUri: string;
+      expiresIn: number;
+    };
   };
   SIGN_OUT: {
     payload: null;
     response: { success: boolean };
   };
-  // History Events
-  GET_HISTORY: {
-    payload: any;
-    response: HistoryState;
+  // THEMES SYNC EVENTS
+  FETCH_REMOTE_VERSION: {
+    payload: {};
+    response: { hasConflicts: boolean; hasUpdates: boolean };
   };
-  ADD_HISTORY_ENTRY: {
-    payload: Omit<HistoryEntry, "id" | "timestamp">;
-    response: undefined;
+  SYNC: {
+    payload: {};
+    response: { success: boolean; data: SyncResponse[] };
   };
-  CLEAR_HISTORY: {
-    payload: any;
-    response: undefined;
+
+  //   CHECK_CONFLICTS: {
+  //     payload: { userId: string };
+  //     response: {
+  //       conflictingThemes: LocalThemeVersion[];
+  //     };
+  //   };
+
+  RESOLVE_CONFLICT: {
+    payload: {
+      resolve: { themeId: string; resolve: "KEEP_LOCAL" | "KEEP_REMOTE" }[];
+    };
+    response: {
+      success: boolean;
+    };
   };
-  RESET_TO_HISTORY_ENTRY: {
-    payload: { entryId: string };
-    response: undefined;
+
+  // FUTURE: SETTINGS SYNC
+  FETCH_REMOTE_SETTINGS: {
+    payload: { userId: string };
+    response: any[]; // define RemoteSettingsVersion type
   };
-  HISTORY_UPDATED: {
-    payload: HistoryState;
-    response: undefined;
+
+  PULL_SETTING: {
+    payload: { settingId: number };
+    response: {
+      success: boolean;
+      setting: any; // define LocalSettingsVersion type
+      message?: string;
+    };
+  };
+
+  PUSH_SETTING: {
+    payload: { settingId: number };
+    response: {
+      success: boolean;
+      setting: any; // define LocalSettingsVersion type
+      conflict?: boolean;
+      remoteSetting?: any; // RemoteSettingsVersion
+    };
   };
 };
 
@@ -168,7 +205,7 @@ export interface RequestMessage<T extends keyof WebViewEvent> {
 
 export interface ResponseMessage<
   T extends keyof WebViewEvent,
-  K extends "payload" | "response"
+  K extends "payload" | "response",
 > {
   requestId: string;
   command: T;

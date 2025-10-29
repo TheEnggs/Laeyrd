@@ -1,32 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@webview/components/ui/card";
+import { Card, CardContent } from "@webview/components/ui/card";
 import { Button } from "@webview/components/ui/button";
 import { Badge } from "@webview/components/ui/badge";
-import { Input } from "@webview/components/ui/input";
-import {
-  Tabs,
-  TabsContent,
-  AnimatedTabsTrigger,
-  AnimatedTabsList,
-} from "@webview/components/ui/tabs";
-import {
-  Palette,
-  Code,
-  Download,
-  Star,
-  Users,
-  ChevronUp,
-  AlertCircle,
-  Search,
-  Loader2,
-} from "lucide-react";
-import { cn } from "../lib/utils";
+import { Download, Star, Users, ChevronUp, AlertCircle } from "lucide-react";
+import { cn } from "@webview/lib/utils";
 
 // Mock data for themes
 const logoArr = ["🌙", "🌊", "⚡", "🐍", "🌐", "🌙", "🌊", "⚡", "🐍", "🌐"];
