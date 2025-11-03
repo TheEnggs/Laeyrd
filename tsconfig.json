@@ -1,26 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "jsx": "react-jsx",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": "src",
-    "paths": {
-      "@src/*": ["*"],
-      "@extension/*": ["extension/*"],
-      "@webview/*": ["webview-ui/*"],
-      "@lib/*": ["lib/*"]
-    }
-  },
-
-  "include": ["src", "src/extension/controller/themes/.ts"],
-  "exclude": ["node_modules", "dist", "src/extension/snippets/**/*"]
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/extension" },
+    { "path": "packages/webview-ui" }
+  ]
 }

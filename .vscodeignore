@@ -1,28 +1,58 @@
-# Ignore everything not needed in production
+# =========================================================
+# Node & build artifacts
+# =========================================================
 node_modules/
-src/
-out/
-tests/
-test/
+**/node_modules/
+dist/**/*.map
+dist/**/*.ts
+dist/**/*.tsx
+dist/**/*.test.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================================================
+# Source code — only keep compiled dist/
+# =========================================================
+packages/
+!dist/
+!dist/**
+
+# =========================================================
+# Development & config files
+# =========================================================
 .vscode/
 .vscode-test/
-coverage/
-*.log
-*.map
-*.ts
-*.tsx
-
-# Build output except final bundle
-dist/*
-!dist/extension.js
-!dist/release/*.vsix
-
-# Git and CI
-.git/
-.github/
-.gitignore
+.env
+.env.*
+*.env.*
 .editorconfig
+.eslintrc*
+.prettierrc*
+.prettierignore
+tsconfig*.json
+vite.config.*
+eslint.config.*
+postcss.config.*
+tailwind.config.*
+components.json
 
-# Docs and configs
-*.md
-LICENSE.txt
+# =========================================================
+# Git / CI / Docs
+# =========================================================
+.git/
+.gitignore
+.github/
+CHANGELOG.md
+README_DEV.md
+README.md
+**/README_DEV.md
+
+# =========================================================
+# Misc
+# =========================================================
+*.mdx
+*.spec.*
+*.test.*
+*.DS_Store

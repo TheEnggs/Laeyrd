@@ -1,9 +1,9 @@
 {
   "name": "laeyrd",
   "version": "0.0.1",
-  "description": "",
-  "main": "dist/extension/extension.js",
+  "description": "Laeyrd is a theme and settings customizer for VSCode with sync functionality.",
   "publisher": "theenggs",
+  "readme": "README.extension.md",
   "icon": "dist/media/logo.png",
   "license": "MIT",
   "repository": {
@@ -14,25 +14,19 @@
     "Themes",
     "Other"
   ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npm-run-all --parallel dev:*",
-    "dev:js": "tsc --watch",
-    "dev:webview": "vite",
-    "build:ts": "tsc -b && tsc-alias",
-    "build:webview": "vite build",
-    "build": "npm-run-all build:ts build:webview copy:themes copy:snippets copy:media",
-    "copy:themes": "cp -r src/themes dist/",
-    "copy:media": "mkdir -p dist/media && cp -r src/media/* dist/media/",
-    "copy:snippets": "mkdir -p dist/extension && cp -r src/extension/snippets dist/extension/",
-    "prepublishOnly": "npm run build",
-    "package": "mkdir -p dist/release && vsce package --out dist/release/$(node -p \"require('./package.json').name\")-$(node -p \"require('./package.json').version\").vsix"
-  },
+  "main": "dist/extension.js",
+  "type": "commonjs",
+  "activationEvents": [
+    "onWebviewPanel:viewType:laeyrd"
+  ],
   "engines": {
     "vscode": "^1.80.0"
   },
-  "activationEvents": [
-    "onStartupFinished"
+  "keywords": [
+    "theme",
+    "editor",
+    "vscode",
+    "laeyrd"
   ],
   "contributes": {
     "configuration": {
@@ -61,27 +55,46 @@
       }
     ]
   },
-  "keywords": [],
-  "author": "",
-  "packageManager": "pnpm@10.12.4",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npm-run-all --parallel dev:*",
+    "dev:js": "tsc --watch",
+    "dev:webview": "vite --config packages/webview-ui/vite.config.ts",
+    "build": "npm run lint && npm run build:extension  && npm run build:webview && npm run copy:media",
+    "build:extension": "NODE_ENV=production node packages/extension/esbuild.config.mjs",
+    "build:webview": "vite build --config packages/webview-ui/vite.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json",
+    "copy:media": "mkdir -p dist/media && cp -r packages/media/* dist/media/",
+    "prepublishOnly": "npm run build",
+    "package": "rm -rf dist && npm run build && mkdir -p dist/release && vsce package --no-yarn --out dist/release/$(node -p \"require('./package.json').name\")-$(node -p \"require('./package.json').version\").vsix",
+    "lint": "npx eslint ."
+  },
+  "author": "TheEnggs",
   "devDependencies": {
+    "@eslint/js": "^9.39.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/vite": "^4.1.11",
-    "@types/node": "^24.2.0",
+    "@types/node": "^24.9.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/vscode": "^1.80.0",
-    "npm-run-all": "^4.1.5",
+    "@vitejs/plugin-react": "^5.1.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
-    "tailwindcss": "^4.1.11",
+    "tailwindcss": "^4.1.16",
     "tsc-alias": "^1.8.16",
-    "typescript": "^5.9.2",
-    "vite": "latest"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vsce": "^2.15.0",
+    "tsx": "latest",
+    "@types/vscode-webview": "^1.57.5",
+    "tw-animate-css": "^1.3.6"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
-    "@monaco-editor/react": "^4.6.0",
+    "tailwind-merge": "^3.3.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -109,45 +122,17 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@tanstack/react-virtual": "^3.13.12",
-    "@types/vscode-webview": "^1.57.5",
-    "@vitejs/plugin-react": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "date-fns": "4.1.0",
     "diff": "^8.0.2",
     "embla-carousel-react": "8.5.1",
     "framer-motion": "^12.23.12",
-    "geist": "^1.3.1",
-    "input-otp": "1.4.1",
-    "jiti": "latest",
     "jsonc-parser": "^3.3.1",
-    "less": "latest",
-    "lightningcss": "latest",
     "lucide-react": "^0.536.0",
-    "monaco-editor": "^0.47.0",
-    "next": "15.2.4",
-    "next-themes": "^0.4.4",
-    "path": "latest",
-    "react": "^18.2.0",
-    "react-day-picker": "9.8.0",
-    "react-dom": "^18.2.0",
-    "react-hook-form": "^7.54.1",
-    "react-resizable-panels": "^2.1.7",
-    "recharts": "2.15.0",
-    "sass": "latest",
-    "sass-embedded": "latest",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "sonner": "latest",
-    "stylus": "latest",
-    "sugarss": "latest",
-    "tailwind-merge": "^3.3.1",
-    "terser": "latest",
-    "tsx": "latest",
-    "tw-animate-css": "^1.3.6",
     "uuid": "^13.0.0",
-    "vaul": "^0.9.6",
-    "vsce": "^2.15.0",
-    "yaml": "latest",
     "zod": "^3.24.1"
   }
 }
