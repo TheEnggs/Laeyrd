@@ -9,7 +9,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@webview/*": ["./src/*"],
+      "@/*": ["./src/*"],
       "@shared/*": ["../shared/src/*"]
     }
   },

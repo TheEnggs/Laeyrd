@@ -1,5 +1,5 @@
 import { Coffee } from "lucide-react";
-import { useMutation } from "@webview/hooks/use-query";
+import { useMutation } from "@/hooks/use-query";
 
 export default function HeroSection() {
   const { mutate: openDonation } = useMutation("OPEN_DONATION");
@@ -22,7 +22,7 @@ export default function HeroSection() {
           <div className="mb-10 flex items-center justify-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs text-secondary-foreground shadow-xs">
               <Coffee size={14} className="opacity-80" />
-              <span className="hidden sm:inline">Fuel the theme wizardry</span>
+              <span className="hidden sm:inline">Fuel the Laeyrd</span>
               <button
                 onClick={() => openDonation({ command: "OPEN_DONATION" })}
                 className="ml-1 inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:opacity-90 active:opacity-100"

@@ -1,15 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@webview/components/ui/card";
-import { useSettings } from "@webview/contexts/settings-context";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSettings } from "@/contexts/settings-context";
 import { ColorSettingsSkeleton } from "./skeleton/color-settings";
-import { Input } from "@webview/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Switch } from "./ui/switch";
 import {
   Select,
@@ -18,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { UiLayoutMeta, UiLayoutMetaGrouped } from "@shared/types/layout";
-import { cn } from "@webview/lib/utils";
-import { useQuery } from "@webview/hooks/use-query";
+import { UiLayoutMeta } from "@shared/types/layout";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@/hooks/use-query";
+import { log } from "@shared/utils/debug-logs";
 
-type UiLayoutMetaWithKey = UiLayoutMeta & { key: string };
+type UiLayoutMetaWithKey = UiLayoutMeta & { key: string; isTouched: boolean };
 
 export default function LayoutSettings() {
   const { draftFontLayoutState, fontLayoutDispatch } = useSettings();
@@ -30,7 +26,7 @@ export default function LayoutSettings() {
     command: "GET_FONT_AND_LAYOUT_SETTINGS",
     payload: [],
   });
-  console.log("layoutState", layoutState);
+  log("layoutState", layoutState);
   // Merge draftState with default values and organize by subcategory
   const layoutTree = useMemo(() => {
     if (!layoutState) return {};
@@ -46,6 +42,7 @@ export default function LayoutSettings() {
         ...item,
         key: key,
         defaultValue: value,
+        isTouched: !!draftFontLayoutState[key],
       } as UiLayoutMetaWithKey;
 
       // Store subcategory toggles separately
@@ -127,7 +124,13 @@ export default function LayoutSettings() {
               {items.map((item) => {
                 if (item.isSubCategoryToggle) return null;
                 return (
-                  <div key={item.displayName} className="space-y-3">
+                  <div
+                    key={item.displayName}
+                    className={cn(
+                      "border border-primary/10 space-y-3 rounded-xl p-4",
+                      item.isTouched && "bg-primary/10"
+                    )}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-sm font-medium text-foreground/90">

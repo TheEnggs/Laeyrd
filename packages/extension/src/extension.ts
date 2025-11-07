@@ -24,6 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
         status: "success",
       })
     );
+    // auto sync can be added here
   });
 
   context.subscriptions.push(openCommand, panelManager, authController);

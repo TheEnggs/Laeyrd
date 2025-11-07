@@ -5,13 +5,8 @@ import {
   TabsContent,
   AnimatedTabsList,
   AnimatedTabsTrigger,
-} from "@webview/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@webview/components/ui/card";
+} from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ColorPicker from "./ui/color-picker";
 import { useSettings } from "../contexts/settings-context";
 import {
@@ -27,9 +22,10 @@ import {
 import { mainTabs } from "@shared/utils/colors";
 import { useMemo, useState } from "react";
 import { ColorSettingsSkeleton } from "./skeleton/color-settings";
-import { cn } from "@webview/lib/utils";
+import { cn } from "@/lib/utils";
 import TokenColorSettings from "./token-color-settings";
 import { useQuery } from "../hooks/use-query";
+import { log } from "@shared/utils/debug-logs";
 
 // 🔹 Map main tabs to icons
 const iconMap = {
@@ -49,7 +45,7 @@ export default function ColorSettings() {
     payload: [],
   });
 
-  console.log("colorsState", colorsState);
+  log("colorsState", colorsState);
 
   const [activeTab, setActiveTab] = useState<string>(mainTabs[0]);
 
@@ -65,6 +61,7 @@ export default function ColorSettings() {
           displayName: string;
           description: string;
           value: string;
+          isTouched: boolean;
         }[]
       >
     > = {};
@@ -81,6 +78,7 @@ export default function ColorSettings() {
         displayName: def.displayName,
         description: def.description,
         value: draftColorState[key] ?? def.defaultValue ?? "",
+        isTouched: !!draftColorState[key],
       });
     }
     return tree;
@@ -168,7 +166,13 @@ export default function ColorSettings() {
                       )}
                     >
                       {colors.map((color) => (
-                        <div key={color.key} className="space-y-3">
+                        <div
+                          key={color.key}
+                          className={cn(
+                            "border border-primary/20 space-y-3 rounded-xl p-4",
+                            color.isTouched && " bg-primary/10"
+                          )}
+                        >
                           {/* <div className="flex items-center justify-between"> */}
                           <div>
                             <h4 className="text-base font-semibold text-foreground/80 tracking-tight">

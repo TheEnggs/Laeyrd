@@ -1,6 +1,6 @@
-import { queryClient } from "@webview/controller/query-client";
+import { queryClient } from "@/controller/query-client";
 import { WebViewEvent } from "@shared/types/event";
-import { promiseController } from "@webview/controller/promise-controller";
+import { promiseController } from "@/controller/promise-controller";
 
 let isAttached = false;
 let detachFns: (() => void)[] = [];

@@ -4,8 +4,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@webview/components/ui/card";
-import { Switch } from "@webview/components/ui/switch";
+} from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Code, NotebookIcon, Palette, Settings, Layout } from "lucide-react";
 import { UserConsents } from "@shared/types/user";
 export default function SyncSettings({

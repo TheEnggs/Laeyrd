@@ -1,6 +1,6 @@
 // src/hooks/useVSCodeMessenger.ts
 import { RequestMessage, WebViewEvent } from "@shared/types/event";
-import { HandleAcquireVsCodeApi } from "@webview/lib/acquireVsCodeApi";
+import { HandleAcquireVsCodeApi } from "@/lib/acquireVsCodeApi";
 import { log } from "@shared/utils/debug-logs";
 
 export function VSCodeMessenger() {

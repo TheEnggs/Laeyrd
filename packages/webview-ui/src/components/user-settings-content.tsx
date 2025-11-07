@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@webview/hooks/use-query";
+import { useQuery, useMutation } from "@/hooks/use-query";
 import { useAuth } from "./auth-provider";
 import { UserConsents } from "@shared/types/user";
 import { log } from "../../../shared/src/utils/debug-logs";

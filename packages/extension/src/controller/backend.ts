@@ -83,7 +83,7 @@ export class BackendController {
   async getUserToken(): Promise<string | null> {
     const session = AuthController.getInstance().getCurrentSession();
     if (!session) return null;
-    console.log("Sessionid", session.id);
+    log("Sessionid", session.id);
 
     const res = await fetch(`${SERVER_CONFIG.webappUrl}/api/refresh-token`, {
       method: "GET",

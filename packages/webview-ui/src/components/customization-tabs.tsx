@@ -4,14 +4,14 @@ import {
   TabsContent,
   AnimatedTabsTrigger,
   AnimatedTabsList,
-} from "@webview/components/ui/tabs";
+} from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@webview/components/ui/card";
+} from "@/components/ui/card";
 import ColorSettings from "./color-settings";
 import { Palette, Layout, Settings, Store } from "lucide-react";
 import LayoutSettings from "./layout-settings";

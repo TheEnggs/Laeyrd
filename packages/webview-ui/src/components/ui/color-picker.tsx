@@ -1,22 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Button } from "@webview/components/ui/button";
-import { Input } from "@webview/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@webview/components/ui/popover";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@webview/components/ui/tabs";
+} from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { Badge } from "./badge";
-
+import { HexColorPicker, HexColorInput } from "react-colorful";
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
@@ -81,34 +76,16 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
             </TabsList>
 
             <TabsContent value="picker" className="space-y-4 mt-4">
-              <div className="flex gap-3">
-                <div
-                  className="w-12 h-10 p-0 border-2 bg-transparent hover:scale-105 transition-transform border-border/60 rounded-xl"
-                  style={{ backgroundColor: value }}
-                >
-                  {/* Hidden native color input */}
-                  <input
-                    type="color"
-                    id="color-picker"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="hidden" // completely hide it
-                  />
-
-                  {/* Label styled as a color swatch */}
-                  <label
-                    htmlFor="color-picker"
-                    className="w-full h-full block cursor-pointer rounded-xl"
-                    style={{ backgroundColor: value }}
-                  />
-                </div>
-
-                <Input
-                  type="text"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  placeholder="#000000"
-                  className="flex-1 bg-background/50 border-border/60 text-foreground rounded-xl text-xs"
+              <div className="flex gap-2 flex-col w-full items-center justify-center">
+                <HexColorPicker
+                  color={value}
+                  onChange={onChange}
+                  className="min-w-full w-full rounded-lg"
+                />
+                <HexColorInput
+                  color={value}
+                  onChange={onChange}
+                  className="p-2 border border-input/60 rounded-lg w-full"
                 />
               </div>
             </TabsContent>

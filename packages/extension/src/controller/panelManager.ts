@@ -3,6 +3,7 @@ import { MessageController } from "./message";
 import path from "path";
 import fs from "fs";
 import { fontsLayoutUI } from "@shared/data/fonts-layout";
+import { log } from "@shared/utils/debug-logs";
 
 const isDev = false;
 
@@ -35,6 +36,20 @@ export class PanelManager implements vscode.Disposable {
         ],
       }
     );
+    this.panel.iconPath = {
+      light: vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "media",
+        "icons",
+        "laeyrd-light.png"
+      ),
+      dark: vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "media",
+        "icons",
+        "laeyrd-dark.png"
+      ),
+    };
 
     // Inject the panel into MessageHandler
     this.messageHandler.setPanel(this.panel);
@@ -56,15 +71,13 @@ export class PanelManager implements vscode.Disposable {
               updateThemeColor: true,
               updateThemeList: true,
             })
-            .catch((err) =>
-              console.log("something went wrong while updating theme")
-            );
+            .catch((err) => log("something went wrong while updating theme"));
         }
         if (this.isFontOrLayoutSetting(event)) {
           this.messageHandler
             .settingsChanged()
             .catch((err) =>
-              console.log("something went wrong while updating settings")
+              log("something went wrong while updating settings")
             );
         }
       })
@@ -99,7 +112,7 @@ export class PanelManager implements vscode.Disposable {
     const keys = Object.keys(fontsLayoutUI);
     const affected = keys.filter((k) => event.affectsConfiguration(k));
     if (affected.length > 0) {
-      console.log(`[PanelManager] Font/Layout changed: ${affected.join(", ")}`);
+      log(`[PanelManager] Font/Layout changed: ${affected.join(", ")}`);
       return true;
     }
     return false;

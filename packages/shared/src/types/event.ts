@@ -6,7 +6,7 @@ import {
   DraftColor,
   DraftToken,
 } from "./theme";
-import { SyncResponse } from "./sync";
+import { ConflictResolvedResponse, ConflictResolvePayload, SyncResponse } from "./sync";
 import { fontsLayoutUI } from "../data/fonts-layout";
 
 export const SaveThemeModes = {
@@ -67,11 +67,8 @@ export type WebViewEvent = {
     response: undefined;
   };
   SETTINGS_UPDATED: { payload: any; response: any };
-  LIVE_PREVIEW_STATE: { payload: boolean; response: boolean };
-  LIVE_PREVIEW_APPLY: { payload: any; response: undefined };
   OPEN_DONATION: { payload: any; response: undefined };
-  ENABLE_LIVE_PREVIEW: { payload: any; response: undefined };
-  DISABLE_LIVE_PREVIEW: { payload: any; response: undefined };
+  ENABLE_LIVE_PREVIEW: { payload: any; response: boolean };
   SAVE_THEME: {
     payload: {
       mode: keyof typeof SaveThemeModes;
@@ -164,11 +161,9 @@ export type WebViewEvent = {
   //   };
 
   RESOLVE_CONFLICT: {
-    payload: {
-      resolve: { themeId: string; resolve: "KEEP_LOCAL" | "KEEP_REMOTE" }[];
-    };
+    payload: ConflictResolvePayload;
     response: {
-      success: boolean;
+      data: ConflictResolvedResponse
     };
   };
 

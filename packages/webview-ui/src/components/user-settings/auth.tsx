@@ -4,10 +4,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@webview/components/ui/card";
-import { Button } from "@webview/components/ui/button";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, User, Copy } from "lucide-react";
-import { useMutation } from "@webview/hooks/use-query";
+import { useMutation } from "@/hooks/use-query";
 import { useAuth } from "../auth-provider";
 import CountdownTimer from "../ui/countdown-timer";
 /** ------------------- Auth Section ------------------- */

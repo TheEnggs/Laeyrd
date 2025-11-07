@@ -93,7 +93,7 @@ export class ThemeController {
   }
 
   public getColors(): ColorMetaGrouped | undefined {
-    console.log("current theme", this.currentTheme);
+    log("current theme", this.currentTheme);
     const colors = this.currentTheme?.colors;
     return colors ? generateColors(colors) : undefined;
   }
@@ -150,42 +150,60 @@ export class ThemeController {
     ToastController.showToast;
   }
 
+  public async enableLivePreview(
+    context: vscode.ExtensionContext,
+    colors?: DraftColor,
+    tokenColors?: DraftToken
+  ) {
+    try {
+      const themeName = "Live Preview - Laeyrd";
+      const themes = await this.listOwnThemes(context);
+      const target = themes.find((t) => t.label === themeName);
+      const activeThemeName = this.getActiveThemeLabel();
+      const currTheme = this.currentTheme;
+      log("Live Preview Enable");
+      if (target) {
+        await this.overwriteThemeByLabel(
+          context,
+          themeName,
+          colors,
+          tokenColors
+        );
+        if (activeThemeName !== themeName)
+          await this.setActiveThemeByLabel(themeName);
+        return true;
+      } else {
+        await this.createTheme(
+          context,
+          themeName,
+          colors,
+          tokenColors,
+          currTheme?.type
+        );
+        await this.addThemeToPackageJson(
+          context,
+          themeName,
+          `${themeName}.json`,
+          currTheme?.type
+        );
+        return true;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
   /** Handles live theme mode */
   public async handleLiveMode(
     context: vscode.ExtensionContext,
     themeName: string,
     colors: DraftColor,
-    tokenColors: DraftToken,
-    type: "light" | "dark" = "dark"
+    tokenColors: DraftToken
   ) {
     const themes = await this.listOwnThemes(context);
     const target = themes.find((t) => t.label === themeName);
     const activeThemeName = this.getActiveThemeLabel();
-    const currTheme = this.currentTheme;
-    const finalColors = { ...currTheme?.colors, ...colors };
-    const finalTokenColors = { ...currTheme?.tokenColors, ...tokenColors };
-    if (target) {
-      await this.overwriteThemeByLabel(
-        context,
-        themeName,
-        finalColors,
-        finalTokenColors
-      );
-    } else {
-      await this.createTheme(
-        context,
-        themeName,
-        finalColors,
-        finalTokenColors,
-        type
-      );
-      await this.addThemeToPackageJson(
-        context,
-        themeName,
-        `${themeName}.json`,
-        type
-      );
-    }
+    if (!target) this.enableLivePreview(context, colors, tokenColors);
+    await this.overwriteThemeByLabel(context, themeName, colors, tokenColors);
 
     if (activeThemeName !== themeName)
       await this.setActiveThemeByLabel(themeName);
@@ -214,8 +232,7 @@ export class ThemeController {
           context,
           "Live Preview - Laeyrd",
           payload.colors,
-          payload.tokens,
-          payload.type
+          payload.tokens
         );
       } else {
         const themeName = payload.themeName || "Untitled Theme";
@@ -244,8 +261,8 @@ export class ThemeController {
   public async overwriteThemeByLabel(
     context: vscode.ExtensionContext,
     themeLabel: string,
-    colors: DraftColor,
-    tokenColors: DraftToken
+    colors: DraftColor | undefined,
+    tokenColors: DraftToken | undefined
   ) {
     const themes = await this.listOwnThemes(context);
     const target = themes.find((t) => t.label === themeLabel);
@@ -262,7 +279,10 @@ export class ThemeController {
       Buffer.from(themeContent).toString("utf8")
     );
 
-    const tokensArray = convertTokenColorsBackToTheme(tokenColors);
+    const tokensArray = tokenColors
+      ? convertTokenColorsBackToTheme(tokenColors)
+      : { tokenColors: [], semanticTokenColors: {} };
+
     const updatedTheme: Theme = {
       ...themeJson,
       colors: { ...(this.currentTheme?.colors ?? {}), ...colors },
@@ -340,23 +360,27 @@ export class ThemeController {
   public async createTheme(
     context: vscode.ExtensionContext,
     themeName: string,
-    colors: DraftColor,
-    tokenColors: DraftToken,
+    colors: DraftColor | undefined,
+    tokenColors: DraftToken | undefined,
     type: "light" | "dark" = "dark"
   ): Promise<{ success: boolean }> {
     if (!themeName || /[\\/:*?"<>|]/.test(themeName))
       throw new Error("Invalid theme name");
 
-    const tokensArray = convertTokenColorsBackToTheme(tokenColors);
+    const tokensArray = tokenColors
+      ? convertTokenColorsBackToTheme(tokenColors)
+      : { tokenColors: [], semanticTokenColors: {} };
+
+    log(this.currentTheme?.tokenColors, tokenColors, tokensArray);
     const themeJson: Theme & { publisher: string } = {
       name: themeName,
       type,
       publisher: "Laeyrd",
       colors: { ...(this.currentTheme?.colors ?? {}), ...colors },
-      tokenColors: {
-        ...(this.currentTheme?.tokenColors ?? {}),
+      tokenColors: [
+        ...(this.currentTheme?.tokenColors ?? []),
         ...tokensArray.tokenColors,
-      },
+      ],
       semanticTokenColors: {
         ...(this.currentTheme?.semanticTokenColors ?? {}),
         ...tokensArray.semanticTokenColors,
@@ -401,11 +425,11 @@ export class ThemeController {
 
     vscode.window
       .showInformationMessage(
-        `Theme "${themeName}" added! Reload to activate.`,
-        "Reload Now"
+        `Theme "${themeName}" added! Reload window to activate.`,
+        "Reload Window Now"
       )
       .then((selection) => {
-        if (selection === "Reload Now")
+        if (selection === "Reload Window Now")
           vscode.commands.executeCommand("workbench.action.reloadWindow");
       });
   }

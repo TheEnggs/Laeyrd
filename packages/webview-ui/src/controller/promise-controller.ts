@@ -4,7 +4,7 @@ import {
   ResponseMessage,
   WebViewEvent,
 } from "@shared/types/event";
-import { VSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
+import { VSCodeMessenger } from "@/hooks/use-vscode-messenger";
 
 type EventCallback<T = any> = (payload: T) => void;
 

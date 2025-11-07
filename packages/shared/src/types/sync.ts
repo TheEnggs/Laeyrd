@@ -1,15 +1,10 @@
 import { ThemeSchema } from "./db";
+export type SupportedSyncFileTypes = "themes" | "settings";
 
-export type RemoteVersionStore = {
-  themes: RemoteFileMeta[];
-  settings: RemoteFileMeta[];
-};
+export type RemoteVersionStore = Record<SupportedSyncFileTypes, RemoteFileMeta[]>
 
 export type LocalVersionFile = {
-  [userId: string]: {
-    themes: Record<string, LocalFileMeta>;
-    settings: Record<string, LocalFileMeta>;
-  };
+  [userId: string]: Record<SupportedSyncFileTypes, Record<string, LocalFileMeta>>;
 };
 
 type BaseFileMeta = {
@@ -55,11 +50,11 @@ export type PushResponse = {
   headVersionHash: string;
 };
 
-export type SyncCategory = keyof LocalVersionFile[string];
+export type SyncCategory = SupportedSyncFileTypes;
 
 export type SyncResponse = {
   fileName: string;
-  fileId?: number;
+  fileId: number;
   fileType: SyncCategory;
   success: boolean;
   status: SyncResponseStatus;
@@ -69,6 +64,8 @@ export type SyncResponse = {
   remoteFileUrl?: string;
   remoteUpdatedOn?: string;
   error?: string;
+  resolved: -1 | 0 | 1;
+  resolvedError?: string;
 };
 
 export enum SyncState {
@@ -85,3 +82,15 @@ export type SyncResponseStatus =
   | "CONFLICT"
   | "UP_TO_DATE"
   | "ERROR";
+
+export type ConflictResolvePayload = {
+  fileId: number;
+  keepState: "local" | "remote";
+}[]
+export type ConflictResolvedResponse = {
+  fileId: number;
+  fileType: SupportedSyncFileTypes;
+  success: boolean;
+  error?: string;
+
+}[]

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent } from "@webview/components/ui/card";
-import { Button } from "@webview/components/ui/button";
-import { Badge } from "@webview/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Download, Star, Users, ChevronUp, AlertCircle } from "lucide-react";
-import { cn } from "@webview/lib/utils";
+import { cn } from "@/lib/utils";
+import { log } from "@shared/utils/debug-logs";
 
 // Mock data for themes
 const logoArr = ["🌙", "🌊", "⚡", "🐍", "🌐", "🌙", "🌊", "⚡", "🐍", "🌐"];
@@ -230,7 +231,7 @@ export default function MarketplaceContent() {
   const PAGE_SIZE = 20;
 
   const handleInstall = (id: string) => {
-    console.log(`Installing ${id}`);
+    log(`Installing ${id}`);
     // TODO: Implement actual installation logic
   };
 

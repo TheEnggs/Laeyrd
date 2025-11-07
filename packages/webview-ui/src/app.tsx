@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { SettingsProvider } from "@webview/contexts/settings-context";
-import { AuthProvider } from "@webview/components/auth-provider";
-import HeroSection from "@webview/components/hero-section";
-import CustomizationTabs from "@webview/components/customization-tabs";
-import { Toaster } from "@webview/components/ui/sonner";
-import { startListeners, stopListeners } from "@webview/lib/listeners";
+import { SettingsProvider } from "@/contexts/settings-context";
+import { AuthProvider } from "@/components/auth-provider";
+import HeroSection from "@/components/hero-section";
+import CustomizationTabs from "@/components/customization-tabs";
+import { Toaster } from "@/components/ui/sonner";
+import { startListeners, stopListeners } from "@/lib/listeners";
 
 export default function App() {
   useEffect(() => {

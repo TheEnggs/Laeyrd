@@ -1,15 +1,17 @@
 import * as fs from "fs";
 import { BackendController } from "./backend";
-import { MessageController } from "./message";
 import * as vscode from "vscode";
 import path from "path";
 import { createHash } from "crypto";
 import { ThemeController } from "./theme";
 import {
+  ConflictResolvedResponse,
+  ConflictResolvePayload,
   LocalFileMeta,
   LocalVersionFile,
   RemoteFileMeta,
   RemoteVersionStore,
+  SupportedSyncFileTypes,
   SyncCategory,
   SyncResponse,
   SyncState,
@@ -53,9 +55,9 @@ export default class SyncController {
   private remoteVersionStore?: RemoteVersionStore;
 
   private _backendController?: BackendController;
+
   constructor(
     private context: vscode.ExtensionContext,
-    private postMessage: MessageController["POST_MESSAGE"],
     private userId: string
   ) {
     this.localVersionStore = this.loadOrCreateLocalVersions();
@@ -320,6 +322,108 @@ export default class SyncController {
       JSON.stringify(this.localVersionStore, null, 2)
     );
   }
+  public async handleConflictResolve(payload: ConflictResolvePayload): Promise<ConflictResolvedResponse> {
+    await this.fetchRemoteVersions();
+    if (!this.remoteVersionStore) throw new Error("Failed to get remote versions");
+
+    const keepLocalFiles = payload.filter(f => f.keepState === "local");
+    const keepRemoteFiles = payload.filter(f => f.keepState === "remote");
+
+    const results: ConflictResolvedResponse = [];
+
+    // Helper: upload local file to remote bucket
+    const uploadLocalFile = async (fileId: number, type: SupportedSyncFileTypes) => {
+      try {
+        const localMeta = Object.values(this.localVersionStore[this.userId][type]).find(e => e.id === fileId)
+        if (!localMeta)
+          return results.push({ fileId, fileType: type, success: false, error: `Local ${type} metadata not found.` });
+
+        const pushResult = await this.pushFile(localMeta, "update");
+        if (pushResult)
+          results.push({ fileId, fileType: type, success: true });
+        else
+          results.push({ fileId, fileType: type, success: false, error: `Failed to upload ${type}.` });
+      } catch (err: any) {
+        results.push({ fileId, fileType: type, success: false, error: err.message });
+      }
+    };
+
+    // Helper: download remote file and replace local
+    const downloadRemoteFile = async (fileId: number, type: SupportedSyncFileTypes) => {
+      try {
+        if (!this.remoteVersionStore) throw new Error("error")
+        const remoteMeta = this.remoteVersionStore[type].find(f => f.id === fileId);
+        if (!remoteMeta || !remoteMeta.remoteFileUrl)
+          return results.push({
+            fileId,
+            fileType: type,
+            success: false,
+            error: `Remote ${type} metadata or download URL missing.`,
+          });
+
+        const response = await fetch(remoteMeta.remoteFileUrl);
+        if (!response.ok)
+          throw new Error(`Failed to fetch remote ${type} file (${response.status})`);
+
+        const fileContent = await response.text();
+        const filePath = this.context.globalStorageUri.with({
+          path: `${this.context.globalStorageUri.path}/${type}/${fileId}.json`,
+        });
+
+        await vscode.workspace.fs.writeFile(filePath, Buffer.from(fileContent, "utf-8"));
+
+        const userStore = this.localVersionStore[this.userId];
+        const target = Object.values(userStore[type]).find(e => e.id === fileId)
+        if (target) {
+          target.isDirty = false;
+          target.updatedAt = new Date().toISOString();
+        }
+
+        results.push({ fileId, fileType: type, success: true });
+      } catch (err: any) {
+        results.push({ fileId, fileType: type, success: false, error: err.message });
+      }
+    };
+
+    // Upload all local-chosen files (themes + settings)
+    if (keepLocalFiles.length > 0) {
+      const uploadPromises = keepLocalFiles.flatMap(f => [
+        uploadLocalFile(f.fileId, "themes"),
+        uploadLocalFile(f.fileId, "settings"),
+      ]);
+      await Promise.allSettled(uploadPromises);
+    }
+
+    // Download all remote-chosen files (themes + settings)
+    if (keepRemoteFiles.length > 0) {
+      const downloadPromises = keepRemoteFiles.flatMap(f => [
+        downloadRemoteFile(f.fileId, "themes"),
+        downloadRemoteFile(f.fileId, "settings"),
+      ]);
+      await Promise.allSettled(downloadPromises);
+    }
+
+    // Clean up timestamps and flags
+    const userStore = this.localVersionStore[this.userId];
+    const now = new Date().toISOString();
+
+    results
+      .filter(r => r.success)
+      .forEach(({ fileId, fileType }) => {
+        const item = userStore[fileType]?.[fileId];
+        if (item) {
+          item.isDirty = false;
+          item.updatedAt = now;
+        }
+      });
+
+    console.log("Conflict resolution results:", results);
+    return results;
+  }
+  private getLatestLocalMeta(fileName: string, type: SupportedSyncFileTypes) {
+    const localMeta = this.localVersionStore[this.userId][type][fileName];
+    return localMeta
+  }
   /** 🔁 Sync a single category (themes/settings) */
   public async syncCategory(category: SyncCategory) {
     const localCategory = this.localVersionStore[this.getUserId]?.[category];
@@ -347,20 +451,23 @@ export default class SyncController {
               : SyncState.UP_TO_DATE
                 ? "UP_TO_DATE"
                 : "PUSHED";
+        const latestLocalMeta = this.getLatestLocalMeta(localMeta.fileName, category)
         results.push({
           fileName,
-          fileId: localMeta.id,
+          fileId: latestLocalMeta.id!,
           fileType: category,
           remoteFileUrl: remoteMeta?.remoteFileUrl || "",
           success: !!result,
           status: SyncActionState,
           localUpdatedOn: new Date().toISOString(),
           remoteUpdatedOn: new Date().toISOString(),
+          resolved: -1
         });
       } catch (err) {
+        const latestLocalMeta = this.getLatestLocalMeta(localMeta.fileName, category)
         results.push({
           fileName,
-          fileId: localMeta.id,
+          fileId: latestLocalMeta.id!,
           fileType: category,
           remoteFileUrl: remoteMeta?.remoteFileUrl || "",
           success: false,
@@ -368,17 +475,18 @@ export default class SyncController {
           error: (err as Error).message,
           localUpdatedOn: new Date().toISOString(),
           remoteUpdatedOn: new Date().toISOString(),
+          resolved: -1
         });
       }
     }
 
     this.saveLocalVersions();
-    console.log(`✅ ${category} sync summary:`, results);
+    log(`✅ ${category} sync summary:`, results);
     return results;
   }
 
   public async syncAll() {
-    console.log("🚀 Starting full sync for all categories...");
+    log("🚀 Starting full sync for all categories...");
     await this.fetchRemoteVersions();
 
     const categories: SyncCategory[] = ["themes", "settings"];
@@ -393,7 +501,7 @@ export default class SyncController {
       )
       .flatMap((r) => r.value);
 
-    console.log("🎯 Final sync summary:", results);
+    log("🎯 Final sync summary:", results);
     return { success: true, data: fulfilled };
   }
 }

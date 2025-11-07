@@ -10,9 +10,9 @@ export type Category =
 
 export interface ColorMeta {
   category: Category;
-  subcategory: string;
   displayName: string;
   description: string; // ≤ 6 words
+  subcategory?: string;
   defaultValue?: string;
 }
 
@@ -41,6 +41,7 @@ export type TokenColorsList = Record<TokenCategory, TokenColorMeta>;
 export type Color = Record<string, string>;
 
 export type TokenColorItem = {
+  name?: string;
   scope: TokenCategory | TokenCategory[];
   settings: {
     foreground?: string;

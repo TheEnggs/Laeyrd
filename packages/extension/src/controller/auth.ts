@@ -188,7 +188,7 @@ export class AuthController {
 
             resolve({ session, user });
           } catch (err) {
-            console.log("Device not approved yet, retrying...", err);
+            log("Device not approved yet, retrying...", err);
           }
         }, intervalMs);
       }

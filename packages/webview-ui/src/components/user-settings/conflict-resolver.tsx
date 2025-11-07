@@ -2,16 +2,16 @@
 
 import React from "react";
 import { diffLines } from "diff";
-import { Button } from "@webview/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@webview/components/ui/dialog";
-import { Textarea } from "@webview/components/ui/textarea";
-import { cn } from "@webview/lib/utils";
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 // Virtualization constants
 const ITEM_HEIGHT = 24; // px, line height

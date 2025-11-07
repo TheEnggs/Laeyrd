@@ -16,7 +16,7 @@ type DraftLayout = Record<string, UiLayoutMeta["defaultValue"]>;
 
 type DraftColorAction =
   | { type: "SET_COLOR"; key: string; value: string; defaultValue: string }
-  | { type: "RESET"; payload: DraftColor };
+  | { type: "RESET" };
 
 type DraftLayoutAction =
   | {
@@ -25,7 +25,7 @@ type DraftLayoutAction =
       value: UiLayoutMeta["defaultValue"];
       defaultValue: UiLayoutMeta["defaultValue"];
     }
-  | { type: "RESET"; payload: DraftLayout };
+  | { type: "RESET" };
 
 type DraftTokenAction =
   | {
@@ -38,7 +38,7 @@ type DraftTokenAction =
       key: string;
       value: { foreground: string };
     }
-  | { type: "RESET"; payload: DraftToken };
+  | { type: "RESET" };
 
 function draftTokenReducer(
   state: DraftToken,
@@ -59,7 +59,7 @@ function draftTokenReducer(
         },
       };
     case "RESET":
-      return action.payload;
+      return { tokenColors: {}, semanticTokenColors: {} };
     default:
       return state;
   }
@@ -77,7 +77,7 @@ function draftColorReducer(
       }
       return { ...state, [key]: value };
     case "RESET":
-      return action.payload;
+      return {};
     default:
       return state;
   }

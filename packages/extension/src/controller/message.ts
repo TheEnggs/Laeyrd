@@ -112,12 +112,15 @@ export class MessageController {
       case "GET_THEME_LIST": {
         const tc = await this.themeController();
         const list = await tc.listOwnThemes(this.context);
+        const filteredList = list.filter(
+          (t) => t.label! === "Live Preview - Laeyrd"
+        );
         const active = tc.getActiveThemeLabel();
         this.responseHandler({
           command,
           requestId: message.requestId,
           executor: () => ({
-            themes: list,
+            themes: filteredList,
             active,
           }),
         });
@@ -128,6 +131,16 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: () => this.handleSaveTheme(message.payload),
+        });
+        break;
+      case "ENABLE_LIVE_PREVIEW":
+        this.responseHandler<"ENABLE_LIVE_PREVIEW", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const themeController = await ThemeController.create();
+            return themeController.enableLivePreview(this.context);
+          },
         });
         break;
       case "SAVE_SETTINGS":
@@ -284,10 +297,10 @@ export class MessageController {
     type: "dark" | "light";
   }) {
     log("SAVE_THEME", payload);
-    if (!payload.themeName) throw new Error("Invalid theme name");
+    if (!payload.themeName && payload.mode !== "LIVE")
+      throw new Error("Invalid theme name");
     const tc = await this.themeController();
-
-    return tc.handleSaveTheme(payload, this.context);
+    return await tc.handleSaveTheme(payload, this.context);
   }
 
   private async handleOverwriteSettings(payload: {
