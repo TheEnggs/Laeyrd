@@ -1,38 +1,41 @@
 import * as vscode from "vscode";
 import { PanelManager } from "./controller/panelManager";
 import { AuthController } from "./controller/auth";
-import { MessageController } from "./controller/message";
+import ExtensionController from "./controller/extensionController";
+import { log } from "@shared/utils/debug-logs";
 
-let panelManager: PanelManager;
-let authController: AuthController;
-
+let panelManager: PanelManager | null = null;
+let authController: AuthController | null = null;
 export async function activate(context: vscode.ExtensionContext) {
+  const extensionController = await ExtensionController.create(context);
+
+  authController = AuthController.getInstance();
+  authController.setContext(context);
+
+  extensionController.loadEvents(authController.getCurrentUser()?.id);
+  const relaunchCommand = vscode.commands.registerCommand(
+    "laeyrd.relaunch",
+    () => extensionController.relaunch()
+  );
   const openCommand = vscode.commands.registerCommand("laeyrd.open", () => {
-    const messageHandler = new MessageController(context);
-    panelManager = new PanelManager(context, messageHandler);
+    const detectPanelClosingState = async (value: boolean) =>
+      await extensionController.detectPanelClosingState(value);
+    detectPanelClosingState(true);
+    panelManager = new PanelManager(context, detectPanelClosingState);
+    if (!panelManager) throw new Error("failed to initialize panel");
     panelManager.open();
-    // controllers
-    authController = AuthController.getInstance();
-    authController.setContext(context);
-    //   authController.clearStoredAuth();
-    authController.loadStoredAuth();
-    authController.onAuthChanged((user) =>
-      messageHandler.POST_MESSAGE({
-        command: "UPDATE_AUTH_USER",
-        payload: user || undefined,
-        requestId: "",
-        status: "success",
-      })
-    );
-    // auto sync can be added here
+    context.subscriptions.push(panelManager);
   });
 
-  context.subscriptions.push(openCommand, panelManager, authController);
+  context.subscriptions.push(
+    relaunchCommand,
+    openCommand,
+    authController,
+    extensionController
+  );
 }
 
-export function deactivate() {
-  // Cleanup auth server when extension is deactivated
-  if (authController) {
-    authController.dispose();
-  }
+export async function deactivate() {
+  panelManager?.dispose();
+  authController?.dispose();
 }

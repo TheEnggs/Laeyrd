@@ -7,6 +7,57 @@ import {
 } from "@shared/types/theme";
 import { colorCategoryMap } from "@shared/data/colorsList";
 import { tokenColorMap } from "@shared/data/tokenList";
+import { SemanticTokens } from "vscode";
+import { log } from "@shared/utils/debug-logs";
+
+function normalizeSemanticTokenKey(key: string): TokenCategory | null {
+  const lower = key.toLowerCase();
+
+  if (lower.includes("comment")) return "comment";
+  if (
+    lower.includes("string") ||
+    lower.includes("char") ||
+    lower.includes("literal")
+  )
+    return "literal";
+  if (
+    lower.includes("keyword") ||
+    lower.includes("modifier") ||
+    lower.includes("control")
+  )
+    return "keyword";
+  if (lower.includes("variable.parameter")) return "parameter";
+  if (lower.includes("variable.constant")) return "constant";
+  if (lower.includes("variable") && !lower.includes("property"))
+    return "variable";
+  if (lower.includes("property")) return "property";
+  if (lower.includes("function") || lower.includes("method")) return "function";
+  if (lower.includes("class")) return "class";
+  if (lower.includes("interface")) return "interface";
+  if (lower.includes("enum")) return "enum";
+  if (lower.includes("type")) return "type";
+  if (lower.includes("number") || lower.includes("numeric")) return "number";
+  if (lower.includes("macro")) return "macro";
+  if (lower.includes("operator")) return "operator";
+  if (lower.includes("punctuation") || lower.includes("delimiter"))
+    return "punctuation";
+  if (lower.includes("annotation") || lower.includes("decorator"))
+    return "annotation";
+  if (
+    lower.includes("builtin") ||
+    lower.includes("defaultlibrary") ||
+    lower.includes("global")
+  )
+    return "builtin";
+  if (lower.includes("namespace") || lower.includes("module"))
+    return "namespace";
+  if (lower.includes("tag")) return "tag";
+  if (lower.includes("attribute")) return "attribute";
+  if (lower.includes("escape")) return "escapesequence";
+  if (lower.includes("invalid") || lower.includes("error")) return "invalid";
+
+  return null;
+}
 
 export const generateColors = (colors: Record<string, string>) => {
   const colorsList = colorCategoryMap;
@@ -19,30 +70,20 @@ export const generateColors = (colors: Record<string, string>) => {
 };
 
 export function convertTokenColors(
-  tokenColors: TokenColorItem[]
+  tokenColors: SemanticTokenColors | undefined
 ): TokenColorsList {
-  const map: TokenColorsList = tokenColorMap;
-  tokenColors?.forEach((item) => {
-    const scopes = Array.isArray(item.scope) ? item.scope : [item.scope];
-    const settings = item.settings ?? {};
+  const map: TokenColorsList = structuredClone(tokenColorMap);
+  if (!tokenColors) return map;
+  log("tokenColors", tokenColors);
+  for (const [key, value] of Object.entries(tokenColors)) {
+    const category = normalizeSemanticTokenKey(key);
+    if (!category) continue;
 
-    scopes.forEach((scope) => {
-      if (!map[scope]) {
-        map[scope] = {
-          displayName: scope,
-          description: `Token color for ${scope}`,
-          defaultColor:
-            settings.foreground ||
-            tokenColorMap[scope]?.defaultColor ||
-            "#000000",
-          defaultFontStyle:
-            settings.fontStyle ||
-            tokenColorMap[scope]?.defaultFontStyle ||
-            "none",
-        };
-      }
-    });
-  });
+    map[category] = {
+      ...map[category],
+      defaultColor: value.foreground,
+    };
+  }
 
   return map;
 }

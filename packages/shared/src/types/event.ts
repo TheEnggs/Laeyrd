@@ -5,8 +5,14 @@ import {
   SemanticTokenColors,
   DraftColor,
   DraftToken,
+  DraftStatePayload,
+  DraftFile,
 } from "./theme";
-import { ConflictResolvedResponse, ConflictResolvePayload, SyncResponse } from "./sync";
+import {
+  ConflictResolvedResponse,
+  ConflictResolvePayload,
+  SyncResponse,
+} from "./sync";
 import { fontsLayoutUI } from "../data/fonts-layout";
 
 export const SaveThemeModes = {
@@ -19,6 +25,18 @@ export type WebViewEvent = {
   SHOW_TOAST: {
     payload: { message: string; type: "info" | "error" | "warn" | "success" };
     response: undefined;
+  };
+  GET_DRAFT_STATE: {
+    payload: {};
+    response: DraftFile;
+  };
+  UPDATE_DRAFT_STATE: {
+    payload: DraftStatePayload[];
+    response: { success: boolean; draftState: DraftFile["draftState"] };
+  };
+  DISCARD_DRAFT_CHANGES: {
+    payload: {};
+    response: { success: boolean; error?: string };
   };
   UPDATE_THEME_COLORS: {
     payload: ColorMetaGrouped | undefined;
@@ -73,8 +91,6 @@ export type WebViewEvent = {
     payload: {
       mode: keyof typeof SaveThemeModes;
       themeName: string;
-      colors: DraftColor;
-      tokenColors: DraftToken;
     };
     response: { success: boolean };
   };
@@ -163,7 +179,7 @@ export type WebViewEvent = {
   RESOLVE_CONFLICT: {
     payload: ConflictResolvePayload;
     response: {
-      data: ConflictResolvedResponse
+      data: ConflictResolvedResponse;
     };
   };
 

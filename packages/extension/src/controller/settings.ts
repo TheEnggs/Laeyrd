@@ -12,31 +12,21 @@ export interface UserSettings {
 }
 
 export class SettingsController {
-  private static instance: SettingsController | null = null;
-
-  private context: vscode.ExtensionContext;
   private currentSettings: UserSettings | undefined;
   private currentSettingsPath: vscode.Uri | undefined;
   private listeners: Array<(settings: UserSettings) => void> = [];
   private watcher: vscode.FileSystemWatcher | undefined;
 
-  private constructor(context: vscode.ExtensionContext) {
-    this.context = context;
-  }
+  private constructor(private context: vscode.ExtensionContext) { }
 
   /**
    * Factory method - async initialization
    */
-  public static async getInstance(
+  public static async init(
     context: vscode.ExtensionContext
   ): Promise<SettingsController> {
-    if (SettingsController.instance) return SettingsController.instance;
-
     const controller = new SettingsController(context);
     await controller.loadCurrentSettings();
-    controller.startWatching();
-
-    SettingsController.instance = controller;
     return controller;
   }
 

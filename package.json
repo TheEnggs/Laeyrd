@@ -1,10 +1,10 @@
 {
-  "name": "laeyrd",
+  "name": "Laeyrd",
   "version": "0.0.1",
   "description": "Laeyrd is a theme and settings customizer for VSCode with sync functionality.",
-  "publisher": "theenggs",
+  "publisher": "TheEnggs",
   "readme": "README.extension.md",
-  "icon": "dist/media/logo.png",
+  "icon": "dist/media/icons/laeyrd.png",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   "main": "dist/extension.js",
   "type": "commonjs",
   "activationEvents": [
-    "onWebviewPanel:viewType:laeyrd"
+    "onStartupFinished"
   ],
   "engines": {
     "vscode": "^1.80.0"
@@ -29,31 +29,15 @@
     "laeyrd"
   ],
   "contributes": {
-    "configuration": {
-      "type": "object",
-      "properties": {
-        "laeyrd.deviceMachineId": {
-          "type": "string",
-          "default": "",
-          "description": "Unique machine ID for device authentication"
-        }
-      }
-    },
     "commands": [
       {
         "command": "laeyrd.open",
         "title": "Laeyrd | TheEnggs",
-        "icon": "dist/media/logo.png",
+        "icon": "dist/media/icons/laeyrd_ae_dark.svg",
         "category": "Customization"
       }
     ],
-    "themes": [
-      {
-        "label": "Live Preview - Laeyrd",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/Live Preview - Laeyrd.json"
-      }
-    ]
+    "themes": []
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

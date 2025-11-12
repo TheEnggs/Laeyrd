@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { SettingsProvider } from "@/contexts/settings-context";
+import { DraftProvider } from "@/contexts/draft-context";
 import { AuthProvider } from "@/components/auth-provider";
 import HeroSection from "@/components/hero-section";
 import CustomizationTabs from "@/components/customization-tabs";
@@ -18,7 +18,7 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <SettingsProvider>
+      <DraftProvider>
         <div className="min-h-screen bg-background text-foreground">
           <div className="p-4 flex flex-col gap-4">
             <HeroSection />
@@ -26,7 +26,7 @@ export default function App() {
           </div>
           <Toaster />
         </div>
-      </SettingsProvider>
+      </DraftProvider>
     </AuthProvider>
   );
 }

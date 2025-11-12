@@ -28,9 +28,8 @@ import { SaveThemeModes } from "@shared/types/event";
 import clsx from "clsx";
 
 interface SaveChangesDialogProps {
-  hasColorChanges: boolean;
-  hasSettingsChanges: boolean;
   isSavingTheme: boolean;
+  isDiscarding: boolean;
   sortedThemes: { label: string }[];
   onSave: ({
     theme,
@@ -42,9 +41,8 @@ interface SaveChangesDialogProps {
 }
 
 export function SaveChangesDialog({
-  hasColorChanges,
-  hasSettingsChanges,
   isSavingTheme,
+  isDiscarding,
   sortedThemes,
   onSave,
 }: SaveChangesDialogProps) {
@@ -76,9 +74,6 @@ export function SaveChangesDialog({
     });
   };
 
-  const shouldShowDialog = hasColorChanges || hasSettingsChanges;
-  if (!shouldShowDialog) return null;
-
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -105,120 +100,81 @@ export function SaveChangesDialog({
         </AlertDialogHeader>
 
         <div className="flex flex-col md:flex-row gap-6 py-4">
-          {/* Theme Save Card */}
-          {hasColorChanges && (
-            <div
-              className={clsx(
-                "flex-1 rounded-xl border p-4 space-y-4 transition-all duration-200",
-                themeReady
-                  ? "border-primary/50 bg-primary/10"
-                  : "border-border/40 bg-background/50"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-foreground">Theme</Label>
-                {themeReady && (
-                  <CheckCircle2 className="w-5 h-5 text-primary" />
-                )}
-              </div>
+          <div
+            className={clsx(
+              "flex-1 rounded-xl border p-4 space-y-4 transition-all duration-200",
+              themeReady
+                ? "border-primary/50 bg-primary/10"
+                : "border-border/40 bg-background/50"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Label className="font-medium text-foreground">Theme</Label>
+              {themeReady && <CheckCircle2 className="w-5 h-5 text-primary" />}
+            </div>
 
-              <div className="space-y-2">
-                <Label>Save Mode</Label>
-                <Select
-                  value={mode}
-                  onValueChange={(v: keyof typeof SaveThemeModes) => setMode(v)}
-                >
+            <div className="space-y-2">
+              <Label>Save Mode</Label>
+              <Select
+                value={mode}
+                onValueChange={(v: keyof typeof SaveThemeModes) => setMode(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SaveThemeModes.OVERWRITE}>
+                    Overwrite Existing
+                  </SelectItem>
+                  <SelectItem value={SaveThemeModes.CREATE}>
+                    Create New
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {mode === SaveThemeModes.OVERWRITE ? (
+              <div>
+                <Label>Select Theme</Label>
+                <Select value={selectedTheme} onValueChange={setSelectedTheme}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select mode" />
+                    <SelectValue placeholder="Select a theme" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={SaveThemeModes.OVERWRITE}>
-                      Overwrite Existing
-                    </SelectItem>
-                    <SelectItem value={SaveThemeModes.CREATE}>
-                      Create New
-                    </SelectItem>
+                    {sortedThemes.map((theme) => (
+                      <SelectItem key={theme.label} value={theme.label}>
+                        {theme.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {mode === SaveThemeModes.OVERWRITE ? (
-                <div>
-                  <Label>Select Theme</Label>
-                  <Select
-                    value={selectedTheme}
-                    onValueChange={setSelectedTheme}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedThemes.map((theme) => (
-                        <SelectItem key={theme.label} value={theme.label}>
-                          {theme.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label>New Theme Name</Label>
-                  <Input
-                    placeholder="Enter theme name"
-                    value={themeName}
-                    onChange={(e) => setThemeName(e.target.value)}
+            ) : (
+              <div className="space-y-2">
+                <Label>New Theme Name</Label>
+                <Input
+                  placeholder="Enter theme name"
+                  value={themeName}
+                  onChange={(e) => setThemeName(e.target.value)}
+                />
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="warning"
+                    checked={isWarningConfirmed}
+                    onCheckedChange={(v: boolean) => setIsWarningConfirmed(v)}
+                    className="border border-input"
                   />
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="warning"
-                      checked={isWarningConfirmed}
-                      onCheckedChange={(v: boolean) => setIsWarningConfirmed(v)}
-                      className="border border-input"
-                    />
-                    <Label
-                      htmlFor="warning"
-                      className="text-sm text-muted-foreground"
-                    >
-                      I understand that creating a new theme will reload the
-                      window.
-                    </Label>
-                  </div>
+                  <Label
+                    htmlFor="warning"
+                    className="text-sm text-muted-foreground"
+                  >
+                    I understand that creating a new theme will reload the
+                    window.
+                  </Label>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Settings Save Card */}
-          {hasSettingsChanges && (
-            <div
-              onClick={() => setIsSettingsSaveConfirmed((prev) => !prev)}
-              className={clsx(
-                "flex-1 rounded-xl border p-4 flex flex-col justify-between cursor-pointer transition-all duration-200 hover:border-primary/50",
-                settingsReady
-                  ? "border-primary/50 bg-primary/10"
-                  : "border-border/40 bg-background/50"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-foreground">Settings</Label>
-                {settingsReady ? (
-                  <CheckCircle2 className="w-5 h-5 text-primary" />
-                ) : (
-                  <div className="w-5 h-5 border rounded-full border-border/60" />
-                )}
               </div>
-              <div className="text-sm text-foreground mt-3">
-                You have unsaved settings changes. Click the card to confirm
-                saving settings changes.
-              </div>
-              <div className="text-xs text-muted-foreground mt-3">
-                Disclaimer: Saving settings will overwrite the original settings
-                file. You can always revert to the original settings if you've
-                created account on Laeyrd.
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <AlertDialogFooter>
@@ -228,7 +184,7 @@ export function SaveChangesDialog({
           <AlertDialogAction
             onClick={handleConfirmSave}
             className="rounded-xl"
-            disabled={!themeReady && !settingsReady}
+            disabled={(!themeReady && !settingsReady) || isDiscarding}
           >
             Save
           </AlertDialogAction>

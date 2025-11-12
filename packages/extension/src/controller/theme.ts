@@ -19,6 +19,7 @@ import {
   convertTokenColorsBackToTheme,
   generateColors,
 } from "src/utils/colors";
+import DraftManager from "./draft";
 
 export function groupColors(colors: Color): GroupedColors {
   return Object.entries(colors).reduce((acc, [key, value]) => {
@@ -100,7 +101,7 @@ export class ThemeController {
 
   public getTokenColors(): TokenColorsList | undefined {
     return this.currentTheme?.tokenColors
-      ? convertTokenColors(this.currentTheme.tokenColors)
+      ? convertTokenColors(this.currentTheme.semanticTokenColors)
       : undefined;
   }
 
@@ -220,27 +221,26 @@ export class ThemeController {
     context: vscode.ExtensionContext
   ) {
     try {
+      const draftManager = await DraftManager.init(context);
+      const colors =
+        draftManager.draftFileContent.draftState.colorCustomization;
+      const tokens =
+        draftManager.draftFileContent.draftState.semanticTokenCustomization;
       if (payload.mode === SaveThemeModes.OVERWRITE) {
-        await this.overwriteThemeByLabel(
-          context,
-          payload.themeName,
-          payload.colors,
-          payload.tokens
-        );
-      } else if (payload.mode === SaveThemeModes.LIVE) {
-        await this.handleLiveMode(
-          context,
-          "Live Preview - Laeyrd",
-          payload.colors,
-          payload.tokens
-        );
+        await this.overwriteThemeByLabel(context, payload.themeName, colors, {
+          tokenColors: {},
+          semanticTokenColors: tokens,
+        });
       } else {
         const themeName = payload.themeName || "Untitled Theme";
         const res = await this.createTheme(
           context,
           themeName,
-          payload.colors,
-          payload.tokens,
+          colors,
+          {
+            tokenColors: {},
+            semanticTokenColors: tokens,
+          },
           payload.type
         );
         if (!res.success) throw new Error("Failed to create theme");
@@ -251,6 +251,7 @@ export class ThemeController {
           payload.type
         );
       }
+      await draftManager.revertToOldSettings();
       return { success: true };
     } catch (e) {
       throw e;

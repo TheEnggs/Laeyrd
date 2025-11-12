@@ -96,7 +96,7 @@ export const useMutation = <T extends keyof WebViewEvent>(
   return { isPending, error, mutate, data: mutationData };
 };
 
-export const useSetData = <T extends keyof WebViewEvent>({
+export const setQueryData = <T extends keyof WebViewEvent>({
   command,
   payload,
 }: {

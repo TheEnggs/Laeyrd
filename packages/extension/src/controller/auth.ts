@@ -4,6 +4,7 @@ import { log } from "@shared/utils/debug-logs";
 import os from "os";
 import { v4 as uuidv4 } from "uuid";
 import { SERVER_CONFIG } from "@shared/utils/constants";
+import { MessageController } from "./message";
 
 export interface DeviceInfo {
   machineId?: string;
@@ -277,6 +278,18 @@ export class AuthController {
     }
     log("deviceInfo", deviceInfo);
     return deviceInfo;
+  }
+  async registerEventListeners() {
+    if (!this.context) return;
+    const messageController = new MessageController(this.context);
+    this.onAuthChanged((user) =>
+      messageController.POST_MESSAGE({
+        command: "UPDATE_AUTH_USER",
+        payload: user || undefined,
+        requestId: "",
+        status: "success",
+      })
+    );
   }
 
   public dispose(): void {

@@ -14,6 +14,7 @@ import { ToastController } from "./toast";
 import { log } from "@shared/utils/debug-logs";
 import SyncController from "./sync";
 import { DraftColor, DraftToken } from "@shared/types/theme";
+import DraftManager from "./draft";
 
 export class MessageController {
   private _themeController?: ThemeController;
@@ -131,6 +132,41 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: () => this.handleSaveTheme(message.payload),
+        });
+        break;
+      case "GET_DRAFT_STATE":
+        this.responseHandler<"GET_DRAFT_STATE", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () =>
+            (await DraftManager.init(this.context)).draftFileContent,
+        });
+        break;
+      case "UPDATE_DRAFT_STATE":
+        this.responseHandler<"UPDATE_DRAFT_STATE", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const draftManager = await DraftManager.init(this.context);
+            const result = await draftManager.writeChangesToFile(
+              message.payload
+            );
+            return {
+              success: result,
+              draftState: draftManager.draftFileContent.draftState,
+            };
+          },
+        });
+        break;
+      case "DISCARD_DRAFT_CHANGES":
+        this.responseHandler<"DISCARD_DRAFT_CHANGES", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const draftManager = await DraftManager.init(this.context);
+            const result = await draftManager.discardChanges();
+            return result;
+          },
         });
         break;
       case "ENABLE_LIVE_PREVIEW":
@@ -254,7 +290,7 @@ export class MessageController {
       }
 
       case "GET_FONT_AND_LAYOUT_SETTINGS": {
-        const settings = await SettingsController.getInstance(this.context);
+        const settings = await SettingsController.init(this.context);
         this.responseHandler({
           command,
           requestId: message.requestId,
@@ -263,19 +299,15 @@ export class MessageController {
         break;
       }
       case "TEST_SETTINGS_CHANGE": {
-        const settings = await SettingsController.getInstance(this.context);
+        const settings = await SettingsController.init(this.context);
         settings.testSettingsChange();
-        this.settingsChanged();
+        // this.settingsChanged();
         break;
       }
       case "SYNC": {
         const userId = this._authController?.getCurrentUser()?.id;
         if (!userId) throw new Error("User id is missing");
-        const syncController = new SyncController(
-          this.context,
-          this.POST_MESSAGE,
-          userId
-        );
+        const syncController = new SyncController(this.context, userId);
         syncController.loadOrCreateLocalVersions();
         this.responseHandler<"SYNC", "response">({
           command,
@@ -306,9 +338,7 @@ export class MessageController {
   private async handleOverwriteSettings(payload: {
     settings: Record<string, string | number | boolean>;
   }) {
-    const settingsController = await SettingsController.getInstance(
-      this.context
-    );
+    const settingsController = await SettingsController.init(this.context);
     settingsController.overwriteSettingsJson(payload.settings);
     return null;
   }
@@ -406,9 +436,7 @@ export class MessageController {
    * Handle font and layout settings changes and notify the frontend
    */
   public async settingsChanged() {
-    const settingsController = await SettingsController.getInstance(
-      this.context
-    );
+    const settingsController = await SettingsController.init(this.context);
 
     // Handle configuration change and reload settings
     await settingsController.handleConfigurationChange();

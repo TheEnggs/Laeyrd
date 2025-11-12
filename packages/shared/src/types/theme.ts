@@ -1,3 +1,4 @@
+import z from "zod";
 // new colors
 export type Category =
   | "Base"
@@ -19,18 +20,32 @@ export interface ColorMeta {
 export type ColorMetaGrouped = Record<string, ColorMeta>;
 
 export type TokenCategory =
-  | "Comments"
-  | "Literals"
-  | "Numbers"
-  | "Keywords"
-  | "Variables"
-  | "Functions"
-  | "Types"
-  | "Operators"
-  | "Punctuation";
+  | "comment"
+  | "literal"
+  | "keyword"
+  | "variable"
+  | "constant"
+  | "parameter"
+  | "function"
+  | "class"
+  | "interface"
+  | "enum"
+  | "type"
+  | "number"
+  | "operator"
+  | "punctuation"
+  | "property"
+  | "annotation"
+  | "builtin"
+  | "namespace"
+  | "tag"
+  | "attribute"
+  | "escapesequence"
+  | "invalid"
+  | "macro";
 
 export type TokenColorMeta = {
-  displayName: TokenCategory;
+  displayName: string;
   description: string; // ≤ 6 words
   defaultColor?: string;
   defaultFontStyle?: string;
@@ -53,9 +68,7 @@ export type SemanticTokenColor = {
   foreground: string;
 };
 
-export type SemanticTokenColors = {
-  [key: string]: SemanticTokenColor;
-};
+export type SemanticTokenColors = Record<string, SemanticTokenColor>;
 
 export type TokenColorItemDetailed = {
   name: string;
@@ -288,3 +301,60 @@ export type DraftToken = {
   tokenColors: Record<string, { foreground?: string; fontStyle?: string }>;
   semanticTokenColors: Record<string, { foreground: string }>;
 };
+
+export const draftState = z.object({
+  colorCustomization: z.record(
+    z.string(), // key
+    z.string() // hex color string
+  ),
+  tokenCustomization: z.record(
+    z.string(),
+    z.string() // token colors also just hex strings
+  ),
+  semanticTokenCustomization: z.record(
+    z.string(),
+    z.object({
+      foreground: z.string(), // semantic tokens use object form
+    })
+  ),
+  settingsCustomization: z.record(
+    z.string(),
+    z.union([z.string(), z.number(), z.boolean()]) // settings can be mixed type
+  ),
+});
+
+export const draftFile = z.object({
+  themeName: z.string().optional(),
+  oldSettings: draftState,
+  draftState: draftState,
+  lastUpdatedOn: z.string(),
+  isContentSaved: z.boolean(),
+  isEditing: z.boolean(),
+  isSettingsRestored: z.boolean(),
+});
+
+export type DraftFile = z.infer<typeof draftFile>;
+export type DraftState = z.infer<typeof draftState>;
+export type DraftStatePayload =
+  | {
+      type: "color";
+      key: string;
+      value: string; // e.g., "#ff0000"
+    }
+  | {
+      type: "token";
+      key: string;
+      value: string; // usually hex color
+    }
+  | {
+      type: "semanticToken";
+      key: string;
+      value: { foreground: string }; // VS Code style
+    }
+  | {
+      type: "settings";
+      key: string;
+      value: boolean | number | string; // editor settings etc.
+    };
+
+export type DraftStatePayloadKeys = DraftStatePayload["type"];

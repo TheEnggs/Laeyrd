@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useMutation } from "@/hooks/use-query";
 import { SERVER_CONFIG } from "@shared/utils/constants";
-export default function AboutLinks({ serverConfig }: { serverConfig: any }) {
+export default function AboutLinks() {
   const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
 
   const handleOpenExternalUrl = (url: string) => {

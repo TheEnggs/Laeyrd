@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useSettings } from "../contexts/settings-context";
+import { useDraft } from "../contexts/draft-context";
 import { Loader2, MonitorPlay } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useMutation, useQuery } from "@/hooks/use-query";
@@ -12,21 +12,15 @@ import { useLivePreview } from "../hooks/use-live-preview";
 import { SaveThemeModes } from "@shared/types/event";
 import { log } from "@shared/utils/debug-logs";
 import { SaveChangesDialog } from "./save-dialog";
+import { useDraftSaveShortcut } from "@/hooks/use-draft-save-shortcut";
+import ThemeImporterDialog from "./theme-importer";
+import { Separator } from "./ui/separator";
+import { DiscardChangesDialog } from "./discard-changes";
 
 export default function FloatingSave() {
-  const {
-    hasColorChanges,
-    hasSettingsChanges,
-    draftFontLayoutState,
-    draftColorState,
-    draftTokenState,
-    fontLayoutDispatch,
-    colorDispatch,
-    tokenDispatch,
-  } = useSettings();
-
   const toast = useToast();
-
+  const { isSaving, drafts, saveDrafts } = useDraft();
+  useDraftSaveShortcut();
   const { data: themesData } = useQuery({
     command: "GET_THEME_LIST",
     payload: [],
@@ -43,8 +37,6 @@ export default function FloatingSave() {
     "SAVE_THEME",
     {
       onSuccess: () => {
-        colorDispatch({ type: "RESET" });
-        tokenDispatch({ type: "RESET" });
         toast({ message: "Theme saved", type: "success" });
       },
       onError: (error) => {
@@ -54,28 +46,26 @@ export default function FloatingSave() {
     }
   );
 
-  const { mutate: saveSettings } = useMutation("SAVE_SETTINGS", {
-    onSuccess: () => {
-      fontLayoutDispatch({ type: "RESET" });
-      toast({ message: "Settings saved", type: "success" });
-    },
-    onError: () => toast({ message: "Failed to save settings", type: "error" }),
-  });
+  const { mutate: discardChanges, isPending: isDiscarding } = useMutation(
+    "DISCARD_DRAFT_CHANGES",
+    {
+      onSuccess: () => {
+        toast({ message: "Draft changes discarded", type: "success" });
+      },
+      onError: (error) => {
+        log(error);
+        toast({ message: "Failed to discard draft changes", type: "error" });
+      },
+    }
+  );
 
   // Unified save logic
   const handleSave = ({
     theme,
-    settings,
   }: {
     theme: { mode: keyof typeof SaveThemeModes; themeName?: string };
-    settings: { isSettingsSaveConfirmed: boolean };
   }) => {
-    if (hasSettingsChanges && settings && settings.isSettingsSaveConfirmed) {
-      handleSaveSettings();
-    }
-    if (hasColorChanges && theme) {
-      handleSaveTheme(theme.mode, theme.themeName);
-    }
+    handleSaveTheme(theme.mode, theme.themeName);
   };
 
   const handleSaveTheme = (
@@ -85,64 +75,42 @@ export default function FloatingSave() {
     if (!themeName) {
       return toast({ message: "Theme name missing", type: "error" });
     }
+    saveDrafts();
     saveTheme({
       mode,
       themeName,
-      colors: draftColorState,
-      tokenColors: draftTokenState,
     });
   };
-
-  const handleSaveSettings = () => {
-    saveSettings({
-      settings: buildVSCodeSettingsFromState(
-        draftFontLayoutState,
-        draftFontLayoutState
-      ),
-    });
-  };
-
-  const { toggleLivePreview, livePreview, mutationPending } = useLivePreview({
-    hasColorChanges,
-    draftColorState,
-    draftTokenState,
-    saveTheme,
-  });
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="relative flex items-center gap-3 px-3 py-2 bg-primary/10 rounded-full shadow-xl border border-primary/20 backdrop-blur-xl">
-        <Button
-          variant={livePreview ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            toggleLivePreview();
-          }}
-          className="px-4 font-medium rounded-full"
+    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+      {drafts.length > 0 ? (
+        <Badge
+          onClick={saveDrafts}
+          className="relative left-1/2 -top-2 transform -translate-x-1/2 z-60 bg-primary/20 border border-primary/30 text-xs text-center backdrop-blur-xl text-foreground"
         >
-          <MonitorPlay className="w-4 h-4 mr-2" />
-          {mutationPending ? (
-            <span>
-              Live Preview <Loader2 className="spin" />
-            </span>
-          ) : livePreview ? (
-            "Live Preview: ON"
-          ) : (
-            "Live Preview: OFF"
-          )}
-        </Button>
-
-        {hasColorChanges || hasSettingsChanges ? (
-          <div className="w-px h-6 bg-primary/20"></div>
-        ) : null}
-
-        <SaveChangesDialog
-          hasColorChanges={hasColorChanges}
-          hasSettingsChanges={hasSettingsChanges}
-          isSavingTheme={isSavingTheme}
-          onSave={handleSave}
-          sortedThemes={sortedThemes}
+          Save to draft (ctrl+s)
+        </Badge>
+      ) : null}
+      <div className="h-12 relative flex items-center gap-3 p-2 bg-primary/10 rounded-full shadow-xl border border-primary/20 backdrop-blur-xl">
+        <ThemeImporterDialog />
+        <Separator orientation="vertical" />
+        <DiscardChangesDialog
+          handleDiscard={() => discardChanges({})}
+          isDiscarding={isDiscarding}
         />
+
+        {drafts.length > 0 ? (
+          <>
+            <Separator orientation="vertical" />
+            <SaveChangesDialog
+              isSavingTheme={isSavingTheme}
+              isDiscarding={isDiscarding}
+              onSave={handleSave}
+              sortedThemes={sortedThemes}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -1,4 +1,8 @@
+![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/icons/laeyrd.png)
+
 # 🧩 Laeyrd — Theme, Settings & Sync for VS Code
+
+![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
 > **⚠️ Pre-release Notice**
 > Laeyrd is currently in **early testing** and not ready for production use.

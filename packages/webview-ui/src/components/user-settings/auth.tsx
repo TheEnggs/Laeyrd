@@ -6,19 +6,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User, Copy } from "lucide-react";
+import { LogIn, LogOut, User, Copy, CloudCheck } from "lucide-react";
 import { useMutation } from "@/hooks/use-query";
 import { useAuth } from "../auth-provider";
 import CountdownTimer from "../ui/countdown-timer";
 /** ------------------- Auth Section ------------------- */
 export default function AuthSection() {
-  const { authUser, signIn, signOut, deviceFlow } = useAuth();
+  //   const { authUser, signIn, signOut, deviceFlow } = useAuth();
 
-  const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
+  //   const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
 
-  const handleOpenExternalUrl = (url: string) => {
-    openExternalUrlMutation.mutate({ url });
-  };
+  //   const handleOpenExternalUrl = (url: string) => {
+  //     openExternalUrlMutation.mutate({ url });
+  //   };
 
   return (
     <Card>
@@ -28,12 +28,12 @@ export default function AuthSection() {
           Account
         </CardTitle>
         <CardDescription>
-          Manage your account and authentication
+          Manage your account and Sync your setup across devices
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-border/40 rounded-lg">
+          {/* <div className="flex items-center justify-between p-4 border border-border/40 rounded-lg">
             {authUser?.isSignedIn ? (
               <div className="flex items-center gap-3">
                 <img
@@ -72,9 +72,9 @@ export default function AuthSection() {
                 <LogOut className="h-4 w-4" /> Sign Out
               </Button>
             )}
-          </div>
+          </div> */}
 
-          {deviceFlow && (
+          {/* {deviceFlow && (
             <div className="flex flex-col gap-4 p-4 border-2 border-primary/60 bg-muted/10 rounded-lg shadow-sm">
               <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
@@ -122,7 +122,13 @@ export default function AuthSection() {
                 <CountdownTimer expiresIn={deviceFlow.expiresIn} />
               </div>
             </div>
-          )}
+          )} */}
+          <div className="w-full justify-start p-2 rounded-full bg-primary/10 flex gap-2 items-center cursor-pointer">
+            <div className="p-2 rounded-full bg-primary/10">
+              <CloudCheck className="h-4 w-4 text-primary" />
+            </div>
+            Sync feature coming soon!
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ColorPicker from "./ui/color-picker";
-import { useSettings } from "../contexts/settings-context";
 import {
   Palette,
   FileText,
@@ -26,6 +25,8 @@ import { cn } from "@/lib/utils";
 import TokenColorSettings from "./token-color-settings";
 import { useQuery } from "../hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
+import { useDraft } from "@/contexts/draft-context";
+import { DraftStatePayload } from "@shared/types/theme";
 
 // 🔹 Map main tabs to icons
 const iconMap = {
@@ -39,7 +40,7 @@ const iconMap = {
 } as const;
 
 export default function ColorSettings() {
-  const { draftColorState, colorDispatch } = useSettings();
+  const { drafts, updateUnsavedChanges } = useDraft();
   const { data: colorsState, isLoading: isLoadingColors } = useQuery({
     command: "GET_THEME_COLORS",
     payload: [],
@@ -61,6 +62,7 @@ export default function ColorSettings() {
           displayName: string;
           description: string;
           value: string;
+          originalValue: string | undefined;
           isTouched: boolean;
         }[]
       >
@@ -72,17 +74,22 @@ export default function ColorSettings() {
 
       if (!tree[category]) tree[category] = {};
       if (!tree[category][subcategory]) tree[category][subcategory] = [];
+      const draftColor = drafts.find(
+        (c): c is Extract<DraftStatePayload, { type: "color" }> =>
+          c.key === key && c.type === "color"
+      );
 
       tree[category][subcategory].push({
         key,
         displayName: def.displayName,
         description: def.description,
-        value: draftColorState[key] ?? def.defaultValue ?? "",
-        isTouched: !!draftColorState[key],
+        value: draftColor?.value ?? def.defaultValue ?? "",
+        originalValue: def.defaultValue,
+        isTouched: !!draftColor,
       });
     }
     return tree;
-  }, [colorsState, draftColorState]);
+  }, [colorsState, drafts]);
 
   //   if (!isLoading && !colorsState)
   //     return (
@@ -190,13 +197,15 @@ export default function ColorSettings() {
                           {/* </div> */}
                           <ColorPicker
                             value={color.value}
-                            onChange={(newValue) =>
-                              colorDispatch({
-                                type: "SET_COLOR",
-                                key: color.key,
-                                value: String(newValue),
-                                defaultValue: color.value,
-                              })
+                            onChange={(value) =>
+                              updateUnsavedChanges(
+                                {
+                                  type: "color",
+                                  key: color.key,
+                                  value,
+                                },
+                                color.originalValue
+                              )
                             }
                           />
                         </div>
@@ -208,7 +217,10 @@ export default function ColorSettings() {
             </TabsContent>
           );
         })}
-        <TabsContent value="Tokens">
+        <TabsContent
+          value="Tokens"
+          className="animate-in fade-in-50 duration-200 mt-4"
+        >
           <TokenColorSettings />
         </TabsContent>
       </Tabs>

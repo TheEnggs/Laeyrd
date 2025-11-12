@@ -8,13 +8,16 @@ import { log } from "@shared/utils/debug-logs";
 const isDev = false;
 
 export class PanelManager implements vscode.Disposable {
-  private panel?: vscode.WebviewPanel;
+  public panel?: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
+  private messageHandler: MessageController;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private messageHandler: MessageController
-  ) {}
+    public relaunchRequired: (state: boolean) => Promise<void>
+  ) {
+    this.messageHandler = new MessageController(this.context);
+  }
 
   public open() {
     if (this.panel) {
@@ -41,27 +44,25 @@ export class PanelManager implements vscode.Disposable {
         this.context.extensionUri,
         "media",
         "icons",
-        "laeyrd-light.png"
+        "laeyrd_ae_light.svg"
       ),
       dark: vscode.Uri.joinPath(
         this.context.extensionUri,
         "media",
         "icons",
-        "laeyrd-dark.png"
+        "laeyrd_ae_dark.svg"
       ),
     };
 
     // Inject the panel into MessageHandler
-    this.messageHandler.setPanel(this.panel);
-
     this.panel.webview.html = this.getWebviewHtml(this.panel.webview);
-
+    this.messageHandler.setPanel(this.panel);
     this.registerEventListeners();
   }
 
   private registerEventListeners() {
     if (!this.panel) return;
-
+    this.messageHandler.setPanel(this.panel);
     // Configuration changes
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
@@ -91,10 +92,13 @@ export class PanelManager implements vscode.Disposable {
     );
 
     // Panel dispose
-    this.disposables.push(this.panel.onDidDispose(() => this.disposePanel()));
+    this.disposables.push(
+      this.panel.onDidDispose(async () => await this.disposePanel())
+    );
   }
 
-  private disposePanel() {
+  private async disposePanel() {
+    await this.relaunchRequired(false);
     this.panel = undefined;
     this.dispose();
   }
