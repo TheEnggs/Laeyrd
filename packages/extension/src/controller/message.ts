@@ -148,13 +148,27 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const draftManager = await DraftManager.init(this.context);
-            const result = await draftManager.writeChangesToFile(
+            const result = await draftManager.applyDraftChanges(
               message.payload
             );
             return {
               success: result,
               draftState: draftManager.draftFileContent.draftState,
             };
+          },
+        });
+        break;
+      case "REMOVE_DRAFT_CHANGE":
+        this.responseHandler<"REMOVE_DRAFT_CHANGE", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const draftManager = await DraftManager.init(this.context);
+            const result = await draftManager.removeDraftChange(
+              message.payload.key,
+              message.payload.type
+            );
+            return result;
           },
         });
         break;
@@ -166,16 +180,6 @@ export class MessageController {
             const draftManager = await DraftManager.init(this.context);
             const result = await draftManager.discardChanges();
             return result;
-          },
-        });
-        break;
-      case "ENABLE_LIVE_PREVIEW":
-        this.responseHandler<"ENABLE_LIVE_PREVIEW", "response">({
-          command,
-          requestId: message.requestId,
-          executor: async () => {
-            const themeController = await ThemeController.create();
-            return themeController.enableLivePreview(this.context);
           },
         });
         break;

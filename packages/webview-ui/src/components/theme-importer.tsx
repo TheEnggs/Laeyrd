@@ -154,30 +154,24 @@ export default function ThemeImporterDialog() {
         {error && <div className="text-sm text-destructive">{error}</div>}
 
         <div className="grid grid-cols-2 gap-2 w-full">
-          <div className="grid gap-2 w-full">
-            <div className="flex items-center gap-2">
-              <Input
-                id="file"
-                type="file"
-                accept="application/json"
-                onChange={(e) =>
-                  onFile(e.target.files ? e.target.files[0] : null)
-                }
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <textarea
-                id="paste"
-                className="w-full rounded-md border p-2 resize-y h-32"
-                value={rawJson}
-                onChange={(e) => setRawJson(e.target.value)}
-                placeholder="Paste theme.json here"
-              />
-            </div>
-
-            <div className="flex gap-4 items-center justify-end">
-              {/* <div className="flex items-center gap-2">
+          <div className="w-full flex flex-col gap-2">
+            <Input
+              id="file"
+              type="file"
+              accept="application/json"
+              onChange={(e) =>
+                onFile(e.target.files ? e.target.files[0] : null)
+              }
+              className="shrink-0 border border-border rounded-md"
+            />
+            <textarea
+              id="paste"
+              className="w-full rounded-md border border-border p-2 resize-y flex-1"
+              value={rawJson}
+              onChange={(e) => setRawJson(e.target.value)}
+              placeholder="Paste theme.json here"
+            />
+            {/* <div className="flex items-center gap-2">
                 <Switch
                   id="colors"
                   checked={includeColors}
@@ -193,17 +187,20 @@ export default function ThemeImporterDialog() {
                 />
                 <Label htmlFor="tokens">Include semantic token colors</Label>
               </div> */}
-              <Button onClick={runParse} size="sm">
-                Parse
-              </Button>
-            </div>
+            <Button
+              onClick={runParse}
+              size="sm"
+              className="shrink-0 place-self-end"
+            >
+              Parse
+            </Button>
           </div>
 
-          <div className="w-full">
+          <div className="w-full flex flex-col gap-2">
             <div className="text-xs text-muted-foreground">
               Preview: {preview.length} items
             </div>
-            <div className="border rounded-md overflow-hidden p-2 w-full">
+            <div className="border border-border rounded-md overflow-hidden p-2 w-full">
               <ScrollArea className="h-64 w-full">
                 <div className="p-2">
                   {previewList.length === 0 ? (
@@ -250,7 +247,7 @@ export default function ThemeImporterDialog() {
 
         <DialogFooter>
           <div className="flex items-center gap-2 w-full">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button onClick={importSelected} className="ml-auto">

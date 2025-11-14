@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@/hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
 import { DraftStatePayload } from "@shared/types/theme";
+import RemoveDraftChange from "./remove-draft-change";
 
 type UiLayoutMetaWithKey = UiLayoutMeta & {
   key: string;
@@ -26,7 +27,7 @@ type UiLayoutMetaWithKey = UiLayoutMeta & {
 };
 
 export default function LayoutSettings() {
-  const { drafts, updateUnsavedChanges } = useDraft();
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
   const { data: layoutState, isLoading: isLoadingLayout } = useQuery({
     command: "GET_FONT_AND_LAYOUT_SETTINGS",
     payload: [],
@@ -76,7 +77,7 @@ export default function LayoutSettings() {
         >
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-base font-semibold capitalize">
                 {subCategory}
               </CardTitle>
             </div>
@@ -97,10 +98,16 @@ export default function LayoutSettings() {
                   <div
                     key={item.displayName}
                     className={cn(
-                      "border border-primary/10 space-y-3 rounded-xl p-4",
+                      "border relative border-primary/10 space-y-3 rounded-xl p-4",
                       item.isTouched && "bg-primary/10"
                     )}
                   >
+                    <RemoveDraftChange
+                      handleRemove={() =>
+                        handleRemoveDraftChange("settings", item.key)
+                      }
+                      isTouched={item.isTouched}
+                    />
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-sm font-medium text-foreground/90">

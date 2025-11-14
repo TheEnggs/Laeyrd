@@ -27,6 +27,7 @@ import { useQuery } from "../hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
 import { useDraft } from "@/contexts/draft-context";
 import { DraftStatePayload } from "@shared/types/theme";
+import RemoveDraftChange from "./remove-draft-change";
 
 // 🔹 Map main tabs to icons
 const iconMap = {
@@ -40,7 +41,7 @@ const iconMap = {
 } as const;
 
 export default function ColorSettings() {
-  const { drafts, updateUnsavedChanges } = useDraft();
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
   const { data: colorsState, isLoading: isLoadingColors } = useQuery({
     command: "GET_THEME_COLORS",
     payload: [],
@@ -176,10 +177,16 @@ export default function ColorSettings() {
                         <div
                           key={color.key}
                           className={cn(
-                            "border border-primary/20 space-y-3 rounded-xl p-4",
+                            "border relative border-primary/20 space-y-3 rounded-xl p-4",
                             color.isTouched && " bg-primary/10"
                           )}
                         >
+                          <RemoveDraftChange
+                            handleRemove={() =>
+                              handleRemoveDraftChange("color", color.key)
+                            }
+                            isTouched={color.isTouched}
+                          />
                           {/* <div className="flex items-center justify-between"> */}
                           <div>
                             <h4 className="text-base font-semibold text-foreground/80 tracking-tight">

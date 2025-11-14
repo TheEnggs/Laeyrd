@@ -8,9 +8,10 @@ import { useQuery } from "../hooks/use-query";
 import { useDraft } from "@/contexts/draft-context";
 import { log } from "@shared/utils/debug-logs";
 import { DraftStatePayload } from "@shared/types/theme";
+import RemoveDraftChange from "./remove-draft-change";
 
 export default function TokenColorSettings() {
-  const { drafts, updateUnsavedChanges } = useDraft();
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
   const {
     data: semanticTokenColorsState,
     isLoading: isLoadingSemanticTokenColors,
@@ -61,8 +62,14 @@ export default function TokenColorSettings() {
         {Object.entries(colors).map(([key, color]) => (
           <Card
             key={key}
-            className="bg-card/50 border border-border/40 rounded-2xl shadow-sm overflow-hidden"
+            className="bg-card/50 border relative border-border/40 rounded-2xl shadow-sm overflow-hidden"
           >
+            <RemoveDraftChange
+              handleRemove={() =>
+                handleRemoveDraftChange("semanticToken", color.key)
+              }
+              isTouched={color.isTouched}
+            />
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-foreground text-lg font-semibold tracking-tight">
                 {color.displayName}

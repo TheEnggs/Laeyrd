@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Save, CheckCircle2 } from "lucide-react";
+import { Save, CheckCircle2, BookCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,8 +83,8 @@ export function SaveChangesDialog({
           disabled={isSavingTheme}
           className="rounded-full font-medium"
         >
-          <Save className="w-4 h-4 mr-2" />
-          {isSavingTheme ? "Saving..." : "Save"}
+          <BookCheck className="w-4 h-4 mr-2" />
+          {isSavingTheme ? "Publishing..." : "Publish"}
         </Button>
       </AlertDialogTrigger>
 

@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { Badge } from "./badge";
-import { HexColorPicker, HexColorInput } from "react-colorful";
+import { HexColorInput, HexAlphaColorPicker } from "react-colorful";
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
@@ -77,11 +77,12 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
 
             <TabsContent value="picker" className="space-y-4 mt-4">
               <div className="flex gap-2 flex-col w-full items-center justify-center">
-                <HexColorPicker
+                <HexAlphaColorPicker
                   color={value}
                   onChange={onChange}
                   className="min-w-full w-full rounded-lg"
                 />
+
                 <HexColorInput
                   color={value}
                   onChange={onChange}

@@ -25,10 +25,10 @@ export function DiscardChangesDialog({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
-          variant="secondary"
+          variant="destructive"
           size="sm"
           disabled={isDiscarding}
-          className="rounded-full font-medium"
+          className="rounded-full font-medium text-foreground"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           {isDiscarding ? "Discarding..." : "Discard"}
@@ -51,7 +51,7 @@ export function DiscardChangesDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDiscard}
-            className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="rounded-xl bg-destructive hover:bg-destructive/90 text-foreground"
             disabled={isDiscarding}
           >
             Discard

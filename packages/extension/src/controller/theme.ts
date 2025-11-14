@@ -150,66 +150,6 @@ export class ThemeController {
       .update("colorTheme", themeName, vscode.ConfigurationTarget.Global);
     ToastController.showToast;
   }
-
-  public async enableLivePreview(
-    context: vscode.ExtensionContext,
-    colors?: DraftColor,
-    tokenColors?: DraftToken
-  ) {
-    try {
-      const themeName = "Live Preview - Laeyrd";
-      const themes = await this.listOwnThemes(context);
-      const target = themes.find((t) => t.label === themeName);
-      const activeThemeName = this.getActiveThemeLabel();
-      const currTheme = this.currentTheme;
-      log("Live Preview Enable");
-      if (target) {
-        await this.overwriteThemeByLabel(
-          context,
-          themeName,
-          colors,
-          tokenColors
-        );
-        if (activeThemeName !== themeName)
-          await this.setActiveThemeByLabel(themeName);
-        return true;
-      } else {
-        await this.createTheme(
-          context,
-          themeName,
-          colors,
-          tokenColors,
-          currTheme?.type
-        );
-        await this.addThemeToPackageJson(
-          context,
-          themeName,
-          `${themeName}.json`,
-          currTheme?.type
-        );
-        return true;
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-  /** Handles live theme mode */
-  public async handleLiveMode(
-    context: vscode.ExtensionContext,
-    themeName: string,
-    colors: DraftColor,
-    tokenColors: DraftToken
-  ) {
-    const themes = await this.listOwnThemes(context);
-    const target = themes.find((t) => t.label === themeName);
-    const activeThemeName = this.getActiveThemeLabel();
-    if (!target) this.enableLivePreview(context, colors, tokenColors);
-    await this.overwriteThemeByLabel(context, themeName, colors, tokenColors);
-
-    if (activeThemeName !== themeName)
-      await this.setActiveThemeByLabel(themeName);
-  }
-
   public async handleSaveTheme(
     payload: {
       mode: keyof typeof SaveThemeModes;

@@ -3,24 +3,24 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDraft } from "../contexts/draft-context";
-import { Loader2, MonitorPlay } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Save } from "lucide-react";
+import { useMemo } from "react";
 import { useMutation, useQuery } from "@/hooks/use-query";
 import useToast from "@/hooks/use-toast";
-import { buildVSCodeSettingsFromState } from "@/lib/utils";
-import { useLivePreview } from "../hooks/use-live-preview";
 import { SaveThemeModes } from "@shared/types/event";
 import { log } from "@shared/utils/debug-logs";
 import { SaveChangesDialog } from "./save-dialog";
-import { useDraftSaveShortcut } from "@/hooks/use-draft-save-shortcut";
+import { useDebouncedSave, useDraftSaveShortcut } from "@/hooks/use-draft-save";
 import ThemeImporterDialog from "./theme-importer";
 import { Separator } from "./ui/separator";
 import { DiscardChangesDialog } from "./discard-changes";
 
 export default function FloatingSave() {
   const toast = useToast();
-  const { isSaving, drafts, saveDrafts } = useDraft();
+  const { isSaving, drafts, saveDrafts, discardChanges, isDiscarding } =
+    useDraft();
   useDraftSaveShortcut();
+  useDebouncedSave();
   const { data: themesData } = useQuery({
     command: "GET_THEME_LIST",
     payload: [],
@@ -42,19 +42,6 @@ export default function FloatingSave() {
       onError: (error) => {
         log(error);
         toast({ message: "Failed to save theme", type: "error" });
-      },
-    }
-  );
-
-  const { mutate: discardChanges, isPending: isDiscarding } = useMutation(
-    "DISCARD_DRAFT_CHANGES",
-    {
-      onSuccess: () => {
-        toast({ message: "Draft changes discarded", type: "success" });
-      },
-      onError: (error) => {
-        log(error);
-        toast({ message: "Failed to discard draft changes", type: "error" });
       },
     }
   );
@@ -85,23 +72,32 @@ export default function FloatingSave() {
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
       {drafts.length > 0 ? (
-        <Badge
-          onClick={saveDrafts}
-          className="relative left-1/2 -top-2 transform -translate-x-1/2 z-60 bg-primary/20 border border-primary/30 text-xs text-center backdrop-blur-xl text-foreground"
-        >
-          Save to draft (ctrl+s)
+        <Badge className="relative left-1/2 -top-2 transform -translate-x-1/2 z-60 bg-primary/20 border border-primary/30 text-xs text-center backdrop-blur-xl text-foreground">
+          Pending changes
         </Badge>
       ) : null}
-      <div className="h-12 relative flex items-center gap-3 p-2 bg-primary/10 rounded-full shadow-xl border border-primary/20 backdrop-blur-xl">
+      <div className="h-12 relative flex items-center gap-1 p-2 bg-primary/10 rounded-full shadow-xl border border-primary/20 backdrop-blur-xl">
         <ThemeImporterDialog />
-        <Separator orientation="vertical" />
-        <DiscardChangesDialog
-          handleDiscard={() => discardChanges({})}
-          isDiscarding={isDiscarding}
-        />
 
         {drafts.length > 0 ? (
           <>
+            <Separator orientation="vertical" />
+            <div className="px-2 flex items-center justify-center gap-2">
+              <DiscardChangesDialog
+                handleDiscard={() => discardChanges({})}
+                isDiscarding={isDiscarding}
+              />
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isSavingTheme}
+                onClick={saveDrafts}
+                className="rounded-full font-medium"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save (CTRL+S)
+              </Button>
+            </div>
             <Separator orientation="vertical" />
             <SaveChangesDialog
               isSavingTheme={isSavingTheme}

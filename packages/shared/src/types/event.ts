@@ -34,6 +34,10 @@ export type WebViewEvent = {
     payload: DraftStatePayload[];
     response: { success: boolean; draftState: DraftFile["draftState"] };
   };
+  REMOVE_DRAFT_CHANGE: {
+    payload: Omit<DraftStatePayload, "value">;
+    response: { success: boolean; data: Omit<DraftStatePayload, "value"> };
+  };
   DISCARD_DRAFT_CHANGES: {
     payload: {};
     response: { success: boolean; error?: string };

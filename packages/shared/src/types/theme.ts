@@ -358,3 +358,10 @@ export type DraftStatePayload =
     };
 
 export type DraftStatePayloadKeys = DraftStatePayload["type"];
+
+export type DraftChangeHandlerMap = {
+  color: (key: string, value: string) => void;
+  token: (key: string, value: string) => void;
+  semanticToken: (key: string, value: { foreground: string }) => void;
+  settings: (key: string, value: string | number | boolean) => void;
+};
