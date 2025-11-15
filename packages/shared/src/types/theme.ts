@@ -299,7 +299,7 @@ export interface SettingsState {
 export type DraftColor = Color;
 export type DraftToken = {
   tokenColors: Record<string, { foreground?: string; fontStyle?: string }>;
-  semanticTokenColors: Record<string, { foreground: string }>;
+  semanticTokenColors: Record<string, string>;
 };
 
 export const draftState = z.object({
@@ -312,10 +312,8 @@ export const draftState = z.object({
     z.string() // token colors also just hex strings
   ),
   semanticTokenCustomization: z.record(
-    z.string(),
-    z.object({
-      foreground: z.string(), // semantic tokens use object form
-    })
+    z.string(), // key
+    z.string() // hex color string
   ),
   settingsCustomization: z.record(
     z.string(),
@@ -349,7 +347,7 @@ export type DraftStatePayload =
   | {
       type: "semanticToken";
       key: string;
-      value: { foreground: string }; // VS Code style
+      value: string; // VS Code style
     }
   | {
       type: "settings";
@@ -362,6 +360,6 @@ export type DraftStatePayloadKeys = DraftStatePayload["type"];
 export type DraftChangeHandlerMap = {
   color: (key: string, value: string) => void;
   token: (key: string, value: string) => void;
-  semanticToken: (key: string, value: { foreground: string }) => void;
+  semanticToken: (key: string, value: string) => void;
   settings: (key: string, value: string | number | boolean) => void;
 };

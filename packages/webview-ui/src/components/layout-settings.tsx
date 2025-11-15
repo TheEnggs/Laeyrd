@@ -147,7 +147,7 @@ export default function LayoutSettings() {
                             {
                               type: "settings",
                               key: item.key,
-                              value: String(numValue),
+                              value: numValue,
                             },
                             item.originalValue
                           );

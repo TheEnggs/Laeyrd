@@ -13,10 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
   authController.setContext(context);
 
   extensionController.loadEvents(authController.getCurrentUser()?.id);
-  const relaunchCommand = vscode.commands.registerCommand(
-    "laeyrd.relaunch",
-    () => extensionController.relaunch()
-  );
+
   const openCommand = vscode.commands.registerCommand("laeyrd.open", () => {
     const detectPanelClosingState = async (value: boolean) =>
       await extensionController.detectPanelClosingState(value);
@@ -27,12 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(panelManager);
   });
 
-  context.subscriptions.push(
-    relaunchCommand,
-    openCommand,
-    authController,
-    extensionController
-  );
+  context.subscriptions.push(openCommand, authController, extensionController);
 }
 
 export async function deactivate() {

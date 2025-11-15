@@ -45,7 +45,7 @@ export default function TokenColorSettings() {
         key,
         displayName: def.displayName,
         description: def.description,
-        value: draftColor?.value?.foreground ?? def.defaultColor ?? "",
+        value: draftColor?.value ?? def.defaultColor ?? "",
         originalValue: def.defaultColor,
         isTouched: !!draftColor,
       };
@@ -105,9 +105,7 @@ export default function TokenColorSettings() {
                       {
                         type: "semanticToken",
                         key: color.key,
-                        value: {
-                          foreground: value,
-                        },
+                        value,
                       },
                       color.originalValue
                     )

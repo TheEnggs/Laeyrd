@@ -42,7 +42,11 @@ function getDraftStatePayload(draftState: DraftState): DraftStatePayload[] {
   function make<T extends keyof EntriesType>(
     items: EntriesType[T],
     entriesType: T
-  ) {
+  ): {
+    key: string;
+    value: any;
+    type: T;
+  }[] {
     if (!items) return [];
     const entries = Object.entries(items);
     return entries
@@ -53,8 +57,8 @@ function getDraftStatePayload(draftState: DraftState): DraftStatePayload[] {
   }
   return [
     ...make(draftState.colorCustomization, "color"),
-    ...make(draftState.tokenCustomization, "token"),
     ...make(draftState.semanticTokenCustomization, "semanticToken"),
+    ...make(draftState.tokenCustomization, "token"),
     ...make(draftState.settingsCustomization, "settings"),
   ];
 }
@@ -82,22 +86,8 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     (payload: DraftStatePayload, originalValue?: string | boolean | number) => {
       setDrafts((prev) => {
         const filtered = prev.filter((e) => e.key !== payload.key);
-        // Narrow type safely before treating it like an object
-        const isObject =
-          typeof payload.value === "object" &&
-          payload.value !== null &&
-          !Array.isArray(payload.value);
-
-        if (originalValue !== undefined) {
-          if (
-            (!isObject && originalValue === payload.value) ||
-            (isObject &&
-              "foreground" in (payload.value as { foreground: string }) &&
-              originalValue ===
-                (payload.value as { foreground: string }).foreground)
-          ) {
-            return filtered;
-          }
+        if (originalValue !== undefined && originalValue === payload.value) {
+          return filtered;
         }
         return [...filtered, payload];
       });

@@ -183,16 +183,15 @@ export default class DraftManager {
           }
         );
       },
-      semanticToken: (key: string, value: { foreground: string }) => {
+      semanticToken: (key: string, value: string) => {
         const oldTokens =
           config.get<Record<string, any>>(
             "editor.semanticTokenColorCustomizations"
           ) || {};
 
         if (!(key in draft.oldSettings.semanticTokenCustomization)) {
-          draft.oldSettings.semanticTokenCustomization[key] = {
-            foreground: oldTokens[key]?.foreground ?? "",
-          };
+          draft.oldSettings.semanticTokenCustomization[key] =
+            oldTokens[key] ?? "";
         }
 
         draft.draftState.semanticTokenCustomization[key] = value;
@@ -227,18 +226,23 @@ export default class DraftManager {
       switch (type) {
         case "color": {
           const keyInOldSettings = oldSettings.colorCustomization[key];
-          this.updateConfigSection("editor.colorCustomizations", (existing) => {
-            const copy = { ...existing };
-            if (keyInOldSettings) {
-              // restore old value
-              existing[key] = keyInOldSettings;
-            } else {
-              // delete value entirely
-              delete copy[key];
-            }
+          this.updateConfigSection(
+            "workbench.colorCustomizations",
+            (existing) => {
+              const copy = { ...existing };
+              log("keyInOldSettings", keyInOldSettings);
+              log("copy", copy);
+              if (keyInOldSettings && keyInOldSettings !== "") {
+                // restore old value
+                copy[key] = keyInOldSettings;
+              } else {
+                // delete value entirely
+                delete copy[key];
+              }
 
-            return copy;
-          });
+              return copy;
+            }
+          );
           delete draft.colorCustomization[key];
           break;
         }
@@ -269,23 +273,16 @@ export default class DraftManager {
           await this.updateConfigSection(
             "editor.semanticTokenColorCustomizations",
             (existing) => {
-              const oldRules = existing.rules ?? {};
-
-              let newRules: Record<string, any>;
-
-              if (keyInOldSettings) {
-                // restore previous
-                newRules = {
-                  ...oldRules,
-                  [key]: keyInOldSettings,
-                };
+              const copy = { ...existing.rules };
+              if (keyInOldSettings && keyInOldSettings !== "") {
+                // restore old value
+                copy[key] = keyInOldSettings;
               } else {
-                // remove key by reconstruction
-                const { [key]: _, ...rest } = oldRules;
-                newRules = rest;
+                // delete value entirely
+                delete copy[key];
               }
 
-              return { rules: newRules };
+              return { rules: copy };
             }
           );
 
@@ -360,7 +357,7 @@ export default class DraftManager {
         (existing, oldValues) => {
           const reverted = { ...existing };
           for (const [key, val] of Object.entries(oldValues)) {
-            if (!val || !val.foreground) delete reverted[key];
+            if (!val) delete reverted[key];
             else reverted[key] = val;
           }
           return reverted;
