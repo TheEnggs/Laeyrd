@@ -10,7 +10,7 @@ export const ColorSettingsSkeleton = () => {
           className={cn(
             "bg-card/50 border border-border/40 rounded-2xl shadow-sm overflow-hidden relative",
             tabIdx === 1 &&
-              "after:absolute after:inset-0 after:bg-gradient-to-b after:from-transparent after:to-card"
+              "after:absolute after:inset-0 after:bg-linear-to-b after:from-transparent after:to-card"
           )}
         >
           <CardHeader className="pb-4">
