@@ -37,13 +37,7 @@
         "category": "Customization"
       }
     ],
-    "themes": [
-      {
-        "label": "ghghghgh",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/ghghghgh.json"
-      }
-    ]
+    "themes": []
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
