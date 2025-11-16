@@ -154,9 +154,6 @@ export class ThemeController {
     payload: {
       mode: keyof typeof SaveThemeModes;
       themeName: string;
-      colors: DraftColor;
-      tokens: DraftToken;
-      type: "dark" | "light";
     },
     context: vscode.ExtensionContext
   ) {
@@ -173,22 +170,15 @@ export class ThemeController {
         });
       } else {
         const themeName = payload.themeName || "Untitled Theme";
-        const res = await this.createTheme(
-          context,
-          themeName,
-          colors,
-          {
-            tokenColors: {},
-            semanticTokenColors: tokens,
-          },
-          payload.type
-        );
+        const res = await this.createTheme(context, themeName, colors, {
+          tokenColors: {},
+          semanticTokenColors: tokens,
+        });
         if (!res.success) throw new Error("Failed to create theme");
         await this.addThemeToPackageJson(
           context,
           themeName,
-          `${themeName}.json`,
-          payload.type
+          `${themeName}.json`
         );
       }
       await draftManager.revertToOldSettings();

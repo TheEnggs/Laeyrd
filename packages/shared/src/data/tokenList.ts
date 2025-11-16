@@ -140,3 +140,87 @@ export const tokenColorMap: TokenColorsList = {
     defaultFontStyle: "underline",
   },
 };
+export const semanticToTokenKeyMap: Record<string, keyof typeof tokenColorMap> =
+  {
+    // ─────────────────────────
+    // Core simple tokens
+    // ─────────────────────────
+    namespace: "namespace",
+    type: "type",
+    class: "class",
+    interface: "interface",
+    enum: "enum",
+    enumMember: "enum",
+
+    typeParameter: "type",
+    parameter: "parameter",
+    variable: "variable",
+    property: "property",
+    function: "function",
+    method: "function",
+
+    // ─────────────────────────
+    // Literals
+    // ─────────────────────────
+    string: "literal",
+    number: "number",
+    boolean: "literal",
+    regexp: "literal",
+    "string.escape": "escapesequence",
+
+    // ─────────────────────────
+    // Keywords & operators
+    // ─────────────────────────
+    keyword: "keyword",
+    "keyword.operator": "operator",
+    operator: "operator",
+
+    // ─────────────────────────
+    // Comments
+    // ─────────────────────────
+    comment: "comment",
+    "comment.documentation": "comment",
+
+    // ─────────────────────────
+    // Builtins / libraries
+    // ─────────────────────────
+    "variable.defaultLibrary": "builtin",
+    "type.defaultLibrary": "builtin",
+    "property.defaultLibrary": "builtin",
+    "function.defaultLibrary": "builtin",
+    "method.defaultLibrary": "builtin",
+
+    // ─────────────────────────
+    // JSX / HTML / XML
+    // ─────────────────────────
+    tag: "tag",
+    "tag.attribute": "attribute",
+    attribute: "attribute",
+    "namespace.jsx": "namespace",
+    "type.jsx": "type",
+
+    // ─────────────────────────
+    // Constant-ish things
+    // ─────────────────────────
+    "variable.constant": "constant",
+    "variable.readonly": "constant",
+    "property.readonly": "constant",
+    "enumMember.readonly": "enum",
+
+    // ─────────────────────────
+    // Decorators / annotations
+    // ─────────────────────────
+    decorator: "annotation",
+    annotation: "annotation",
+
+    // ─────────────────────────
+    // Macros
+    // ─────────────────────────
+    macro: "macro",
+
+    // ─────────────────────────
+    // Invalid / error
+    // ─────────────────────────
+    invalid: "invalid",
+    unreachable: "invalid",
+  };

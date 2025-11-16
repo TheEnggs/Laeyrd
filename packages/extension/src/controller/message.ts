@@ -58,10 +58,7 @@ export class MessageController {
     this.panel = panel;
   }
 
-  public async handle<T extends keyof WebViewEvent>(
-    command: T,
-    message: RequestMessage<T>
-  ) {
+  public async handle(message: RequestMessage) {
     // Validate message structure
     if (!message || typeof message !== "object") {
       console.error("Invalid message received:", message);
@@ -72,6 +69,7 @@ export class MessageController {
       return;
     }
 
+    const { command } = message;
     log("incoming command", command, message);
     switch (command) {
       case "SHOW_TOAST":
@@ -91,7 +89,7 @@ export class MessageController {
         });
         break;
       case "GET_THEME_TOKEN_COLORS":
-        this.responseHandler({
+        this.responseHandler<"GET_THEME_TOKEN_COLORS", "response">({
           command,
           requestId: message.requestId,
           executor: async () => {
@@ -106,7 +104,7 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const tc = await this.themeController();
-            tc.getSemanticTokenColors();
+            return tc.getSemanticTokenColors();
           },
         });
         break;
@@ -117,7 +115,7 @@ export class MessageController {
           (t) => t.label! === "Live Preview - Laeyrd"
         );
         const active = tc.getActiveThemeLabel();
-        this.responseHandler({
+        this.responseHandler<"GET_THEME_LIST", "response">({
           command,
           requestId: message.requestId,
           executor: () => ({
@@ -153,7 +151,7 @@ export class MessageController {
             );
             return {
               success: result,
-              draftState: draftManager.draftFileContent.draftState,
+              draftFile: draftManager.draftFileContent,
             };
           },
         });
@@ -328,13 +326,9 @@ export class MessageController {
   private async handleSaveTheme(payload: {
     mode: keyof typeof SaveThemeModes;
     themeName: string;
-    colors: DraftColor;
-    tokens: DraftToken;
-    type: "dark" | "light";
   }) {
     log("SAVE_THEME", payload);
-    if (!payload.themeName && payload.mode !== "LIVE")
-      throw new Error("Invalid theme name");
+    if (!payload.themeName) throw new Error("Invalid theme name");
     const tc = await this.themeController();
     return await tc.handleSaveTheme(payload, this.context);
   }
@@ -343,8 +337,7 @@ export class MessageController {
     settings: Record<string, string | number | boolean>;
   }) {
     const settingsController = await SettingsController.init(this.context);
-    settingsController.overwriteSettingsJson(payload.settings);
-    return null;
+    return settingsController.overwriteSettingsJson(payload.settings);
   }
 
   public async responseHandler<

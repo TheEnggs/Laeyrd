@@ -17,7 +17,7 @@ export class SettingsController {
   private listeners: Array<(settings: UserSettings) => void> = [];
   private watcher: vscode.FileSystemWatcher | undefined;
 
-  private constructor(private context: vscode.ExtensionContext) { }
+  private constructor(private context: vscode.ExtensionContext) {}
 
   /**
    * Factory method - async initialization
@@ -189,21 +189,25 @@ export class SettingsController {
 
   public async overwriteSettingsJson(
     settings: Record<string, string | number | boolean | undefined>
-  ): Promise<void> {
-    if (!this.currentSettings) {
-      console.error("No settings loaded to overwrite");
-      return;
-    }
+  ) {
+    try {
+      if (!this.currentSettings) {
+        throw new Error("No settings loaded to overwrite");
+      }
 
-    log("settings", settings);
-    for (const [key, value] of Object.entries(settings)) {
-      await vscode.workspace
-        .getConfiguration()
-        .update(key, value, vscode.ConfigurationTarget.Global);
-    }
+      log("settings", settings);
+      for (const [key, value] of Object.entries(settings)) {
+        await vscode.workspace
+          .getConfiguration()
+          .update(key, value, vscode.ConfigurationTarget.Global);
+      }
 
-    await this.refreshSettings();
-    log(`[SettingsController] Settings updated via VS Code API`);
+      await this.refreshSettings();
+      log(`[SettingsController] Settings updated via VS Code API`);
+      return { success: true };
+    } catch (e) {
+      throw e;
+    }
   }
 
   public async updateSetting(

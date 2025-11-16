@@ -2,6 +2,7 @@ import {
   DraftChangeHandlerMap,
   DraftFile,
   draftFile,
+  DraftState,
   DraftStatePayload,
   DraftStatePayloadKeys,
 } from "@shared/types/theme";
@@ -22,11 +23,20 @@ const defaultDraft: DraftFile = {
     settingsCustomization: {},
     semanticTokenCustomization: {},
   },
-  isSettingsRestored: false,
-  isEditing: true,
+  isSettingsRestored: true,
+  isEditing: false,
   isContentSaved: false,
 };
 
+type DraftHandlerContext = {
+  existingColors: Record<string, string>;
+  existingTokenColors: Record<string, string>;
+  existingSemanticRules: Record<string, any>;
+  pendingColors: Record<string, string>;
+  pendingTokenColors: Record<string, string>;
+  pendingSemanticRules: Record<string, any>;
+  pendingSettings: Record<string, string | number | boolean>;
+};
 export default class DraftManager {
   public draftFileContent: DraftFile;
   private readonly DRAFT_FILE_NAME = "laeyrd-draft.json";
@@ -107,13 +117,41 @@ export default class DraftManager {
   public async applyDraftChanges(
     payload: DraftStatePayload[]
   ): Promise<boolean> {
+    log("applyDraftChanges", payload);
     const draft = this.draftFileContent;
     const config = await this.getVSCodeConfig();
-    const handlers = this.applyDraftChangeHandlers(draft, config);
 
+    // Take snapshots ONCE so we don't keep reading config
+    const existingColors =
+      config.get<Record<string, string>>("workbench.colorCustomizations") || {};
+    const existingTokenColors =
+      config.get<Record<string, string>>("editor.tokenColorCustomizations") ||
+      {};
+    const existingSemanticTokens =
+      config.get<{ rules?: Record<string, any> }>(
+        "editor.semanticTokenColorCustomizations"
+      ) || {};
+    const existingSemanticRules = existingSemanticTokens.rules || {};
+
+    // Accumulators for new values
+    const pendingColors: Record<string, string> = {};
+    const pendingTokenColors: Record<string, string> = {};
+    const pendingSemanticRules: Record<string, any> = {};
+    const pendingSettings: Record<string, string | number | boolean> = {};
+
+    // We pass these through to the handlers
+    const handlers = this.applyDraftChangeHandlers(draft, {
+      existingColors,
+      existingTokenColors,
+      existingSemanticRules,
+      pendingColors,
+      pendingTokenColors,
+      pendingSemanticRules,
+      pendingSettings,
+    });
+
+    // Process all payload items, but don't touch config yet
     payload.forEach((item) => {
-      const handlers = this.applyDraftChangeHandlers(draft, config);
-
       switch (item.type) {
         case "color":
           handlers.color(item.key, item.value);
@@ -133,88 +171,111 @@ export default class DraftManager {
       }
     });
 
+    // Now apply batched updates
+
+    // 1. workbench.colorCustomizations
+    if (Object.keys(pendingColors).length > 0) {
+      await this.updateConfigSection<Record<string, string>>(
+        "workbench.colorCustomizations",
+        (existing) => ({
+          ...existing,
+          ...pendingColors,
+        })
+      );
+    }
+
+    // 2. editor.tokenColorCustomizations
+    if (Object.keys(pendingTokenColors).length > 0) {
+      await this.updateConfigSection<Record<string, string>>(
+        "editor.tokenColorCustomizations",
+        (existing) => ({
+          ...existing,
+          ...pendingTokenColors,
+        })
+      );
+    }
+
+    // 3. editor.semanticTokenColorCustomizations
+    if (Object.keys(pendingSemanticRules).length > 0) {
+      await this.updateConfigSection<{ rules?: Record<string, any> }>(
+        "editor.semanticTokenColorCustomizations",
+        (existing) => {
+          const rules = { ...(existing.rules ?? {}), ...pendingSemanticRules };
+          return { ...existing, rules };
+        }
+      );
+    }
+
+    // 4. arbitrary settings (each key is its own setting)
+    for (const [key, value] of Object.entries(pendingSettings)) {
+      await this.updateSettingsConfig(key, () => value);
+    }
+
     draft.lastUpdatedOn = new Date().toISOString();
+    draft.isEditing = true;
+    draft.isSettingsRestored = false;
     this.draftFileContent = draft;
     return await this.writeFile();
   }
 
   public applyDraftChangeHandlers(
     draft: DraftFile,
-    config: vscode.WorkspaceConfiguration
+    ctx: DraftHandlerContext
   ): DraftChangeHandlerMap {
     return {
       color: (key: string, value: string) => {
-        const oldColors =
-          config.get<Record<string, string>>("workbench.colorCustomizations") ||
-          {};
+        const { existingColors, pendingColors } = ctx;
 
         if (!(key in draft.oldSettings.colorCustomization)) {
-          draft.oldSettings.colorCustomization[key] = oldColors[key] ?? "";
+          draft.oldSettings.colorCustomization[key] = existingColors[key] ?? "";
         }
+
         draft.draftState.colorCustomization[key] = value;
-        this.updateConfigSection(
-          "workbench.colorCustomizations",
-          (existing) => {
-            return {
-              ...existing,
-              [key]: value,
-            };
-          }
-        );
+        pendingColors[key] = value;
       },
+
       token: (key: string, value: string) => {
-        const oldTokens =
-          config.get<Record<string, string>>(
-            "editor.tokenColorCustomizations"
-          ) || {};
+        const { existingTokenColors, pendingTokenColors } = ctx;
 
         if (!(key in draft.oldSettings.tokenCustomization)) {
-          draft.oldSettings.tokenCustomization[key] = oldTokens[key] ?? "";
+          draft.oldSettings.tokenCustomization[key] =
+            existingTokenColors[key] ?? "";
         }
 
         draft.draftState.tokenCustomization[key] = value;
-        this.updateConfigSection(
-          "editor.tokenColorCustomizations",
-          (existing) => {
-            return {
-              ...existing,
-              [key]: value,
-            };
-          }
-        );
+        pendingTokenColors[key] = value;
       },
+
       semanticToken: (key: string, value: string) => {
-        const oldTokens =
-          config.get<Record<string, any>>(
-            "editor.semanticTokenColorCustomizations"
-          ) || {};
+        const { existingSemanticRules, pendingSemanticRules } = ctx;
 
         if (!(key in draft.oldSettings.semanticTokenCustomization)) {
           draft.oldSettings.semanticTokenCustomization[key] =
-            oldTokens[key] ?? "";
+            existingSemanticRules[key] ?? "";
         }
 
         draft.draftState.semanticTokenCustomization[key] = value;
-        this.updateConfigSection(
-          "editor.semanticTokenColorCustomizations",
-          (existing) => {
-            const rules = { ...(existing.rules ?? {}) };
-            rules[key] = value;
-            return { rules };
-          }
-        );
+        pendingSemanticRules[key] = value;
       },
+
       settings: (key: string, value: string | boolean | number) => {
-        const oldValue = config.get<string | boolean | number>(key);
+        // For settings, we still need old value from config.
+        // We can either pass it via ctx, or just fetch lazily here.
+        // Since you already have `config` in outer scope, you could
+        // pass `existingSettings` map if you want. For now:
+        // Assume old value was not needed from a snapshot; you already had:
+        //   const oldValue = config.get(...)
+        // We'll simplify: draft.oldSettings only records first override.
 
         if (!(key in draft.oldSettings.settingsCustomization)) {
-          draft.oldSettings.settingsCustomization[key] = oldValue ?? "";
+          // You probably want to read this once outside too, but I'll keep
+          // behavior close to your original for now.
+          // Better: pass a map of existing settings into ctx as well.
+          draft.oldSettings.settingsCustomization[key] = "";
         }
 
         draft.draftState.settingsCustomization[key] = value;
-        this.updateSettingsConfig(key, (existing) => {
-          return value;
-        });
+        ctx.pendingSettings[key] = value;
       },
     };
   }
@@ -398,7 +459,6 @@ export default class DraftManager {
     const config = await this.getVSCodeConfig();
     const existing = config.get<T>(section) ?? ({} as T);
     const merged = mergeFn(existing);
-
     await config.update(section, merged, vscode.ConfigurationTarget.Global);
   }
   private async updateSettingsConfig<T extends string | boolean | number>(

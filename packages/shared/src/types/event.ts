@@ -7,6 +7,7 @@ import {
   DraftToken,
   DraftStatePayload,
   DraftFile,
+  DraftState,
 } from "./theme";
 import {
   ConflictResolvedResponse,
@@ -32,7 +33,7 @@ export type WebViewEvent = {
   };
   UPDATE_DRAFT_STATE: {
     payload: DraftStatePayload[];
-    response: { success: boolean; draftState: DraftFile["draftState"] };
+    response: { success: boolean; draftFile: DraftFile };
   };
   REMOVE_DRAFT_CHANGE: {
     payload: Omit<DraftStatePayload, "value">;
@@ -52,11 +53,11 @@ export type WebViewEvent = {
   };
   GET_THEME_TOKEN_COLORS: {
     payload: any[];
-    response: TokenColorsList;
+    response: TokenColorsList | undefined;
   };
   GET_SEMANTIC_TOKEN_COLORS: {
     payload: any[];
-    response: SemanticTokenColors;
+    response: SemanticTokenColors | undefined;
   };
   GET_FONT_AND_LAYOUT_SETTINGS: {
     payload: any;
@@ -74,7 +75,7 @@ export type WebViewEvent = {
     payload: any[];
     response: {
       themes: { label: string; path: string; uiTheme?: string }[];
-      active: string;
+      active: string | undefined;
     };
   };
   GET_ACTIVE_THEME_LABEL: {
@@ -102,7 +103,7 @@ export type WebViewEvent = {
     payload: {
       settings: Record<keyof typeof fontsLayoutUI, string | number | boolean>;
     };
-    response: undefined;
+    response: { success: boolean };
   };
   RESTORE_ORIGINAL_SETTINGS: { payload: any; response: undefined };
 
@@ -213,11 +214,16 @@ export type WebViewEvent = {
   };
 };
 
-export interface RequestMessage<T extends keyof WebViewEvent> {
-  requestId: string;
-  command: T;
-  payload: WebViewEvent[T]["payload"];
-}
+type RequestMessageMap = {
+  [K in keyof WebViewEvent]: {
+    requestId: string;
+    command: K;
+    payload: WebViewEvent[K]["payload"];
+  };
+};
+
+// Union of all specific request messages
+export type RequestMessage = RequestMessageMap[keyof RequestMessageMap];
 
 export interface ResponseMessage<
   T extends keyof WebViewEvent,

@@ -5,8 +5,6 @@ import fs from "fs";
 import { fontsLayoutUI } from "@shared/data/fonts-layout";
 import { log } from "@shared/utils/debug-logs";
 
-const isDev = false;
-
 export class PanelManager implements vscode.Disposable {
   public panel?: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
@@ -42,15 +40,17 @@ export class PanelManager implements vscode.Disposable {
     this.panel.iconPath = {
       light: vscode.Uri.joinPath(
         this.context.extensionUri,
-        "media",
-        "icons",
-        "laeyrd_ae_light.svg"
-      ),
-      dark: vscode.Uri.joinPath(
-        this.context.extensionUri,
+        "dist",
         "media",
         "icons",
         "laeyrd_ae_dark.svg"
+      ),
+      dark: vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "dist",
+        "media",
+        "icons",
+        "laeyrd_ae_light.svg"
       ),
     };
 
@@ -87,7 +87,7 @@ export class PanelManager implements vscode.Disposable {
     // Webview messages
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage((message) =>
-        this.messageHandler.handle(message.command, message)
+        this.messageHandler.handle(message)
       )
     );
 
@@ -123,31 +123,8 @@ export class PanelManager implements vscode.Disposable {
   }
 
   private getWebviewHtml(webview: vscode.Webview): string {
-    if (isDev) {
-      return `
-          <!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta http-equiv="Content-Security-Policy"
-                content="default-src 'none';
-                         img-src https: data:;
-                         script-src 'unsafe-inline' http://localhost:5173;
-                         style-src 'unsafe-inline' http://localhost:5173;
-                         connect-src http://localhost:5173;">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>Vite Dev Webview</title>
-            </head>
-            <body>
-              <div id="root"></div>
-              <script type="module" src="http://localhost:5173/src/main.tsx"></script>
-            </body>
-          </html>
-        `;
-    }
-
     const html = fs.readFileSync(
-      path.join(this.context.extensionPath, "dist/webview-ui/src/index.html"),
+      path.join(this.context.extensionPath, "dist/webview-ui/index.html"),
       "utf8"
     );
 
