@@ -73,15 +73,3 @@ This pre-release version exists for **testing and feedback**.
 | **Storage**           | Local VS Code global storage (for themes & settings)  |
 | **Sync**              | GitHub Device Flow API                                |
 | **Build Tooling**     | VSCE + Vite + ESBuild + TypeScript project references |
-
----
-
-## 🧰 Development Setup
-
-Clone and install dependencies:
-
-```bash
-git clone https://github.com/your-org/laeyrd
-cd laeyrd
-npm install
-```

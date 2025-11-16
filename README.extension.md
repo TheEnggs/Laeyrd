@@ -41,23 +41,3 @@ Laeyrd turns theme editing and configuration into something actually fun.
 
 This extension is in **active development**.
 Expect occasional bugs, rough edges, and missing polish while testing.
-
-> A pre-release `.vsix` build will be published soon for testing.
-
----
-
-## 🧰 Tech Stack
-
-- **Extension Backend:** TypeScript (Node.js, CommonJS)
-- **Webview UI:** React + Vite + Tailwind CSS
-- **Sync:** GitHub Device Flow
-- **Build:** VSCE + Vite + ESBuild + TypeScript project references
-
----
-
-## 🧩 Contribute
-
-Contributions are currently **closed during pre-release**.
-Once stabilized, full contribution guidelines will be opened on GitHub.
-
-Stay tuned for updates and join early testing soon!
