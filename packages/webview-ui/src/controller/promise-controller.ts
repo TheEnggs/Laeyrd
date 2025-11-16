@@ -62,7 +62,11 @@ class PromiseController {
     payload: WebViewEvent[T]["payload"];
   }): Promise<ResponseMessage<T, "response">> {
     const requestId = crypto.randomUUID();
-    const message: RequestMessage<T> = { requestId, command, payload };
+    const message = {
+      requestId,
+      command,
+      payload,
+    };
 
     return new Promise((resolve, reject) => {
       // Set timeout to prevent hanging requests

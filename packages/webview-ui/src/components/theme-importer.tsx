@@ -18,7 +18,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDraft } from "@/contexts/draft-context";
 import { DraftStatePayload } from "@shared/types/theme";
 import { Import } from "lucide-react";
+import { semanticToTokenKeyMap } from "@shared/data/tokenList";
 
+function getSemanticTokenKey(token: string) {
+  return semanticToTokenKeyMap[token] || token;
+}
 export default function ThemeImporterDialog() {
   const { updateUnsavedChanges } = useDraft();
 
@@ -68,8 +72,8 @@ export default function ThemeImporterDialog() {
               : null;
         if (value)
           out.push({
-            key: token,
-            value: { foreground: value },
+            key: getSemanticTokenKey(token),
+            value,
             type: "semanticToken",
           });
       }
@@ -101,8 +105,8 @@ export default function ThemeImporterDialog() {
                 : null;
           if (value)
             out.push({
-              key: token,
-              value: { foreground: value },
+              key: getSemanticTokenKey(token),
+              value,
               type: "semanticToken",
             });
         }
@@ -126,10 +130,7 @@ export default function ThemeImporterDialog() {
 
   const importSelected = useCallback(() => {
     setError(null);
-    for (const item of preview) {
-      updateUnsavedChanges(item);
-    }
-
+    updateUnsavedChanges(preview);
     setOpen(false);
   }, [preview, updateUnsavedChanges]);
 
@@ -212,7 +213,7 @@ export default function ThemeImporterDialog() {
                       // if semanticToken -> extract .foreground, else use value directly
                       const colorValue =
                         it.type === "semanticToken"
-                          ? it.value.foreground
+                          ? it.value
                           : typeof it.value === "string"
                             ? it.value
                             : undefined; // non-color values ignored

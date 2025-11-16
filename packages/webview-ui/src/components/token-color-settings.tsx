@@ -101,14 +101,13 @@ export default function TokenColorSettings() {
                 <ColorPicker
                   value={color.value}
                   onChange={(value) =>
-                    updateUnsavedChanges(
+                    updateUnsavedChanges([
                       {
                         type: "semanticToken",
                         key: color.key,
                         value,
                       },
-                      color.originalValue
-                    )
+                    ])
                   }
                 />
               </div>

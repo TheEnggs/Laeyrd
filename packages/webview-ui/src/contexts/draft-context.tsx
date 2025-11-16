@@ -21,10 +21,7 @@ interface DraftContextValue {
   drafts: DraftStatePayload[];
   isLoading: boolean;
   isSaving: boolean;
-  updateUnsavedChanges: (
-    payload: DraftStatePayload,
-    originalValue?: string | boolean | number
-  ) => void;
+  updateUnsavedChanges: (changes: DraftStatePayload[]) => void;
   saveDrafts: () => void;
   discardChanges: ({}) => void;
   isDiscarding: boolean;
@@ -65,10 +62,11 @@ function getDraftStatePayload(draftState: DraftState): DraftStatePayload[] {
 
 export function DraftProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     command: "GET_DRAFT_STATE",
     payload: {},
   });
+  const hydrationRequiredRef = useRef(true);
 
   const [drafts, setDrafts] = useState<DraftStatePayload[]>([]);
   const [updateByUserCount, setUpdateByUserCount] = useState(0);
@@ -82,20 +80,30 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     commitDrafts(draftsRef.current);
   }, []);
 
-  const updateUnsavedChanges = useCallback(
-    (payload: DraftStatePayload, originalValue?: string | boolean | number) => {
-      setDrafts((prev) => {
-        const filtered = prev.filter((e) => e.key !== payload.key);
-        if (originalValue !== undefined && originalValue === payload.value) {
-          return filtered;
-        }
-        return [...filtered, payload];
-      });
+  const updateUnsavedChanges = useCallback((changes: DraftStatePayload[]) => {
+    setDrafts((prev) => {
+      if (changes.length === 0) return prev;
+      const next = [...prev];
+      for (const change of changes) {
+        const idx = next.findIndex(
+          (d) => d.type === change.type && d.key === change.key
+        );
 
-      setUpdateByUserCount((prev) => prev + 1);
-    },
-    []
-  );
+        if (idx === -1) {
+          next.push(change);
+        } else {
+          const existing = next[idx];
+          if (existing.value !== change.value) {
+            next[idx] = { ...change };
+          }
+        }
+      }
+
+      return next;
+    });
+
+    setUpdateByUserCount((prev) => prev + 1);
+  }, []);
 
   const handleRemoveDraftChange = useCallback(
     (type: DraftStatePayloadKeys, key: string) => {
@@ -103,20 +111,20 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-  const hydrated = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !hydrated.current && data?.draftState) {
+    if (!isLoading && hydrationRequiredRef.current && data?.draftState) {
       setDrafts(getDraftStatePayload(data.draftState));
-      hydrated.current = true;
+      hydrationRequiredRef.current = false;
     }
-  }, [data, isLoading]);
+  }, [data?.draftState, isLoading]);
 
   const { mutate: commitDrafts, isPending: isSaving } = useMutation(
     "UPDATE_DRAFT_STATE",
     {
-      onSuccess: (data) => {
-        setQueryData({ command: "GET_DRAFT_STATE", payload: data });
+      onSuccess: (res) => {
+        refetch();
+        hydrationRequiredRef.current = true;
         toast({ message: "Draft saved", type: "success" });
       },
       onError: (err) =>

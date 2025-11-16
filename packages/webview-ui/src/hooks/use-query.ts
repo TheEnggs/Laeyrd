@@ -1,7 +1,7 @@
 import { log } from "../../../shared/src/utils/debug-logs";
 import { WebViewEvent } from "@shared/types/event";
 import { queryClient } from "../controller/query-client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   command: T;
@@ -12,37 +12,52 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   const [data, setData] = useState<WebViewEvent[T]["response"] | null>(null);
   const [error, setError] = useState<any>(null);
 
-  useEffect(() => {
-    let canceled = false;
+  // Stable cache key (right now only command, you may want command+payload hash)
+  const cacheKey = queryParameter.command;
+
+  // Memoize payload string so JSON.stringify doesn't change every render by accident
+  const payloadString = JSON.stringify(queryParameter.payload);
+
+  const fetchQuery = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
-    // Create a stable cache key that includes command and serialized payload
-    const cacheKey = queryParameter.command;
-
-    queryClient
-      .query(cacheKey, {
+    try {
+      const result = await queryClient.query(cacheKey, {
         command: queryParameter.command,
         payload: queryParameter.payload,
         staleTime: queryParameter.staleTime || Infinity,
-      })
-      .then((data) => {
-        if (!canceled) {
-          setData(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!canceled) {
-          setError(err);
-          setIsLoading(false);
-        }
       });
+
+      setData(result);
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      setError(err);
+      setIsLoading(false);
+      throw err;
+    }
+  }, [
+    cacheKey,
+    payloadString,
+    queryParameter.command,
+    queryParameter.staleTime,
+  ]);
+  // ^ payload itself isn't included directly, we key off payloadString for stability
+
+  useEffect(() => {
+    let canceled = false;
+    setError(null);
+
+    // fire initial fetch
+    fetchQuery().catch(() => {
+      /* already handled state in fetchQuery */
+    });
 
     const unsubscribe = queryClient.subscribe({
       command: cacheKey,
-      cb: (data) => {
-        if (!canceled) return setData(data);
+      cb: (newData) => {
+        if (!canceled) setData(newData);
       },
     });
 
@@ -50,18 +65,18 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
       canceled = true;
       unsubscribe();
     };
-  }, [
-    queryParameter.command,
-    JSON.stringify(queryParameter.payload), // Serialize payload to avoid reference changes
-    queryParameter.staleTime,
-  ]);
+  }, [cacheKey, fetchQuery]);
 
-  return { data, isLoading, error };
+  const refetch = useCallback(() => {
+    return fetchQuery();
+  }, [fetchQuery]);
+
+  return { data, isLoading, error, refetch };
 };
 
 export const useMutation = <T extends keyof WebViewEvent>(
   command: T,
-  response?: {
+  options?: {
     onSuccess?: (data: WebViewEvent[T]["response"]) => void;
     onError?: (error: any) => void;
     onSettled?: () => void;
@@ -73,25 +88,34 @@ export const useMutation = <T extends keyof WebViewEvent>(
     WebViewEvent[T]["response"] | null
   >(null);
 
-  const mutate = (payload: WebViewEvent[T]["payload"]) => {
-    setIsPending(true);
-    queryClient
-      .mutate(command, payload)
-      .then((data) => {
-        log("mutate success", command, data);
-        setMutationData(data);
-        response?.onSuccess?.(data);
-      })
-      .catch((error) => {
-        setMutationData(null);
-        setError(error);
-        response?.onError?.(error);
-      })
-      .finally(() => {
-        setIsPending(false);
-        response?.onSettled?.();
-      });
-  };
+  const mutate = useCallback(
+    (payload: WebViewEvent[T]["payload"]) => {
+      setIsPending(true);
+      setError(null);
+
+      const p = queryClient
+        .mutate(command, payload)
+        .then((data) => {
+          log("mutate success", command, data);
+          setMutationData(data);
+          options?.onSuccess?.(data);
+          return data;
+        })
+        .catch((err) => {
+          setMutationData(null);
+          setError(err);
+          options?.onError?.(err);
+          throw err;
+        })
+        .finally(() => {
+          setIsPending(false);
+          options?.onSettled?.();
+        });
+
+      return p;
+    },
+    [command, options?.onSuccess, options?.onError, options?.onSettled]
+  );
 
   return { isPending, error, mutate, data: mutationData };
 };
@@ -101,7 +125,7 @@ export const setQueryData = <T extends keyof WebViewEvent>({
   payload,
 }: {
   command: T;
-  payload: WebViewEvent[T]["payload"];
+  payload: WebViewEvent[T]["response"];
 }) => {
   queryClient.setData({ command, data: payload });
   return { success: true };

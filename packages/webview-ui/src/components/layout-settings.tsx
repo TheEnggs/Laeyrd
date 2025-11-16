@@ -123,14 +123,13 @@ export default function LayoutSettings() {
                         <Switch
                           checked={item.defaultValue as boolean}
                           onCheckedChange={(checked) => {
-                            updateUnsavedChanges(
+                            updateUnsavedChanges([
                               {
                                 type: "settings",
                                 key: item.key,
                                 value: checked,
                               },
-                              item.originalValue
-                            );
+                            ]);
                           }}
                         />
                         <span className="text-xs font-medium text-muted-foreground">
@@ -143,28 +142,26 @@ export default function LayoutSettings() {
                         value={Number(item.defaultValue) || 0}
                         onChange={(e) => {
                           const numValue = parseFloat(e.target.value);
-                          updateUnsavedChanges(
+                          updateUnsavedChanges([
                             {
                               type: "settings",
                               key: item.key,
                               value: numValue,
                             },
-                            item.originalValue
-                          );
+                          ]);
                         }}
                       />
                     ) : item.valueType === "select" ? (
                       <Select
                         value={item.defaultValue as string}
                         onValueChange={(value) => {
-                          updateUnsavedChanges(
+                          updateUnsavedChanges([
                             {
                               type: "settings",
                               key: item.key,
                               value,
                             },
-                            item.originalValue
-                          );
+                          ]);
                         }}
                       >
                         <SelectTrigger>
@@ -182,14 +179,13 @@ export default function LayoutSettings() {
                       <Input
                         value={item.defaultValue as string}
                         onChange={(e) => {
-                          updateUnsavedChanges(
+                          updateUnsavedChanges([
                             {
                               type: "settings",
                               key: item.key,
                               value: e.target.value,
                             },
-                            item.originalValue
-                          );
+                          ]);
                         }}
                       />
                     )}

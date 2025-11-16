@@ -12,7 +12,7 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      input: path.resolve(__dirname, "src", "index.html"),
+      input: path.resolve(__dirname, "index.html"),
     },
   },
 
@@ -26,6 +26,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    cors: {
+      origin: "*", // or more strict if you want
+      methods: ["GET", "HEAD", "OPTIONS"],
+    },
   },
 
   plugins: [react(), tailwindcss()],

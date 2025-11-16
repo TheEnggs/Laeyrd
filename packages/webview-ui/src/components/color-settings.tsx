@@ -205,14 +205,13 @@ export default function ColorSettings() {
                           <ColorPicker
                             value={color.value}
                             onChange={(value) =>
-                              updateUnsavedChanges(
+                              updateUnsavedChanges([
                                 {
                                   type: "color",
                                   key: color.key,
                                   value,
                                 },
-                                color.originalValue
-                              )
+                              ])
                             }
                           />
                         </div>
