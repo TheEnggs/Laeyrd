@@ -37,14 +37,6 @@ Laeyrd turns theme editing and configuration into something actually fun.
 - Modify fonts, line height, minimap, colors, and layout visually.
 - Live preview of changes — no more JSON edits.
 
-### ☁️ Sync (Experimental)
-
-- Secure GitHub authentication using **Device Flow**.
-- Sync your themes and settings across machines.
-- Currently supports one GitHub account and local backup.
-
----
-
 ## 🚧 Status
 
 This extension is in **active development**.
@@ -59,7 +51,7 @@ Expect occasional bugs, rough edges, and missing polish while testing.
 - **Extension Backend:** TypeScript (Node.js, CommonJS)
 - **Webview UI:** React + Vite + Tailwind CSS
 - **Sync:** GitHub Device Flow
-- **Build:** VSCE + Vite + TypeScript project references
+- **Build:** VSCE + Vite + ESBuild + TypeScript project references
 
 ---
 

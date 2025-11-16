@@ -64,29 +64,15 @@ This pre-release version exists for **testing and feedback**.
 
 ---
 
-### ☁️ Sync Feature (Experimental)
-
-- Sync your custom themes and settings across machines.
-- Uses **GitHub authentication** through **device flow**.
-- Securely connects and backs up your configuration.
-- Future support planned for:
-  - Cross-device restore
-  - Versioned backups
-  - Multi-account sync
-
-> Currently, sync works **only with GitHub**, and only in testing environments.
-
----
-
 ## 🧩 Tech Stack
 
-| Part                  | Description                                          |
-| --------------------- | ---------------------------------------------------- |
-| **Extension Backend** | Node.js (CommonJS) with TypeScript                   |
-| **Webview UI**        | React + Vite + Tailwind CSS                          |
-| **Storage**           | Local VS Code global storage (for themes & settings) |
-| **Sync**              | GitHub Device Flow API                               |
-| **Build Tooling**     | VSCE + Vite + TypeScript project references          |
+| Part                  | Description                                           |
+| --------------------- | ----------------------------------------------------- |
+| **Extension Backend** | Node.js (CommonJS) with TypeScript                    |
+| **Webview UI**        | React + Vite + Tailwind CSS                           |
+| **Storage**           | Local VS Code global storage (for themes & settings)  |
+| **Sync**              | GitHub Device Flow API                                |
+| **Build Tooling**     | VSCE + Vite + ESBuild + TypeScript project references |
 
 ---
 

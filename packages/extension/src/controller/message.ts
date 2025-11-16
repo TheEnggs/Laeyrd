@@ -58,6 +58,7 @@ export class MessageController {
     this.panel = panel;
   }
 
+  //TODO: conversion to Message factory/registry method to handle all messages
   public async handle(message: RequestMessage) {
     // Validate message structure
     if (!message || typeof message !== "object") {
