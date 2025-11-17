@@ -24,7 +24,15 @@ export const productMap: Record<string, ProductConfig> = {
     productName: "Cursor",
     baseName: "Cursor",
   },
-  // 🚀 add more forks here easily
+  windsurf: {
+    productName: "Windsurf",
+    baseName: "Windsurf",
+  },
+  trae: {
+    productName: "Trae",
+    baseName: "Trae",
+  },
+  // add more as needed
 };
 
 function resolvePath(baseName: string, platform: Platform): string {

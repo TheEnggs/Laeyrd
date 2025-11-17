@@ -20,6 +20,7 @@ import {
   generateColors,
 } from "src/utils/colors";
 import DraftManager from "./draft";
+import { BackupManager } from "./backup";
 
 export function groupColors(colors: Color): GroupedColors {
   return Object.entries(colors).reduce((acc, [key, value]) => {
@@ -28,6 +29,13 @@ export function groupColors(colors: Color): GroupedColors {
     acc[category as ColorGroups][subKey as string] = value;
     return acc;
   }, {} as GroupedColors);
+}
+
+interface ThemeContribution {
+  id?: string;
+  label: string;
+  uiTheme: "vs" | "vs-dark";
+  path: string;
 }
 
 export class ThemeController {
@@ -182,9 +190,46 @@ export class ThemeController {
         );
       }
       await draftManager.revertToOldSettings();
+
       return { success: true };
     } catch (e) {
       throw e;
+    }
+  }
+
+  public async deleteThemeFile(
+    context: vscode.ExtensionContext,
+    payload: { themeName: string }
+  ) {
+    const { themeName } = payload;
+    try {
+      const themeUri = vscode.Uri.joinPath(
+        context.extensionUri,
+        "dist",
+        "themes",
+        themeName + ".json"
+      );
+
+      await vscode.workspace.fs.delete(themeUri, { recursive: false });
+      await this.removeThemeFromPackageJson(context, themeName);
+      try {
+        const backupManager = new BackupManager(context);
+        await backupManager.deleteBackedUpThemeFile(themeName);
+      } catch (e) {
+        console.error("Failed to delete backed up theme file", e);
+      }
+      this.promptReload(
+        `Theme "${themeName}" deleted. Reload to get latest changes.`
+      );
+      return { success: true };
+    } catch (error: any) {
+      // If file doesn’t exist, don’t hard-fail. Could be already cleaned.
+      if ((error as { code?: string })?.code !== "FileNotFound") {
+        throw new Error(
+          `Failed to delete theme file "${themeName}": ${String(error)}`
+        );
+      }
+      throw error;
     }
   }
 
@@ -227,10 +272,7 @@ export class ThemeController {
       ],
     };
 
-    await vscode.workspace.fs.writeFile(
-      themeUri,
-      new TextEncoder().encode(JSON.stringify(updatedTheme, null, 2))
-    );
+    this.writeToThemeFile(context, themeLabel, updatedTheme);
 
     // Refresh if this was active theme
     if (this.getActiveThemeLabel() === themeLabel) {
@@ -281,6 +323,15 @@ export class ThemeController {
       vscode.window.showInformationMessage(
         `Theme "${themeName}" created successfully!`
       );
+      try {
+        const backupManager = new BackupManager(context);
+        await backupManager.backupTheme({
+          name: themeName,
+          data: themeJson, // or just draftState if you like
+        });
+      } catch (e) {
+        console.error("Failed to backup theme", e);
+      }
       return { success: true };
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to create theme "${themeName}"`);
@@ -321,47 +372,110 @@ export class ThemeController {
     return this.writeToThemeFile(context, themeName, themeJson);
   }
 
+  private getPackageJsonUri(context: vscode.ExtensionContext) {
+    return vscode.Uri.joinPath(context.extensionUri, "package.json");
+  }
+
+  private async readPackageJson(
+    context: vscode.ExtensionContext
+  ): Promise<any> {
+    const uri = this.getPackageJsonUri(context);
+    const content = await vscode.workspace.fs.readFile(uri);
+    try {
+      return JSON.parse(new TextDecoder().decode(content));
+    } catch (error) {
+      throw new Error(`Failed to parse package.json: ${String(error)}`);
+    }
+  }
+
+  async writePackageJson(
+    context: vscode.ExtensionContext,
+    pkg: any
+  ): Promise<void> {
+    const uri = this.getPackageJsonUri(context);
+    const text = JSON.stringify(pkg, null, 2);
+    const bytes = new TextEncoder().encode(text);
+    await vscode.workspace.fs.writeFile(uri, bytes);
+  }
+
+  ensureContributesThemes(pkg: any): ThemeContribution[] {
+    if (!pkg.contributes) pkg.contributes = {};
+    if (!Array.isArray(pkg.contributes.themes)) pkg.contributes.themes = [];
+    return pkg.contributes.themes as ThemeContribution[];
+  }
+
+  async promptReload(message: string) {
+    const selection = await vscode.window.showInformationMessage(
+      message,
+      "Reload Window"
+    );
+    if (selection === "Reload Window") {
+      await vscode.commands.executeCommand("workbench.action.reloadWindow");
+    }
+  }
+
+  /**
+   * Add a theme contribution to package.json
+   */
   public async addThemeToPackageJson(
     context: vscode.ExtensionContext,
     themeName: string,
     themeFile: string,
-    type: "light" | "dark" = "dark"
+    type: "dark" | "light" = "dark"
   ) {
-    const packageUri = vscode.Uri.joinPath(
-      context.extensionUri,
-      "package.json"
-    );
-    const themeFolderUri = await this.ensureThemesFolder(context);
-    const content = await vscode.workspace.fs.readFile(packageUri);
-    const pkg = JSON.parse(Buffer.from(content).toString("utf8"));
+    const pkg = await this.readPackageJson(context);
+    const themes = this.ensureContributesThemes(pkg);
 
-    if (!pkg.contributes) pkg.contributes = {};
-    if (!pkg.contributes.themes) pkg.contributes.themes = [];
-
-    const alreadyExists = pkg.contributes.themes.some(
-      (t: any) => t.label === themeName
+    const existing = themes.find(
+      (t) => t.label.toLowerCase() === themeName.toLowerCase()
     );
-    if (alreadyExists)
-      throw new Error(`Theme "${themeName}" already exists in package.json.`);
-    pkg.contributes.themes.push({
+
+    if (existing) {
+      throw new Error(
+        `Theme "${themeName}" already exists in package.json (label: ${existing.label}).`
+      );
+    }
+
+    const uiTheme: "vs" | "vs-dark" = type === "dark" ? "vs-dark" : "vs";
+
+    themes.push({
       label: themeName,
-      uiTheme: type === "dark" ? "vs-dark" : "vs",
+      uiTheme,
       path: `dist/themes/${themeFile}`,
     });
 
-    await vscode.workspace.fs.writeFile(
-      packageUri,
-      new TextEncoder().encode(JSON.stringify(pkg, null, 2))
+    await this.writePackageJson(context, pkg);
+
+    await this.promptReload(`Theme "${themeName}" added. Reload to activate.`);
+  }
+
+  /**
+   * Remove a theme contribution by label from package.json
+   */
+  public async removeThemeFromPackageJson(
+    context: vscode.ExtensionContext,
+    themeName: string
+  ) {
+    const pkg = await this.readPackageJson(context);
+    const themes = this.ensureContributesThemes(pkg);
+
+    const beforeCount = themes.length;
+    const filtered = themes.filter(
+      (t) => t.label.toLowerCase() !== themeName.toLowerCase()
     );
 
-    vscode.window
-      .showInformationMessage(
-        `Theme "${themeName}" added! Reload window to activate.`,
-        "Reload Window Now"
-      )
-      .then((selection) => {
-        if (selection === "Reload Window Now")
-          vscode.commands.executeCommand("workbench.action.reloadWindow");
-      });
+    if (filtered.length === beforeCount) {
+      vscode.window.showWarningMessage(
+        `No theme contribution found with label "${themeName}".`
+      );
+      return;
+    }
+
+    pkg.contributes.themes = filtered;
+    await this.writePackageJson(context, pkg);
+
+    await this.promptReload(
+      `Theme "${themeName}" removed from package.json. Reload to apply.`
+    );
   }
 }

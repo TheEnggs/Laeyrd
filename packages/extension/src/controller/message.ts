@@ -111,16 +111,13 @@ export class MessageController {
         break;
       case "GET_THEME_LIST": {
         const tc = await this.themeController();
-        const list = await tc.listOwnThemes(this.context);
-        const filteredList = list.filter(
-          (t) => t.label! === "Live Preview - Laeyrd"
-        );
+        const themes = await tc.listOwnThemes(this.context);
         const active = tc.getActiveThemeLabel();
         this.responseHandler<"GET_THEME_LIST", "response">({
           command,
           requestId: message.requestId,
           executor: () => ({
-            themes: filteredList,
+            themes,
             active,
           }),
         });
@@ -131,6 +128,16 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: () => this.handleSaveTheme(message.payload),
+        });
+        break;
+      case "DELETE_THEME":
+        this.responseHandler<"DELETE_THEME", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const tc = await this.themeController();
+            return await tc.deleteThemeFile(this.context, message.payload);
+          },
         });
         break;
       case "GET_DRAFT_STATE":

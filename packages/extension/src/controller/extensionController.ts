@@ -3,6 +3,8 @@ import SyncController from "./sync";
 import { log } from "@shared/utils/debug-logs";
 
 type ExtensionConfiguration = {
+  currentVersion: string;
+  previousVersion: string;
   relaunchRequired: boolean;
   reloadedByExtension: boolean;
   autoSync: boolean;
@@ -22,13 +24,14 @@ export default class ExtensionController {
   /** Static async initializer */
   static async create(context: vscode.ExtensionContext) {
     const controller = new ExtensionController(context, {
+      currentVersion: "",
+      previousVersion: "",
       relaunchRequired: true,
       reloadedByExtension: false,
       autoSync: false,
     });
-
+    75;
     await controller.loadFromFile();
-    await controller.setValue("relaunchRequired", true);
     return controller;
   }
 
@@ -96,6 +99,26 @@ export default class ExtensionController {
     log(relaunchRequired, "here to set the relaunch required to false");
     await this.setValue("relaunchRequired", relaunchRequired);
     return;
+  }
+
+  public async checkForVersionUpdate() {
+    const extension = vscode.extensions.getExtension("TheEnggs.Laeyrd"); // publisher.name
+    let currentVersion = extension?.packageJSON.version as string | undefined;
+    if (!currentVersion) {
+      const bytes = await vscode.workspace.fs.readFile(
+        vscode.Uri.joinPath(this.context.extensionUri, "package.json")
+      );
+      const text = new TextDecoder("utf8").decode(bytes);
+      const parsed = JSON.parse(text);
+      currentVersion = parsed.version as string;
+    }
+    const previousVersion = this.extensionConfiguration.currentVersion;
+    if (currentVersion !== previousVersion) {
+      this.setValue("previousVersion", previousVersion);
+      this.setValue("currentVersion", currentVersion);
+      return true;
+    }
+    return false;
   }
   dispose() {}
 }

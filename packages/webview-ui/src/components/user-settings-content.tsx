@@ -7,6 +7,7 @@ import SyncSettings from "./user-settings/sync-settings";
 import AboutLinks from "./user-settings/about-section";
 import ResetSettings from "./user-settings/reset";
 import SyncThemesCard from "./user-settings/sync";
+import ThemeManagement from "./user-settings/theme-management";
 
 export default function UserSettingsContent() {
   //   const { authUser } = useAuth();
@@ -62,6 +63,7 @@ export default function UserSettingsContent() {
 
   return (
     <div className="space-y-6">
+      <ThemeManagement />
       <AuthSection />
       {/* {authUser?.isSignedIn ? <SyncThemesCard /> : null} */}
       <AboutLinks />

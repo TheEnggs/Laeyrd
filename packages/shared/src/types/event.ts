@@ -99,6 +99,12 @@ export type WebViewEvent = {
     };
     response: { success: boolean };
   };
+  DELETE_THEME: {
+    payload: {
+      themeName: string;
+    };
+    response: { success: boolean };
+  };
   SAVE_SETTINGS: {
     payload: {
       settings: Record<keyof typeof fontsLayoutUI, string | number | boolean>;
