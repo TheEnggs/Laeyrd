@@ -35,19 +35,6 @@ Community feedback and contributions will shape how this tool grows.
 
 ---
 
-## Color Grouping & Better Organization
-
-Right now colors and tokens are editable, but the UX can be improved:
-
-- Grouping colors by **semantic purpose** (backgrounds, borders, text, accents, etc.)
-- Grouping token colors by **language role** (variables, functions, types, comments, etc.)
-- Smarter mapping for imported themes (better defaults and fallbacks)
-- More intuitive panels to help users understand _what_ they are changing
-
-The goal is to make theme customization understandable, not just a wall of hex codes.
-
----
-
 ## Authentication
 
 Planned support for optional authentication to unlock:

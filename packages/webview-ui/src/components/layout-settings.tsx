@@ -20,7 +20,7 @@ import { log } from "@shared/utils/debug-logs";
 import { DraftStatePayload } from "@shared/types/theme";
 import RemoveDraftChange from "./remove-draft-change";
 
-type UiLayoutMetaWithKey = UiLayoutMeta & {
+export type UiLayoutMetaWithKey = UiLayoutMeta & {
   key: string;
   isTouched: boolean;
   originalValue: string | undefined;

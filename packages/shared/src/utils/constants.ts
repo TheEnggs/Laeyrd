@@ -1,8 +1,8 @@
 export const SERVER_CONFIG = {
-  baseUrl: "https://tyc-project.saidiwanshu1880.workers.dev",
+  baseUrl: "",
   githubUrl: "https://github.com/theenggs/laeyrd",
-  privacyPolicyUrl: "https://laeyrd.com/privacy",
-  termsOfServiceUrl: "https://laeyrd.com/terms",
-  clerkPublishableKey: "", // No longer needed
-  webappUrl: "https://laeyrd-web.vercel.app",
+  privacyPolicyUrl: "https://laeyrd.theenggs.com/privacy",
+  termsOfServiceUrl: "https://laeyrd.theenggs.com/termsofservice",
+  webappUrl: "https://laeyrd.theenggs.com",
+  buymeacoffeeUrl: "https://buymeacoffee.com/theenggs",
 } as const;

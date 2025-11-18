@@ -16,6 +16,7 @@ import {
   Zap,
   Terminal,
   Square,
+  Search,
 } from "lucide-react";
 import { mainTabs } from "@shared/utils/colors";
 import { useMemo, useState } from "react";
@@ -27,6 +28,7 @@ import { useDraft } from "@/contexts/draft-context";
 import { Category, DraftStatePayload, GroupName } from "@shared/types/theme";
 import RemoveDraftChange from "./remove-draft-change";
 import ApplyGroupColors from "./apply-group-colors";
+import ColorSearchDialog from "./color-search-dialog";
 
 // 🔹 Map main tabs to icons
 export const iconMap = {
@@ -220,7 +222,6 @@ export default function ColorSettings() {
                           {!color.groupName ? null : (
                             <ApplyGroupColors
                               groupName={color.groupName}
-                              categoryTree={categoryTree}
                               selectedColor={color}
                             />
                           )}

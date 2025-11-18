@@ -15,8 +15,14 @@ import ThemeImporterDialog from "./theme-importer";
 import { Separator } from "./ui/separator";
 import { DiscardChangesDialog } from "./discard-changes";
 import { cn } from "@/lib/utils";
+import ColorSearchDialog from "./color-search-dialog";
+import SettingsSearchDialog from "./settings-search-dialog";
 
-export default function FloatingSave() {
+export default function FloatingSave({
+  activeTab,
+}: {
+  activeTab: "colors" | "settings" | "fonts-layout";
+}) {
   const toast = useToast();
   const { isSaving, drafts, saveDrafts, discardChanges, isDiscarding } =
     useDraft();
@@ -89,6 +95,12 @@ export default function FloatingSave() {
           isSaving ? "pointer-events-none" : ""
         )}
       >
+        {activeTab === "colors" ? (
+          <ColorSearchDialog key={activeTab} />
+        ) : activeTab === "fonts-layout" ? (
+          <SettingsSearchDialog key={activeTab} />
+        ) : null}
+        <Separator orientation="vertical" />
         <ThemeImporterDialog />
 
         {drafts.length > 0 ? (
@@ -100,7 +112,7 @@ export default function FloatingSave() {
                 isDiscarding={isDiscarding}
               />
               <Button
-                variant="default"
+                variant="secondary"
                 size="sm"
                 disabled={isSavingTheme}
                 onClick={saveDrafts}

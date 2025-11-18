@@ -55,7 +55,7 @@ export default function CustomizationTabs() {
         <AnimatedTabsList
           activeTab={activeTab}
           tabValues={mainTabs.map((tab) => tab.id)}
-          className="w-full max-w-4xl gap-1 grid grid-cols-3 justify-center [mask-image:none]"
+          className="w-full max-w-4xl gap-1 grid grid-cols-3 justify-center mask-none"
         >
           {mainTabs.map((tab) => {
             const IconComponent = tab.icon;
@@ -145,7 +145,7 @@ export default function CustomizationTabs() {
       </Tabs>
 
       {activeTab === "colors" || activeTab === "fonts-layout" ? (
-        <FloatingSave />
+        <FloatingSave activeTab={activeTab} />
       ) : null}
     </div>
   );
