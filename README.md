@@ -2,12 +2,15 @@
 
 # 🧩 Laeyrd — Theme, Settings & Sync for VS Code
 
+> **🎉 Extension is available on marketplace 🎉**
+> [Check Out](https://marketplace.visualstudio.com/items?itemName=TheEnggs.Laeyrd)
+
 ![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
 > **⚠️ Pre-release Notice**
 > Laeyrd is currently in **early testing** and not ready for production use.
 > Expect bugs, missing features, and occasional chaos. We are not expecting contributions right now, will open soon.
-> VSIX file will be released soon for testing purposes.
+> VSIX files are available for testing purposes only.
 
 ---
 
