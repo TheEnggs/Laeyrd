@@ -25,7 +25,7 @@ interface DraftContextValue {
   saveDrafts: () => void;
   discardChanges: ({}) => void;
   isDiscarding: boolean;
-  handleRemoveDraftChange: (type: DraftStatePayloadKeys, key: string) => void;
+  handleRemoveDraftChange: (drafts: DraftStatePayload[]) => void;
   updateByUserCount: number;
 }
 
@@ -105,12 +105,9 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     setUpdateByUserCount((prev) => prev + 1);
   }, []);
 
-  const handleRemoveDraftChange = useCallback(
-    (type: DraftStatePayloadKeys, key: string) => {
-      removeDraftChange({ type, key });
-    },
-    []
-  );
+  const handleRemoveDraftChange = useCallback((drafts: DraftStatePayload[]) => {
+    removeDraftChange(drafts);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && hydrationRequiredRef.current && data?.draftState) {
@@ -152,9 +149,16 @@ export function DraftProvider({ children }: { children: ReactNode }) {
   const { mutate: removeDraftChange, isPending: isRemovingDraftChange } =
     useMutation("REMOVE_DRAFT_CHANGE", {
       onSuccess: (data) => {
-        log("removeDraftChange", data.data);
-        setDrafts((prev) => prev.filter((d) => d.key !== data.data.key));
-        // toast({ message: "Draft changes discarded", type: "success" });
+        const { data: removedDrafts } = data;
+        setDrafts((prev) =>
+          prev.filter((d) => !removedDrafts.some((r) => r.key === d.key))
+        );
+        if (data.error) {
+          toast({
+            message: "Failed to remove some changes, Reason: " + data.error,
+            type: "error",
+          });
+        }
       },
       onError: (error) => {
         log(error);

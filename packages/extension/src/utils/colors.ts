@@ -7,7 +7,6 @@ import {
 } from "@shared/types/theme";
 import { colorCategoryMap } from "@shared/data/colorsList";
 import { tokenColorMap } from "@shared/data/tokenList";
-import { SemanticTokens } from "vscode";
 import { log } from "@shared/utils/debug-logs";
 
 function normalizeSemanticTokenKey(key: string): TokenCategory | null {
@@ -107,7 +106,7 @@ export function convertTokenColorsBackToTheme(tokens: DraftToken): {
   });
   Object.entries(semanticTokenColorsMap).forEach(([key, value]) => {
     semanticTokenColors[key] = {
-      foreground: value.foreground,
+      foreground: value,
     };
   });
   return { tokenColors, semanticTokenColors };

@@ -41,7 +41,7 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
   };
 
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3 z-9999">
       <Popover
         open={isOpen}
         onOpenChange={(open) => {
@@ -58,7 +58,7 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
             <span className="sr-only">Pick color</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-4 bg-card/95 border border-border/40 rounded-2xl flex flex-col  gap-2 shadow-lg backdrop-blur-xl">
+        <PopoverContent className="p-4 bg-card/95 border border-border/40 rounded-2xl flex flex-col  gap-2 shadow-lg backdrop-blur-xl z-9999">
           <Tabs defaultValue="picker" className="w-full shrink-0">
             <TabsList className="w-full bg-card/50 border border-border/40 rounded-xl p-1 gap-1 md:grid md:grid-cols-2">
               <TabsTrigger

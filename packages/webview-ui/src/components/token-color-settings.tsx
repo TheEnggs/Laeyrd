@@ -66,7 +66,13 @@ export default function TokenColorSettings() {
           >
             <RemoveDraftChange
               handleRemove={() =>
-                handleRemoveDraftChange("semanticToken", color.key)
+                handleRemoveDraftChange([
+                  {
+                    type: "semanticToken",
+                    key: color.key,
+                    value: color.value,
+                  },
+                ])
               }
               isTouched={color.isTouched}
             />

@@ -76,9 +76,8 @@ export class BackupManager {
    * Call this whenever you create/update a theme or apply draft changes.
    */
   public async backupTheme(payload: ThemeBackupPayload) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const safeName = payload.name?.replace(/[^\w\-]+/g, "_") || "theme";
-    const fileName = `${safeName}-${timestamp}.json`;
+    const fileName = `${safeName}.json`;
     const fileUri = vscode.Uri.joinPath(this.themesDir, fileName);
 
     const content = {

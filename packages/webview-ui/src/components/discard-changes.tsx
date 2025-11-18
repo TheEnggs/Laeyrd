@@ -28,7 +28,7 @@ export function DiscardChangesDialog({
           variant="destructive"
           size="sm"
           disabled={isDiscarding}
-          className="rounded-full font-medium text-foreground"
+          className="rounded-full font-medium"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           {isDiscarding ? "Discarding..." : "Discard"}

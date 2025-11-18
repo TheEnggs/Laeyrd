@@ -79,7 +79,7 @@ export default function FloatingSave() {
               Saving Changes <Loader2 className="w-4 h-4 animate-spin" />
             </span>
           ) : (
-            <span>Auto Save is enabled</span>
+            <span>Auto Save Enabled</span>
           )}
         </Badge>
       ) : null}

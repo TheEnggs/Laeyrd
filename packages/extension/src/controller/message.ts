@@ -171,8 +171,7 @@ export class MessageController {
           executor: async () => {
             const draftManager = await DraftManager.init(this.context);
             const result = await draftManager.removeDraftChange(
-              message.payload.key,
-              message.payload.type
+              message.payload
             );
             return result;
           },

@@ -66,7 +66,7 @@ export default function LayoutSettings() {
   }, [drafts, layoutState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   //   if (!draftState) return <p>No fonts found</p>;
-  if (!layoutTree.tree) return <p>No layout found</p>;
+  if (!layoutTree.tree) return null;
 
   return (
     <div className="space-y-6">
@@ -104,7 +104,13 @@ export default function LayoutSettings() {
                   >
                     <RemoveDraftChange
                       handleRemove={() =>
-                        handleRemoveDraftChange("settings", item.key)
+                        handleRemoveDraftChange([
+                          {
+                            type: "settings",
+                            key: item.key,
+                            value: item.defaultValue,
+                          },
+                        ])
                       }
                       isTouched={item.isTouched}
                     />

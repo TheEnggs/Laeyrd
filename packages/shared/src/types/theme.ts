@@ -9,12 +9,29 @@ export type Category =
   | "UI & Layout"
   | "Extras";
 
+
+// All allowed group names as string literal union
+export type GroupName =
+| "primary_background"
+| "secondary_background"
+| "border"
+| "border_hover"
+| "border_active"
+| "primary_text"
+| "muted_text"
+| "faint_text"
+| "primary_accent"
+| "secondary_accent"
+| "accent_1"
+| "accent_2"
+| "accent_3";
 export interface ColorMeta {
   category: Category;
   displayName: string;
   description: string; // ≤ 6 words
   subcategory?: string;
   defaultValue?: string;
+  groupName?: GroupName;
 }
 
 export type ColorMetaGrouped = Record<string, ColorMeta>;

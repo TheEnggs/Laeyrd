@@ -16,7 +16,6 @@ import {
   Zap,
   Terminal,
   Square,
-  AlertCircle,
 } from "lucide-react";
 import { mainTabs } from "@shared/utils/colors";
 import { useMemo, useState } from "react";
@@ -24,13 +23,13 @@ import { ColorSettingsSkeleton } from "./skeleton/color-settings";
 import { cn } from "@/lib/utils";
 import TokenColorSettings from "./token-color-settings";
 import { useQuery } from "../hooks/use-query";
-import { log } from "@shared/utils/debug-logs";
 import { useDraft } from "@/contexts/draft-context";
-import { DraftStatePayload } from "@shared/types/theme";
+import { Category, DraftStatePayload, GroupName } from "@shared/types/theme";
 import RemoveDraftChange from "./remove-draft-change";
+import ApplyGroupColors from "./apply-group-colors";
 
 // 🔹 Map main tabs to icons
-const iconMap = {
+export const iconMap = {
   Base: Palette,
   Editor: FileText,
   Workbench: Layout,
@@ -40,6 +39,17 @@ const iconMap = {
   Terminal: Terminal,
 } as const;
 
+export type ColorRendered = {
+  key: string;
+  category: Category;
+  displayName: string;
+  description: string;
+  groupName?: GroupName;
+  value: string;
+  originalValue: string | undefined;
+  isTouched: boolean;
+};
+export type CategoryTree = Record<string, Record<string, ColorRendered[]>>;
 export default function ColorSettings() {
   const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
   const { data: colorsState, isLoading: isLoadingColors } = useQuery({
@@ -47,27 +57,12 @@ export default function ColorSettings() {
     payload: [],
   });
 
-  log("colorsState", colorsState);
-
   const [activeTab, setActiveTab] = useState<string>(mainTabs[0]);
 
   // 🔹 Memoized tree: category → subcategory → colors[]
   const categoryTree = useMemo(() => {
     if (!colorsState) return {};
-    const tree: Record<
-      string,
-      Record<
-        string,
-        {
-          key: string;
-          displayName: string;
-          description: string;
-          value: string;
-          originalValue: string | undefined;
-          isTouched: boolean;
-        }[]
-      >
-    > = {};
+    const tree: CategoryTree = {};
 
     for (const [key, def] of Object.entries(colorsState)) {
       const category = def.category;
@@ -82,8 +77,10 @@ export default function ColorSettings() {
 
       tree[category][subcategory].push({
         key,
+        category: def.category,
         displayName: def.displayName,
         description: def.description,
+        groupName: def.groupName,
         value: draftColor?.value ?? def.defaultValue ?? "",
         originalValue: def.defaultValue,
         isTouched: !!draftColor,
@@ -183,7 +180,13 @@ export default function ColorSettings() {
                         >
                           <RemoveDraftChange
                             handleRemove={() =>
-                              handleRemoveDraftChange("color", color.key)
+                              handleRemoveDraftChange([
+                                {
+                                  type: "color",
+                                  key: color.key,
+                                  value: color.value,
+                                },
+                              ])
                             }
                             isTouched={color.isTouched}
                           />
@@ -214,6 +217,13 @@ export default function ColorSettings() {
                               ])
                             }
                           />
+                          {!color.groupName ? null : (
+                            <ApplyGroupColors
+                              groupName={color.groupName}
+                              categoryTree={categoryTree}
+                              selectedColor={color}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>

@@ -280,19 +280,27 @@ export default class DraftManager {
     };
   }
 
-  public async removeDraftChange(key: string, type: DraftStatePayloadKeys) {
+  public async removeDraftChange(payload: DraftStatePayload[]) {
+    const successData: DraftStatePayload[] = [];
     try {
       const draft = this.draftFileContent.draftState;
       const oldSettings = this.draftFileContent.oldSettings;
-      switch (type) {
-        case "color": {
-          const keyInOldSettings = oldSettings.colorCustomization[key];
-          this.updateConfigSection(
-            "workbench.colorCustomizations",
-            (existing) => {
-              const copy = { ...existing };
-              log("keyInOldSettings", keyInOldSettings);
-              log("copy", copy);
+      const colorCustomizations = payload.filter((p) => p.type === "color");
+      const semanticTokenCustomizations = payload.filter(
+        (p) => p.type === "semanticToken"
+      );
+      const tokenCustomizations = payload.filter((p) => p.type === "token");
+      const settingsCustomizations = payload.filter(
+        (p) => p.type === "settings"
+      );
+
+      if (colorCustomizations.length > 0) {
+        await this.updateConfigSection(
+          "workbench.colorCustomizations",
+          (existing) => {
+            const copy = { ...existing };
+            colorCustomizations.forEach(({ key, value, type }) => {
+              const keyInOldSettings = oldSettings.colorCustomization[key];
               if (keyInOldSettings && keyInOldSettings !== "") {
                 // restore old value
                 copy[key] = keyInOldSettings;
@@ -300,20 +308,20 @@ export default class DraftManager {
                 // delete value entirely
                 delete copy[key];
               }
-
-              return copy;
-            }
-          );
-          delete draft.colorCustomization[key];
-          break;
-        }
-
-        case "token": {
-          const keyInOldSettings = oldSettings.tokenCustomization[key];
-          this.updateConfigSection(
-            "editor.tokenColorCustomizations",
-            (existing) => {
-              const copy = { ...existing };
+              delete draft.colorCustomization[key];
+              successData.push({ key, value, type });
+            });
+            return copy;
+          }
+        );
+      }
+      if (tokenCustomizations.length > 0) {
+        await this.updateConfigSection(
+          "editor.tokenColorCustomizations",
+          (existing) => {
+            const copy = { ...existing };
+            tokenCustomizations.forEach(({ key, value, type }) => {
+              const keyInOldSettings = oldSettings.tokenCustomization[key];
               if (keyInOldSettings) {
                 // restore old value
                 existing[key] = keyInOldSettings;
@@ -321,20 +329,21 @@ export default class DraftManager {
                 // delete value entirely
                 delete copy[key];
               }
-
-              return copy;
-            }
-          );
-          delete draft.tokenCustomization[key];
-          break;
-        }
-        case "semanticToken": {
-          const keyInOldSettings = oldSettings.semanticTokenCustomization[key];
-
-          await this.updateConfigSection(
-            "editor.semanticTokenColorCustomizations",
-            (existing) => {
-              const copy = { ...existing.rules };
+              delete draft.tokenCustomization[key];
+              successData.push({ key, value, type });
+            });
+            return copy;
+          }
+        );
+      }
+      if (semanticTokenCustomizations.length > 0) {
+        await this.updateConfigSection(
+          "editor.semanticTokenColorCustomizations",
+          (existing) => {
+            const copy = { ...existing.rules };
+            semanticTokenCustomizations.forEach(({ key, value, type }) => {
+              const keyInOldSettings =
+                oldSettings.semanticTokenCustomization[key];
               if (keyInOldSettings && keyInOldSettings !== "") {
                 // restore old value
                 copy[key] = keyInOldSettings;
@@ -342,28 +351,35 @@ export default class DraftManager {
                 // delete value entirely
                 delete copy[key];
               }
-
-              return { rules: copy };
-            }
-          );
-
-          delete draft.semanticTokenCustomization[key];
-          break;
-        }
-
-        case "settings": {
+              delete draft.semanticTokenCustomization[key];
+              successData.push({ key, value, type });
+            });
+            return { rules: copy };
+          }
+        );
+      }
+      if (settingsCustomizations.length > 0) {
+        settingsCustomizations.forEach(({ key, value, type }) => {
           const hasKey = key in oldSettings.settingsCustomization;
           this.updateSettingsConfig(key, (existing) => {
             return hasKey ? oldSettings.settingsCustomization[key] : existing;
           });
           delete draft.settingsCustomization[key];
-          break;
-        }
+          successData.push({ type, key, value });
+        });
       }
       await this.writeFile();
-      return { success: true, data: { key, type } };
+      return { success: true, data: successData };
     } catch (e) {
-      return { success: false, data: { key, type }, error: e };
+      const error = e instanceof Error ? e.message : String(e);
+      if (successData.length > 0) {
+        return { success: true, data: successData, error };
+      }
+      return {
+        success: false,
+        data: successData,
+        error,
+      };
     }
   }
 
