@@ -135,7 +135,7 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="#000000"
-        className="flex-1 bg-background/50 border-border/60 text-foreground rounded-xl text-xs"
+        className="flex-1 bg-background/50 border-primary/20 text-foreground rounded-xl text-xs"
       />
     </div>
   );

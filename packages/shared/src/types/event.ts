@@ -19,9 +19,8 @@ import { fontsLayoutUI } from "../data/fonts-layout";
 export const SaveThemeModes = {
   CREATE: "CREATE",
   OVERWRITE: "OVERWRITE",
-  LIVE: "LIVE",
 } as const;
-
+export type PublishType = "theme" | "settings" | "both";
 export type WebViewEvent = {
   SHOW_TOAST: {
     payload: { message: string; type: "info" | "error" | "warn" | "success" };
@@ -39,6 +38,19 @@ export type WebViewEvent = {
     payload: DraftStatePayload[];
     response: { success: boolean; data: DraftStatePayload[]; error?: string };
   };
+
+  PUBLISH_DRAFT_CHANGES: {
+    payload: {
+      publishType: PublishType;
+      theme?: { mode: keyof typeof SaveThemeModes; themeName: string };
+    };
+    response: {
+      success: boolean;
+      data: { draftFile: DraftFile; publishType: PublishType };
+      error?: string;
+    };
+  };
+
   DISCARD_DRAFT_CHANGES: {
     payload: {};
     response: { success: boolean; error?: string };
@@ -92,13 +104,13 @@ export type WebViewEvent = {
   SETTINGS_UPDATED: { payload: any; response: any };
   OPEN_DONATION: { payload: any; response: undefined };
   ENABLE_LIVE_PREVIEW: { payload: any; response: boolean };
-  SAVE_THEME: {
-    payload: {
-      mode: keyof typeof SaveThemeModes;
-      themeName: string;
-    };
-    response: { success: boolean };
-  };
+  //   SAVE_THEME: {
+  //     payload: {
+  //       mode: keyof typeof SaveThemeModes;
+  //       themeName: string;
+  //     };
+  //     response: { success: boolean };
+  //   };
   DELETE_THEME: {
     payload: {
       themeName: string;

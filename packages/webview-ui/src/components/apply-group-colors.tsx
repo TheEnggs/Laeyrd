@@ -44,6 +44,7 @@ export default function ApplyGroupColors({
     if (!colorsState) return [];
     const colors = [];
     for (const [key, def] of Object.entries(colorsState)) {
+      if (def.groupName !== groupName) continue;
       const draftColor = drafts.find(
         (c): c is Extract<DraftStatePayload, { type: "color" }> =>
           c.key === key && c.type === "color"
@@ -69,7 +70,6 @@ export default function ApplyGroupColors({
       : Square;
 
   const handleApplyToAll = () => {
-    console.log("handleApplyToAll", colors);
     if (colors.length === 0) return;
     const changes = colors.map((color) => ({
       type: "color" as const,

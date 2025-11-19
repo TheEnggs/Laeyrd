@@ -3,7 +3,7 @@ import { useDraft } from "@/contexts/draft-context";
 import { useEffect, useRef } from "react";
 const DEBOUNCE_DELAY = 1000;
 export function useDraftSaveShortcut() {
-  const { saveDrafts } = useDraft();
+  const { saveDrafts, isPublishingDraftChanges } = useDraft();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -14,21 +14,26 @@ export function useDraftSaveShortcut() {
 
       if (isSaveKey) {
         e.preventDefault();
+        if (isPublishingDraftChanges) return;
         saveDrafts();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveDrafts]);
+  }, [saveDrafts, isPublishingDraftChanges]);
 }
 
 export function useDebouncedSave() {
-  const { updateByUserCount, saveDrafts } = useDraft();
+  const { drafts, saveDrafts, isSaving } = useDraft();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
-    if (updateByUserCount === 0) return;
+    // if (isPublishingDraftChanges) {
+    //   if (timerRef.current) {
+    //     clearTimeout(timerRef.current);
+    //   }
+    //   return;
+    // }
     // Clear any previous timer
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -45,5 +50,5 @@ export function useDebouncedSave() {
         clearTimeout(timerRef.current);
       }
     };
-  }, [updateByUserCount, saveDrafts]);
+  }, [drafts, saveDrafts]);
 }

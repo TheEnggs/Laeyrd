@@ -44,8 +44,5 @@ export interface ServerConfig {
   githubUrl: string;
   privacyPolicyUrl: string;
   termsOfServiceUrl: string;
-  clerkPublishableKey: string;
   webappUrl: string;
-  clerkSignInUrl?: string;
-  clerkSignUpUrl?: string;
 }

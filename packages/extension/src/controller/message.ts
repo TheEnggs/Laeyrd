@@ -123,13 +123,13 @@ export class MessageController {
         });
         break;
       }
-      case "SAVE_THEME":
-        this.responseHandler<"SAVE_THEME", "response">({
-          command,
-          requestId: message.requestId,
-          executor: () => this.handleSaveTheme(message.payload),
-        });
-        break;
+      //   case "SAVE_THEME":
+      //     this.responseHandler<"SAVE_THEME", "response">({
+      //       command,
+      //       requestId: message.requestId,
+      //       executor: () => this.handleSaveTheme(message.payload),
+      //     });
+      //     break;
       case "DELETE_THEME":
         this.responseHandler<"DELETE_THEME", "response">({
           command,
@@ -164,6 +164,30 @@ export class MessageController {
           },
         });
         break;
+      case "PUBLISH_DRAFT_CHANGES":
+        this.responseHandler<"PUBLISH_DRAFT_CHANGES", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const draftManager = await DraftManager.init(this.context);
+            const result = await draftManager.publishDraftChanges(
+              message.payload
+            );
+            if (
+              result.success &&
+              (result.data.publishType === "theme" ||
+                result.data.publishType === "both")
+            ) {
+              await this.configurationChanged({
+                updateThemeColor: true,
+                updateThemeList: true,
+              });
+            }
+            return result;
+          },
+        });
+        break;
+
       case "REMOVE_DRAFT_CHANGE":
         this.responseHandler<"REMOVE_DRAFT_CHANGE", "response">({
           command,
@@ -293,7 +317,7 @@ export class MessageController {
         break;
 
       case "OPEN_DONATION": {
-        const url = vscode.Uri.parse("https://buymeacoffee.com/laeyrd");
+        const url = vscode.Uri.parse("https://buymeacoffee.com/theenggs");
         vscode.env.openExternal(url);
         break;
       }
@@ -330,15 +354,15 @@ export class MessageController {
     }
   }
 
-  private async handleSaveTheme(payload: {
-    mode: keyof typeof SaveThemeModes;
-    themeName: string;
-  }) {
-    log("SAVE_THEME", payload);
-    if (!payload.themeName) throw new Error("Invalid theme name");
-    const tc = await this.themeController();
-    return await tc.handleSaveTheme(payload, this.context);
-  }
+  //   private async handleSaveTheme(payload: {
+  //     mode: keyof typeof SaveThemeModes;
+  //     themeName: string;
+  //   }) {
+  //     log("SAVE_THEME", payload);
+  //     if (!payload.themeName) throw new Error("Invalid theme name");
+  //     const tc = await this.themeController();
+  //     return await tc.handleSaveTheme(payload, this.context);
+  //   }
 
   private async handleOverwriteSettings(payload: {
     settings: Record<string, string | number | boolean>;
@@ -361,6 +385,7 @@ export class MessageController {
     requestId: string;
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
+    log("outgoing command", command);
     try {
       const response = await executor();
       this.POST_MESSAGE<T, K>({

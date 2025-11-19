@@ -18,42 +18,35 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   // Memoize payload string so JSON.stringify doesn't change every render by accident
   const payloadString = JSON.stringify(queryParameter.payload);
 
-  const fetchQuery = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const fetchQuery = useCallback(
+    async (options?: { force?: boolean }) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const result = await queryClient.query(cacheKey, {
-        command: queryParameter.command,
-        payload: queryParameter.payload,
-        staleTime: queryParameter.staleTime || Infinity,
-      });
+      try {
+        const result = await queryClient.query(cacheKey, {
+          command: queryParameter.command,
+          payload: queryParameter.payload,
+          staleTime: options?.force ? 0 : queryParameter.staleTime || Infinity,
+        });
 
-      setData(result);
-      setIsLoading(false);
-      return result;
-    } catch (err) {
-      setError(err);
-      setIsLoading(false);
-      throw err;
-    }
-  }, [
-    cacheKey,
-    payloadString,
-    queryParameter.command,
-    queryParameter.staleTime,
-  ]);
+        setData(result);
+        setIsLoading(false);
+        return result;
+      } catch (err) {
+        setError(err);
+        setIsLoading(false);
+        throw err;
+      }
+    },
+    [cacheKey, payloadString, queryParameter.command, queryParameter.staleTime]
+  );
   // ^ payload itself isn't included directly, we key off payloadString for stability
 
   useEffect(() => {
     let canceled = false;
     setError(null);
-
-    // fire initial fetch
-    fetchQuery().catch(() => {
-      /* already handled state in fetchQuery */
-    });
-
+    fetchQuery();
     const unsubscribe = queryClient.subscribe({
       command: cacheKey,
       cb: (newData) => {
@@ -67,9 +60,12 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
     };
   }, [cacheKey, fetchQuery]);
 
-  const refetch = useCallback(() => {
-    return fetchQuery();
-  }, [fetchQuery]);
+  const refetch = useCallback(
+    (options?: { force?: boolean }) => {
+      return fetchQuery({ force: true });
+    },
+    [fetchQuery]
+  );
 
   return { data, isLoading, error, refetch };
 };
@@ -98,9 +94,9 @@ export const useMutation = <T extends keyof WebViewEvent>(
         .then((data) => {
           log("mutate success", command, data);
           setMutationData(data);
-          options?.onSuccess?.(data);
           return data;
         })
+        .then((data) => options?.onSuccess?.(data))
         .catch((err) => {
           setMutationData(null);
           setError(err);

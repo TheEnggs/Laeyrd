@@ -6,10 +6,9 @@ import { useDraft } from "../contexts/draft-context";
 import { Loader2, Save } from "lucide-react";
 import { useMemo } from "react";
 import { useMutation, useQuery } from "@/hooks/use-query";
-import useToast from "@/hooks/use-toast";
-import { SaveThemeModes } from "@shared/types/event";
+import { PublishType, SaveThemeModes } from "@shared/types/event";
 import { log } from "@shared/utils/debug-logs";
-import { SaveChangesDialog } from "./save-dialog";
+import { SaveChangesPopover } from "./save-dialog";
 import { useDebouncedSave, useDraftSaveShortcut } from "@/hooks/use-draft-save";
 import ThemeImporterDialog from "./theme-importer";
 import { Separator } from "./ui/separator";
@@ -23,9 +22,15 @@ export default function FloatingSave({
 }: {
   activeTab: "colors" | "settings" | "fonts-layout";
 }) {
-  const toast = useToast();
-  const { isSaving, drafts, saveDrafts, discardChanges, isDiscarding } =
-    useDraft();
+  const {
+    isSaving,
+    drafts,
+    saveDrafts,
+    publishDraftChanges,
+    isPublishingDraftChanges,
+    discardChanges,
+    isDiscarding,
+  } = useDraft();
   useDraftSaveShortcut();
   useDebouncedSave();
   const { data: themesData } = useQuery({
@@ -40,40 +45,13 @@ export default function FloatingSave({
     );
   }, [themesData]);
 
-  const { mutate: saveTheme, isPending: isSavingTheme } = useMutation(
-    "SAVE_THEME",
-    {
-      onSuccess: () => {
-        toast({ message: "Theme saved", type: "success" });
-      },
-      onError: (error) => {
-        log(error);
-        toast({ message: "Failed to save theme", type: "error" });
-      },
-    }
-  );
-
-  // Unified save logic
-  const handleSave = ({
-    theme,
-  }: {
-    theme: { mode: keyof typeof SaveThemeModes; themeName?: string };
+  const handlePublishDraftChanges = (args: {
+    publishType: PublishType;
+    theme?: { mode: keyof typeof SaveThemeModes; themeName: string };
   }) => {
-    handleSaveTheme(theme.mode, theme.themeName);
-  };
-
-  const handleSaveTheme = (
-    mode: keyof typeof SaveThemeModes,
-    themeName: string | undefined
-  ) => {
-    if (!themeName) {
-      return toast({ message: "Theme name missing", type: "error" });
-    }
-    saveDrafts();
-    saveTheme({
-      mode,
-      themeName,
-    });
+    // saveDrafts();
+    publishDraftChanges(args);
+    return;
   };
 
   return (
@@ -85,7 +63,7 @@ export default function FloatingSave({
               Saving Changes <Loader2 className="w-4 h-4 animate-spin" />
             </span>
           ) : (
-            <span>Auto Save Enabled</span>
+            <span>Auto Save Enabled (Shortcut CTRL+S)</span>
           )}
         </Badge>
       ) : null}
@@ -111,7 +89,7 @@ export default function FloatingSave({
                 handleDiscard={() => discardChanges({})}
                 isDiscarding={isDiscarding}
               />
-              <Button
+              {/* <Button
                 variant="secondary"
                 size="sm"
                 disabled={isSavingTheme}
@@ -120,14 +98,15 @@ export default function FloatingSave({
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save (CTRL+S)
-              </Button>
+              </Button> */}
             </div>
             <Separator orientation="vertical" />
-            <SaveChangesDialog
-              isSavingTheme={isSavingTheme}
+            <SaveChangesPopover
+              isPublishingDraftChanges={isPublishingDraftChanges}
               isDiscarding={isDiscarding}
-              onSave={handleSave}
+              onPublish={handlePublishDraftChanges}
               sortedThemes={sortedThemes}
+              isSavingDrafts={isSaving}
             />
           </>
         ) : null}

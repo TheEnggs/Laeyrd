@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@/hooks/use-query";
 import useToast from "@/hooks/use-toast";
 import { log } from "@shared/utils/debug-logs";
-import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -12,6 +11,7 @@ import {
 import { Palette } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 export default function ThemeManagement() {
   const toast = useToast();
   const {
@@ -78,12 +78,13 @@ export default function ThemeManagement() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 text-xs rounded bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary"
+                  <Button
+                    variant={"destructive"}
+                    size={"sm"}
                     onClick={() => deleteTheme({ themeName: theme.label })}
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

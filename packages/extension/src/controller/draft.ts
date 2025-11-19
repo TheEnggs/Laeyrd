@@ -8,6 +8,8 @@ import {
 } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
 import * as vscode from "vscode";
+import { ThemeController } from "./theme";
+import { PublishType, SaveThemeModes } from "@shared/types/event";
 
 const defaultDraft: DraftFile = {
   lastUpdatedOn: new Date().toISOString(),
@@ -97,17 +99,18 @@ export default class DraftManager {
   /**
    * Persist current draftFileContent to file.
    */
-  private async writeFile(): Promise<boolean> {
-    if (!this.draftFileContent) return false;
+  public async writeFile() {
+    if (!this.draftFileContent) throw new Error("No draft file content");
     try {
       const filePath = this.getFilePath();
       const bytes = new TextEncoder().encode(
         JSON.stringify(this.draftFileContent, null, 2)
       );
+
       await vscode.workspace.fs.writeFile(filePath, bytes);
       return true;
-    } catch {
-      return false;
+    } catch (e) {
+      throw e;
     }
   }
 
@@ -208,7 +211,12 @@ export default class DraftManager {
 
     // 4. arbitrary settings (each key is its own setting)
     for (const [key, value] of Object.entries(pendingSettings)) {
-      await this.updateSettingsConfig(key, () => value);
+      await this.updateSettingsConfig(key, (existing) => {
+        if (!(key in draft.oldSettings.settingsCustomization)) {
+          draft.oldSettings.settingsCustomization[key] = existing;
+        }
+        return value;
+      });
     }
 
     draft.lastUpdatedOn = new Date().toISOString();
@@ -259,21 +267,6 @@ export default class DraftManager {
       },
 
       settings: (key: string, value: string | boolean | number) => {
-        // For settings, we still need old value from config.
-        // We can either pass it via ctx, or just fetch lazily here.
-        // Since you already have `config` in outer scope, you could
-        // pass `existingSettings` map if you want. For now:
-        // Assume old value was not needed from a snapshot; you already had:
-        //   const oldValue = config.get(...)
-        // We'll simplify: draft.oldSettings only records first override.
-
-        if (!(key in draft.oldSettings.settingsCustomization)) {
-          // You probably want to read this once outside too, but I'll keep
-          // behavior close to your original for now.
-          // Better: pass a map of existing settings into ctx as well.
-          draft.oldSettings.settingsCustomization[key] = "";
-        }
-
         draft.draftState.settingsCustomization[key] = value;
         ctx.pendingSettings[key] = value;
       },
@@ -383,82 +376,173 @@ export default class DraftManager {
     }
   }
 
+  public async publishDraftChanges({
+    publishType,
+    theme,
+  }: {
+    publishType: PublishType;
+    theme?: {
+      mode: keyof typeof SaveThemeModes;
+      themeName: string;
+    };
+  }): Promise<{
+    success: boolean;
+    data: {
+      draftFile: DraftFile;
+      publishType: PublishType;
+    };
+    error?: string;
+  }> {
+    try {
+      if (
+        (publishType === "theme" || publishType === "both") &&
+        (!theme || !theme.themeName || theme.themeName.trim() === "")
+      ) {
+        return {
+          success: false,
+          data: {
+            draftFile: this.draftFileContent,
+            publishType,
+          },
+          error: "Theme name missing",
+        };
+      }
+
+      if ((publishType === "theme" || publishType === "both") && theme) {
+        const tc = await ThemeController.create();
+        await tc.handleSaveTheme(
+          {
+            mode: theme.mode,
+            themeName: theme.themeName,
+            draftState: this.draftFileContent.draftState,
+          },
+          this.context
+        );
+      }
+
+      await this.revertToOldSettings(publishType);
+      return {
+        success: true,
+        data: {
+          draftFile: this.draftFileContent,
+          publishType,
+        },
+      };
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      console.log(error);
+      return {
+        success: false,
+        error,
+        data: {
+          draftFile: this.draftFileContent,
+          publishType,
+        },
+      };
+    }
+  }
+
   /**
    * Revert everything to the old settings stored before editing began.
    * Used after saving draft into theme.json.
    */
   public async revertToOldSettings(
-    action: "afterSave" | "discard" = "afterSave"
+    saveTrigger: PublishType | "discard_all"
   ): Promise<void> {
-    if (!this.draftFileContent) return;
+    try {
+      const { oldSettings, draftState } = this.draftFileContent;
 
-    const { oldSettings } = this.draftFileContent;
-
-    // Colors
-    if (Object.keys(oldSettings.colorCustomization).length) {
-      await this.revertConfigSection(
-        "workbench.colorCustomizations",
-        oldSettings.colorCustomization,
-        (existing, oldValues) => {
-          const reverted = { ...existing };
-          for (const [key, val] of Object.entries(oldValues)) {
-            if (val === "") delete reverted[key];
-            else reverted[key] = val;
-          }
-          return reverted;
+      if (saveTrigger === "both" || saveTrigger === "theme") {
+        // Colors
+        if (Object.keys(oldSettings.colorCustomization).length) {
+          await this.revertConfigSection(
+            "workbench.colorCustomizations",
+            oldSettings.colorCustomization,
+            (existing, oldValues) => {
+              const reverted = { ...existing };
+              for (const [key, val] of Object.entries(oldValues)) {
+                if (val === "") delete reverted[key];
+                else reverted[key] = val;
+              }
+              return reverted;
+            }
+          );
         }
-      );
-    }
 
-    // Tokens
-    if (Object.keys(oldSettings.tokenCustomization).length) {
-      await this.revertConfigSection(
-        "editor.tokenColorCustomizations",
-        oldSettings.tokenCustomization,
-        (existing, oldValues) => {
-          const reverted = { ...existing };
-          for (const [key, val] of Object.entries(oldValues)) {
-            if (val === "") delete reverted[key];
-            else reverted[key] = val;
-          }
-          return reverted;
+        // Tokens
+        if (Object.keys(oldSettings.tokenCustomization).length) {
+          await this.revertConfigSection(
+            "editor.tokenColorCustomizations",
+            oldSettings.tokenCustomization,
+            (existing, oldValues) => {
+              const reverted = { ...existing };
+              for (const [key, val] of Object.entries(oldValues)) {
+                if (val === "") delete reverted[key];
+                else reverted[key] = val;
+              }
+              return reverted;
+            }
+          );
         }
-      );
-    }
 
-    // Semantic tokens
-    if (Object.keys(oldSettings.semanticTokenCustomization).length) {
-      await this.revertConfigSection(
-        "editor.semanticTokenColorCustomizations",
-        oldSettings.semanticTokenCustomization,
-        (existing, oldValues) => {
-          const reverted = { ...existing };
-          for (const [key, val] of Object.entries(oldValues)) {
-            if (!val) delete reverted[key];
-            else reverted[key] = val;
-          }
-          return reverted;
+        // Semantic tokens
+        if (Object.keys(oldSettings.semanticTokenCustomization).length) {
+          await this.revertConfigSection(
+            "editor.semanticTokenColorCustomizations",
+            oldSettings.semanticTokenCustomization,
+            (existing, oldValues) => {
+              const reverted = { ...existing };
+              for (const [key, val] of Object.entries(oldValues)) {
+                if (!val) delete reverted[key];
+                else reverted[key] = val;
+              }
+              return reverted;
+            }
+          );
         }
-      );
-    }
-
-    // General settings
-    if (action === "discard") {
-      const config = await this.getVSCodeConfig();
-      for (const [key, val] of Object.entries(
-        oldSettings.settingsCustomization
-      )) {
-        await config.update(key, val, vscode.ConfigurationTarget.Global);
       }
+      if (saveTrigger === "discard_all") {
+        // General settings
+        const config = await this.getVSCodeConfig();
+        for (const [key, val] of Object.entries(
+          oldSettings.settingsCustomization
+        )) {
+          await config.update(key, val, vscode.ConfigurationTarget.Global);
+        }
+      }
+      const overrideDraft = { ...defaultDraft };
+      if (saveTrigger === "settings") {
+        overrideDraft.draftState = { ...draftState, settingsCustomization: {} };
+        overrideDraft.oldSettings = {
+          ...oldSettings,
+          settingsCustomization: {},
+        };
+      }
+      if (saveTrigger === "theme") {
+        overrideDraft.draftState = {
+          ...draftState,
+          colorCustomization: {},
+          semanticTokenCustomization: {},
+          tokenCustomization: {},
+        };
+        overrideDraft.oldSettings = {
+          ...oldSettings,
+          colorCustomization: {},
+          semanticTokenCustomization: {},
+          tokenCustomization: {},
+        };
+      }
+      this.draftFileContent = { ...overrideDraft };
+      await this.writeFile();
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
-
-    this.draftFileContent = structuredClone(defaultDraft);
-    await this.writeFile();
   }
 
   public async discardChanges(): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.revertToOldSettings("discard");
+      await this.revertToOldSettings("discard_all");
       return { success: true };
     } catch (e) {
       log("error while discarding changes", e);

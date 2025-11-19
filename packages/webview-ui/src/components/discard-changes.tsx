@@ -31,7 +31,7 @@ export function DiscardChangesDialog({
           className="rounded-full font-medium"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          {isDiscarding ? "Discarding..." : "Discard"}
+          {isDiscarding ? "Discarding..." : "Discard Changes"}
         </Button>
       </AlertDialogTrigger>
 

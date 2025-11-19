@@ -9,6 +9,8 @@ import {
   ColorMetaGrouped,
   DraftColor,
   DraftToken,
+  DraftState,
+  draftState,
 } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
 import { SaveThemeModes } from "@shared/types/event";
@@ -162,22 +164,22 @@ export class ThemeController {
     payload: {
       mode: keyof typeof SaveThemeModes;
       themeName: string;
+      draftState: DraftState;
     },
+
     context: vscode.ExtensionContext
   ) {
     try {
-      const draftManager = await DraftManager.init(context);
-      const colors =
-        draftManager.draftFileContent.draftState.colorCustomization;
-      const tokens =
-        draftManager.draftFileContent.draftState.semanticTokenCustomization;
+      const draftState = payload.draftState;
+      const colors = draftState.colorCustomization;
+      const tokens = draftState.semanticTokenCustomization;
       if (payload.mode === SaveThemeModes.OVERWRITE) {
         await this.overwriteThemeByLabel(context, payload.themeName, colors, {
           tokenColors: {},
           semanticTokenColors: tokens,
         });
       } else {
-        const themeName = payload.themeName || "Untitled Theme";
+        const themeName = payload.themeName;
         const res = await this.createTheme(context, themeName, colors, {
           tokenColors: {},
           semanticTokenColors: tokens,
@@ -189,7 +191,6 @@ export class ThemeController {
           `${themeName}.json`
         );
       }
-      await draftManager.revertToOldSettings();
 
       return { success: true };
     } catch (e) {
@@ -332,6 +333,9 @@ export class ThemeController {
       } catch (e) {
         console.error("Failed to backup theme", e);
       }
+      await this.promptReload(
+        `Your changes to theme "${themeName}" have been saved. Reload to activate.`
+      );
       return { success: true };
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to create theme "${themeName}"`);
@@ -445,8 +449,6 @@ export class ThemeController {
     });
 
     await this.writePackageJson(context, pkg);
-
-    await this.promptReload(`Theme "${themeName}" added. Reload to activate.`);
   }
 
   /**

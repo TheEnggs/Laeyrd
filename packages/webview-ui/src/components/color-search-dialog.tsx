@@ -172,6 +172,9 @@ function ColorItem({ color }: { color: ColorRendered }) {
       />
 
       <div>
+        <h4 className="text-xs font-semibold text-foreground/40 tracking-tight">
+          {color.category}
+        </h4>
         <h4 className="text-base font-semibold text-foreground/80 tracking-tight">
           {color.displayName}
         </h4>

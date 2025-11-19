@@ -32,7 +32,7 @@ class QueryClient {
     const data = await promiseController.create(params);
     this.cache.set(key, data);
 
-    if (params.staleTime && params.staleTime !== Infinity) {
+    if (params.staleTime === 0 || params.staleTime !== Infinity) {
       setTimeout(() => this.cache.delete(key), params.staleTime);
     }
     return data;

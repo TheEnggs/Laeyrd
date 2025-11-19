@@ -14,8 +14,9 @@ import {
   DraftStatePayloadKeys,
 } from "@shared/types/theme";
 import useToast from "@/hooks/use-toast";
-import { setQueryData, useMutation, useQuery } from "@/hooks/use-query";
+import { useMutation, useQuery } from "@/hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
+import { PublishType, SaveThemeModes } from "@shared/types/event";
 
 interface DraftContextValue {
   drafts: DraftStatePayload[];
@@ -23,10 +24,14 @@ interface DraftContextValue {
   isSaving: boolean;
   updateUnsavedChanges: (changes: DraftStatePayload[]) => void;
   saveDrafts: () => void;
+  publishDraftChanges: (args: {
+    publishType: PublishType;
+    theme?: { mode: keyof typeof SaveThemeModes; themeName: string };
+  }) => void;
+  isPublishingDraftChanges: boolean;
   discardChanges: ({}) => void;
   isDiscarding: boolean;
   handleRemoveDraftChange: (drafts: DraftStatePayload[]) => void;
-  updateByUserCount: number;
 }
 
 const DraftContext = createContext<DraftContextValue | null>(null);
@@ -66,10 +71,8 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     command: "GET_DRAFT_STATE",
     payload: {},
   });
-  const hydrationRequiredRef = useRef(true);
-
+  //   const hydrationRequiredRef = useRef(true);
   const [drafts, setDrafts] = useState<DraftStatePayload[]>([]);
-  const [updateByUserCount, setUpdateByUserCount] = useState(0);
   const draftsRef = useRef(drafts);
 
   useEffect(() => {
@@ -101,8 +104,6 @@ export function DraftProvider({ children }: { children: ReactNode }) {
 
       return next;
     });
-
-    setUpdateByUserCount((prev) => prev + 1);
   }, []);
 
   const handleRemoveDraftChange = useCallback((drafts: DraftStatePayload[]) => {
@@ -110,9 +111,9 @@ export function DraftProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && hydrationRequiredRef.current && data?.draftState) {
+    if (!isLoading && data?.draftState) {
       setDrafts(getDraftStatePayload(data.draftState));
-      hydrationRequiredRef.current = false;
+      //   hydrationRequiredRef.current = false;
     }
   }, [data?.draftState, isLoading]);
 
@@ -120,8 +121,6 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     "UPDATE_DRAFT_STATE",
     {
       onSuccess: (res) => {
-        refetch();
-        hydrationRequiredRef.current = true;
         toast({ message: "Draft saved", type: "success" });
       },
       onError: (err) =>
@@ -131,6 +130,20 @@ export function DraftProvider({ children }: { children: ReactNode }) {
         }),
     }
   );
+  const { mutate: publishDraftChanges, isPending: isPublishingDraftChanges } =
+    useMutation("PUBLISH_DRAFT_CHANGES", {
+      onSuccess: (data) => {
+        setDrafts(getDraftStatePayload(data.data.draftFile.draftState));
+        toast({
+          message: `${data.data.publishType === "both" ? "Themes and settings" : data.data.publishType} changes published`,
+          type: "success",
+        });
+      },
+      onError: (error) => {
+        log(error);
+        toast({ message: "Failed to publish changes", type: "error" });
+      },
+    });
 
   const { mutate: discardChanges, isPending: isDiscarding } = useMutation(
     "DISCARD_DRAFT_CHANGES",
@@ -174,10 +187,11 @@ export function DraftProvider({ children }: { children: ReactNode }) {
         isSaving,
         updateUnsavedChanges,
         saveDrafts,
+        publishDraftChanges,
+        isPublishingDraftChanges,
         discardChanges,
         isDiscarding,
         handleRemoveDraftChange,
-        updateByUserCount,
       }}
     >
       {children}
