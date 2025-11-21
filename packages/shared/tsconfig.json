@@ -4,5 +4,7 @@
     "composite": false,
     "declaration": false
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

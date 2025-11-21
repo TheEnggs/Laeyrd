@@ -32,6 +32,10 @@ export const productMap: Record<string, ProductConfig> = {
     productName: "Trae",
     baseName: "Trae",
   },
+  antigravity: {
+    productName: "Antigravity",
+    baseName: "Antigravity"
+  }
   // add more as needed
 };
 
