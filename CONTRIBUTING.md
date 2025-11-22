@@ -7,6 +7,7 @@ All types of contributions are encouraged and valued. See the [Table of Contents
 Please make sure to read the relevant section before making your contribution. It will make it a lot easier for us maintainers and smooth out the experience for all involved. The community looks forward to your contributions.
 
 > And if you like the project, but just don't have time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
+>
 > - Star the project
 > - Tweet about it
 > - Refer this project in your project's readme
@@ -72,7 +73,7 @@ Unsure where to begin contributing? You can start by looking through these `good
 ### Setup
 
 1. Fork the repository.
-2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/laeyrd.git`
+2. Clone your fork: `git clone https://github.com/theenggs/laeyrd.git`
 3. Install dependencies:
    ```bash
    npm install
@@ -87,6 +88,7 @@ Unsure where to begin contributing? You can start by looking through these `good
 3. In the new window, run the command `Laeyrd: Open` to see the extension in action.
 
 **Hot Reloading:**
+
 - The project supports hot reloading for the webview.
 - Run `npm run dev` in the terminal to start the watch mode for both extension and webview.
 

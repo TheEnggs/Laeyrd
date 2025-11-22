@@ -1,0 +1,6 @@
+# .github/ISSUE_TEMPLATE/config.yml
+blank_issues_enabled: false
+contact_links:
+  - name: Questions / general discussion
+    url: https://github.com/<you>/<repo>/discussions
+    about: Use Discussions for questions and ideas that aren't concrete feature requests or bugs.
