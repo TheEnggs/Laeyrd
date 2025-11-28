@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { memo } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../../ui/button";
 
 function Component({
   handleRemove,

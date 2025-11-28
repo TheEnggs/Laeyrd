@@ -154,7 +154,7 @@
   );
 
   --color-border: var(--vscode-input-border, var(--border));
-  --color-input: var(--vscode-input-background, var(--input));
+  --color-input: var(--vscode-input-border, var(--input));
   --color-ring: var(--vscode-focusBorder, var(--ring));
 
   --color-chart-1: var(--vscode-terminal-ansiBlue, var(--chart-1));

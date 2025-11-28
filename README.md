@@ -7,11 +7,6 @@
 
 ![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
-> **⚠️ Pre-release Notice**
-> Laeyrd is currently in **early testing** and not ready for production use.
-> Expect bugs, missing features, and occasional chaos. We are not expecting contributions right now, will open soon.
-> VSIX files are available for testing purposes only.
-
 ---
 
 ## ✨ Overview
@@ -28,19 +23,18 @@ At its core, Laeyrd lets you:
 
 ---
 
-## 🚧 Project Status
+## 🚧 Status
 
-Laeyrd is **not production ready** yet.
-This pre-release version exists for **testing and feedback**.
+This extension is in **active development**.
+Expect occasional bugs, rough edges, and missing polish while testing.
 
-- 🧪 Expect unfinished features.
 - 🐛 Some UI actions may fail or behave inconsistently.
 - 🔐 Sync and authentication are under active development.
 - 💾 File paths, schema, and local storage locations may change in future releases.
 
 ---
 
-## 🧠 Features (Pre-release)
+## 🧠 Features
 
 ### 🎨 Theme Customization
 

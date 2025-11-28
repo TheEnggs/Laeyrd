@@ -8,7 +8,7 @@ await esbuild.build({
   target: "node18",
   outfile: "./dist/extension.js",
   external: ["vscode"],
-  sourcemap: true,
+  sourcemap: false,
   minify: true,
   tsconfig: "./packages/extension/tsconfig.json",
   mainFields: ["module", "main"],

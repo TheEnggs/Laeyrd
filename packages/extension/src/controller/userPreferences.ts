@@ -22,7 +22,7 @@ export class UserPreferencesController {
     // Generate a new encryption key
     const newKey = crypto.randomBytes(32).toString("hex");
     this.context.globalState.update("encryption_key", newKey);
-    log("[UserPreferencesController] Generated new encryption key");
+    ;
     return newKey;
   }
 
@@ -147,7 +147,7 @@ export class UserPreferencesController {
       const encryptedData = this.encrypt(JSON.stringify(updatedPreferences));
       await this.context.globalState.update("user_preferences", encryptedData);
 
-      log("[UserPreferencesController] User preferences updated successfully");
+      ;
 
       // If sync is enabled, attempt to sync with server
       if (updatedPreferences.consents.dataSyncEnabled) {
@@ -204,7 +204,7 @@ export class UserPreferencesController {
 
       // TODO: Implement actual server sync
       // This is a placeholder for the actual server communication
-      log("[UserPreferencesController] Syncing with server...");
+      ;
 
       // For now, just simulate success
       // In real implementation, you would:
@@ -225,7 +225,7 @@ export class UserPreferencesController {
   public async resetUserPreferences(): Promise<UserPreferences> {
     try {
       await this.context.globalState.update("user_preferences", undefined);
-      log("[UserPreferencesController] User preferences reset to defaults");
+      ;
       return this.getDefaultPreferences();
     } catch (error) {
       log(`[UserPreferencesController] Error resetting preferences: ${error}`);
@@ -272,7 +272,7 @@ export class UserPreferencesController {
     const userId = crypto.randomUUID();
     await this.updateUserPreferences({ userId });
 
-    log("[UserPreferencesController] Generated new user ID");
+    ;
     return userId;
   }
 }

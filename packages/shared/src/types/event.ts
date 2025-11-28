@@ -2,7 +2,7 @@ import { UiLayoutMetaGrouped } from "./layout";
 import {
   ColorMetaGrouped,
   TokenColorsList,
-  SemanticTokenColors,
+  UserTokenColors,
   DraftColor,
   DraftToken,
   DraftStatePayload,
@@ -59,17 +59,21 @@ export type WebViewEvent = {
     payload: ColorMetaGrouped | undefined;
     response: undefined;
   };
+  UPDATE_TOKEN_MAP_COLORS: {
+    payload: TokenColorsList | undefined;
+    response: undefined;
+  };
   GET_THEME_COLORS: {
     payload: any;
     response: ColorMetaGrouped;
   };
-  GET_THEME_TOKEN_COLORS: {
+  GET_THEME_TOKEN_MAP_COLORS: {
     payload: any[];
     response: TokenColorsList | undefined;
   };
   GET_SEMANTIC_TOKEN_COLORS: {
     payload: any[];
-    response: SemanticTokenColors | undefined;
+    response: UserTokenColors | undefined;
   };
   GET_FONT_AND_LAYOUT_SETTINGS: {
     payload: any;

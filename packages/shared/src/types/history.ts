@@ -6,14 +6,14 @@ export interface HistoryEntry {
   changes: {
     colors?: Record<string, string>;
     tokenColors?: Record<string, { foreground?: string; fontStyle?: string }>;
-    semanticTokenColors?: Record<string, { foreground: string }>;
+    userTokenColors?: Record<string, { foreground: string }>;
     fontLayoutSettings?: Record<string, any>;
   };
   // Store original values for easy reset
   originalValues: {
     colors?: Record<string, string>;
     tokenColors?: Record<string, { foreground?: string; fontStyle?: string }>;
-    semanticTokenColors?: Record<string, { foreground: string }>;
+    userTokenColors?: Record<string, { foreground: string }>;
     fontLayoutSettings?: Record<string, any>;
   };
 }

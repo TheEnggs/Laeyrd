@@ -48,6 +48,10 @@ CHANGELOG.md
 README_DEV.md
 README.md
 **/README_DEV.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+ARCHITECTURE.md
+
 
 # =========================================================
 # Misc
@@ -56,3 +60,4 @@ README.md
 *.spec.*
 *.test.*
 *.DS_Store
+**/*.map

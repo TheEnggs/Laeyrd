@@ -1,12 +1,6 @@
-import {
-  DraftToken,
-  UserTokenColors,
-  TokenCategory,
-  TextMateTokenRule,
-} from "@shared/types/theme";
-import { colorCategoryMap } from "@shared/data/colorsList";
+import { TokenCategory } from "../../types/theme";
 
-function normalizeSemanticTokenKey(key: string): TokenCategory | null {
+export function normalizeTokenMapKey(key: string): TokenCategory | null {
   const lower = key.toLowerCase();
 
   if (lower.includes("comment")) return "comment";
@@ -54,40 +48,3 @@ function normalizeSemanticTokenKey(key: string): TokenCategory | null {
 
   return null;
 }
-
-export const generateColors = (colors: Record<string, string>) => {
-  const colorsList = colorCategoryMap;
-  for (const key in colors) {
-    if (colorsList[key]) {
-      colorsList[key].defaultValue = colors[key];
-    }
-  }
-  return colorsList;
-};
-
-
-
-// export function convertTokenColorsBackToTheme(tokens: DraftToken): {
-//   tokenColors: TextMateTokenRule[];
-//   userTokenColors: UserTokenColors;
-// } {
-//   const tokenColors: TextMateTokenRule[] = [];
-//   const userTokenColors: UserTokenColors = {};
-//   const tokenColorsMap = tokens?.tokenColors ?? {};
-//   const semanticTokenColorsMap = tokens?.userTokenColors ?? {};
-//   Object.entries(tokenColorsMap).forEach(([key, value]) => {
-//     tokenColors.push({
-//       scope: key as TokenCategory, // use the original scope (displayName)
-//       settings: {
-//         foreground: value.foreground,
-//         fontStyle: value.fontStyle || "none"
-//       },
-//     });
-//   });
-//   Object.entries(semanticTokenColorsMap).forEach(([key, value]) => {
-//     userTokenColors[key] = {
-//       foreground: value,
-//     };
-//   });
-//   return { tokenColors, userTokenColors };
-// }

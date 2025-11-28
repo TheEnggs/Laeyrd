@@ -12,11 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import ColorSettings from "./color-settings";
-import { Palette, Layout, Settings, Store } from "lucide-react";
-import LayoutSettings from "./layout-settings";
-import UserSettingsContent from "./user-settings-content";
-import FloatingSave from "./floating-save";
+import ColorSettings from "./colors/color-settings";
+import ThemeImporter from "./theme-importer";
+import { Palette, Layout, Settings, Store, Import } from "lucide-react";
+import LayoutSettings from "./font-and-layout/layout-settings";
+import UserSettingsContent from "./settings/user-settings";
+import FloatingSave from "./shared/floating-save";
 
 const mainTabs = [
   {
@@ -32,7 +33,12 @@ const mainTabs = [
     icon: Layout,
     description: "Adjust layout, panels, and UI behavior",
   },
-
+  {
+    id: "importer",
+    name: "Importer",
+    icon: Import,
+    description: "Import themes and palettes",
+  },
   {
     id: "settings",
     name: "Settings",
@@ -55,7 +61,7 @@ export default function CustomizationTabs() {
         <AnimatedTabsList
           activeTab={activeTab}
           tabValues={mainTabs.map((tab) => tab.id)}
-          className="w-full max-w-4xl gap-1 grid grid-cols-3 justify-center mask-none"
+          className="w-full max-w-4xl gap-1 grid grid-cols-4 justify-center mask-none"
         >
           {mainTabs.map((tab) => {
             const IconComponent = tab.icon;
@@ -119,7 +125,7 @@ export default function CustomizationTabs() {
             </Card>
           </TabsContent>
 
-          {/* User Settings Tab */}
+          {/* Settings Tab */}
           <TabsContent
             value="settings"
             className="animate-in fade-in-50 duration-200"
@@ -141,12 +147,33 @@ export default function CustomizationTabs() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Theme Importer Tab */}
+          <TabsContent
+            value="importer"
+            className="animate-in fade-in-50 duration-200"
+          >
+            <Card className="bg-transparent border-0 shadow-none h-full">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-secondary-foreground text-lg font-semibold tracking-tight">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Import className="w-5 h-5 text-primary" />
+                  </div>
+                  Theme Importer
+                </CardTitle>
+                <CardDescription className="text-secondary-foreground/80 text-sm leading-relaxed">
+                  Import existing themes or create palettes from JSON
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-full">
+                <ThemeImporter />
+              </CardContent>
+            </Card>
+          </TabsContent>
         </div>
       </Tabs>
 
-      {activeTab === "colors" || activeTab === "fonts-layout" ? (
-        <FloatingSave activeTab={activeTab} />
-      ) : null}
+      {activeTab !== "settings" ? <FloatingSave activeTab={activeTab} /> : null}
     </div>
   );
 }

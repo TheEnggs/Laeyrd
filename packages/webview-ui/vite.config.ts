@@ -10,7 +10,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../../dist/webview-ui"),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       input: path.resolve(__dirname, "index.html"),
     },

@@ -72,13 +72,13 @@ export class PanelManager implements vscode.Disposable {
               updateThemeColor: true,
               updateThemeList: true,
             })
-            .catch((err) => log("something went wrong while updating theme"));
+            .catch((err) => log(err));
         }
         if (this.isFontOrLayoutSetting(event)) {
           this.messageHandler
             .settingsChanged()
             .catch((err) =>
-              log("something went wrong while updating settings")
+              log(err)
             );
         }
       })
