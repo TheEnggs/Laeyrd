@@ -7,7 +7,6 @@ import {
   AnimatedTabsTrigger,
 } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ColorPicker from "./ui/color-picker";
 import {
   Palette,
   FileText,
@@ -17,25 +16,25 @@ import {
   Terminal,
   Square,
   Search,
+  Brackets,
 } from "lucide-react";
 import { mainTabs } from "@shared/utils/colors";
 import { useMemo, useState } from "react";
-import { ColorSettingsSkeleton } from "./skeleton/color-settings";
 import { cn } from "@/lib/utils";
-import TokenColorSettings from "./token-color-settings";
-import { useQuery } from "../hooks/use-query";
 import { useDraft } from "@/contexts/draft-context";
 import { Category, DraftStatePayload, GroupName } from "@shared/types/theme";
-import RemoveDraftChange from "./remove-draft-change";
+import { useQuery } from "@/hooks/use-query";
+import { CardSkeleton } from "../skeleton/card";
+import RemoveDraftChange from "../shared/remove-draft-change";
+import ColorPicker from "@/components/ui/color-picker";
 import ApplyGroupColors from "./apply-group-colors";
-import ColorSearchDialog from "./color-search-dialog";
-
+import TokenColorSettings from "./token-color-settings";
 // 🔹 Map main tabs to icons
 export const iconMap = {
   Base: Palette,
   Editor: FileText,
   Workbench: Layout,
-  Tokens: Braces,
+  Tokens: Brackets,
   "UI & Layout": Layout,
   Extras: Zap,
   Terminal: Terminal,
@@ -91,16 +90,6 @@ export default function ColorSettings() {
     return tree;
   }, [colorsState, drafts]);
 
-  //   if (!isLoading && !colorsState)
-  //     return (
-  //       <div className="w-full flex flex-col items-center justify-center py-12">
-  //         <AlertCircle className="w-8 h-8 text-destructive mb-2" />
-  //         <p className="text-foreground/80 font-medium">
-  //           Failed to load theme colors.
-  //         </p>
-  //       </div>
-  //     );
-
   return (
     <div className="w-full">
       <Tabs
@@ -136,7 +125,7 @@ export default function ColorSettings() {
             <span className="hidden sm:inline capitalize">Tokens</span>
           </AnimatedTabsTrigger>
         </AnimatedTabsList>
-        {isLoadingColors && <ColorSettingsSkeleton />}
+        {isLoadingColors && <CardSkeleton />}
         {/* 🔹 Tabs Content */}
         {mainTabs.map((tab) => {
           const subcategories = categoryTree[tab] || {};

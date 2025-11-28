@@ -1,13 +1,6 @@
-import { useQuery, useMutation } from "@/hooks/use-query";
-import { useAuth } from "./auth-provider";
-import { UserConsents } from "@shared/types/user";
-import { log } from "../../../shared/src/utils/debug-logs";
-import AuthSection from "./user-settings/auth";
-import SyncSettings from "./user-settings/sync-settings";
-import AboutLinks from "./user-settings/about-section";
-import ResetSettings from "./user-settings/reset";
-import SyncThemesCard from "./user-settings/sync";
-import ThemeManagement from "./user-settings/theme-management";
+import AuthSection from "./sub-components/auth";
+import AboutLinks from "./sub-components/about-section";
+import ThemeManagement from "./sub-components/theme-management";
 
 export default function UserSettingsContent() {
   //   const { authUser } = useAuth();
@@ -50,7 +43,7 @@ export default function UserSettingsContent() {
   //   };
 
   //   const handleResetEverything = () => {
-  //     log("Reset everything clicked");
+  //     ;
   //   };
 
   //   if (isLoadingPreferences) {

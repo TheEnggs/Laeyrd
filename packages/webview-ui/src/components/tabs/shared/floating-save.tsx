@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useDraft } from "../contexts/draft-context";
+import { useDraft } from "../../../contexts/draft-context";
 import { Loader2, Save } from "lucide-react";
 import { useMemo } from "react";
 import { useMutation, useQuery } from "@/hooks/use-query";
@@ -10,17 +10,16 @@ import { PublishType, SaveThemeModes } from "@shared/types/event";
 import { log } from "@shared/utils/debug-logs";
 import { SaveChangesPopover } from "./save-dialog";
 import { useDebouncedSave, useDraftSaveShortcut } from "@/hooks/use-draft-save";
-import ThemeImporterDialog from "./theme-importer";
-import { Separator } from "./ui/separator";
+import { Separator } from "../../ui/separator";
 import { DiscardChangesDialog } from "./discard-changes";
 import { cn } from "@/lib/utils";
-import ColorSearchDialog from "./color-search-dialog";
-import SettingsSearchDialog from "./settings-search-dialog";
+import ColorSearchDialog from "../colors/color-search-dialog";
+import FontAndLayoutSearchDialog from "../font-and-layout/font-and-layout-search-dialog";
 
 export default function FloatingSave({
   activeTab,
 }: {
-  activeTab: "colors" | "settings" | "fonts-layout";
+  activeTab: "colors" | "importer" | "fonts-layout";
 }) {
   const {
     isSaving,
@@ -53,7 +52,7 @@ export default function FloatingSave({
     publishDraftChanges(args);
     return;
   };
-
+  if (activeTab === "importer" && drafts.length === 0) return null;
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
       {drafts.length > 0 ? (
@@ -76,10 +75,8 @@ export default function FloatingSave({
         {activeTab === "colors" ? (
           <ColorSearchDialog key={activeTab} />
         ) : activeTab === "fonts-layout" ? (
-          <SettingsSearchDialog key={activeTab} />
+          <FontAndLayoutSearchDialog key={activeTab} />
         ) : null}
-        <Separator orientation="vertical" />
-        <ThemeImporterDialog />
 
         {drafts.length > 0 ? (
           <>
@@ -89,16 +86,6 @@ export default function FloatingSave({
                 handleDiscard={() => discardChanges({})}
                 isDiscarding={isDiscarding}
               />
-              {/* <Button
-                variant="secondary"
-                size="sm"
-                disabled={isSavingTheme}
-                onClick={saveDrafts}
-                className="rounded-full font-medium"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save (CTRL+S)
-              </Button> */}
             </div>
             <Separator orientation="vertical" />
             <SaveChangesPopover

@@ -1,7 +1,8 @@
-import { Theme } from "@shared/types/theme";
+
 import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { detectFork, getSettingsPath } from "@extension/utils/getSettings";
+import { ThemeJson } from "@shared/types/theme";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -11,7 +12,7 @@ export interface ThemeBackupPayload {
   // you can replace this with your DraftState or DraftFile type
   id?: string;
   name: string;
-  data: Theme;
+  data: ThemeJson;
 }
 
 export class BackupManager {
@@ -134,7 +135,7 @@ export class BackupManager {
   public async addTheme_UpdatePackageJson(
     context: vscode.ExtensionContext,
     themeName: string,
-    themeJson: Theme,
+    themeJson: ThemeJson,
     type: "light" | "dark" = "dark"
   ) {
     try {
@@ -196,7 +197,7 @@ export class BackupManager {
         if (type === vscode.FileType.File && name.endsWith(".json")) {
           const themeUri = vscode.Uri.joinPath(this.themesDir, name);
           const bytes = await vscode.workspace.fs.readFile(themeUri);
-          const themeJson: Theme = JSON.parse(new TextDecoder().decode(bytes));
+          const themeJson: ThemeJson = JSON.parse(new TextDecoder().decode(bytes));
           await this.addTheme_UpdatePackageJson(this.context, name, themeJson);
         }
       }

@@ -17,6 +17,14 @@ export function startListeners() {
       });
   });
 
+  const detachTokenMapColors = attach("UPDATE_TOKEN_MAP_COLORS", (payload) => {
+    if (payload)
+      queryClient.setData({
+        command: "GET_THEME_TOKEN_MAP_COLORS",
+        data: payload,
+      });
+  });
+
   const detachThemeList = attach("UPDATE_THEME_LIST", (payload) => {
     if (payload)
       queryClient.setData({
@@ -44,6 +52,7 @@ export function startListeners() {
 
   detachFns = [
     detachTheme,
+    detachTokenMapColors,
     detachThemeList,
     detachFontAndLayout,
     detachAuthUser,

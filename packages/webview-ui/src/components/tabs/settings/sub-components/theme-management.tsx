@@ -9,9 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Palette } from "lucide-react";
-import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 export default function ThemeManagement() {
   const toast = useToast();
   const {

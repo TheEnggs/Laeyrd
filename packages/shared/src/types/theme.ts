@@ -1,4 +1,5 @@
 import z from "zod";
+
 // new colors
 export type Category =
   | "Base"
@@ -10,20 +11,24 @@ export type Category =
   | "Extras";
 
 // All allowed group names as string literal union
-export type GroupName =
-  | "primary_background"
-  | "secondary_background"
-  | "border"
-  | "border_hover"
-  | "border_active"
-  | "primary_text"
-  | "muted_text"
-  | "faint_text"
-  | "primary_accent"
-  | "secondary_accent"
-  | "accent_1"
-  | "accent_2"
-  | "accent_3";
+export const GROUP_NAMES = [
+  "primary_background",
+  "secondary_background",
+  "border",
+  "border_hover",
+  "border_active",
+  "primary_text",
+  "muted_text",
+  "faint_text",
+  "primary_accent",
+  "secondary_accent",
+  "accent_1",
+  "accent_2",
+  "accent_3",
+] as const;
+
+export type GroupName = typeof GROUP_NAMES[number];
+
 export interface ColorMeta {
   category: Category;
   displayName: string;
@@ -63,45 +68,22 @@ export type TokenCategory =
 export type TokenColorMeta = {
   displayName: string;
   description: string; // ≤ 6 words
+  preferredType: "textmate" | "semantic";
   defaultColor?: string;
-  defaultFontStyle?: string;
+  defaultFontStyle?: TokenColorSettings["fontStyle"];
 };
 
 export type TokenColorsList = Record<TokenCategory, TokenColorMeta>;
 
 export type Color = Record<string, string>;
 
-export type TokenColorItem = {
+export type TextMateTokenRule = {
   name?: string;
-  scope: TokenCategory | TokenCategory[];
-  settings: {
-    foreground?: string;
-    fontStyle?: string;
-  };
+  scope: string[];
+  settings: TokenColorSettings;
 };
 
-export type SemanticTokenColor = {
-  foreground: string;
-};
-
-export type SemanticTokenColors = Record<string, SemanticTokenColor>;
-
-export type TokenColorItemDetailed = {
-  name: string;
-  scope: string | string[];
-  settings: {
-    foreground?: string;
-    fontStyle?: string;
-  };
-};
-
-export type Theme = {
-  name: string;
-  type: "light" | "dark";
-  colors: Color;
-  tokenColors: TokenColorItem[];
-  semanticTokenColors?: SemanticTokenColors;
-};
+export type UserTokenColors = Record<string, TokenColorSettings>;
 
 export type ColorGroups =
   | "base"
@@ -116,207 +98,18 @@ export type ColorGroups =
   | "window"
   | "tokens";
 
-// Type definitions for the transformation
-export interface ThemeColor {
-  id: string;
-  name: string;
-  description: string;
-  defaultValue: string;
-  category: string;
-}
-
-export interface ColorCategory {
-  name: string;
-  colors: ThemeColor[];
-}
-
-export interface ColorTab {
-  id: ColorGroups;
-  name: string;
-  icon: string;
-  categories: ColorCategory[];
-}
-
-export type GroupedColors = Record<any, Color>;
-export type GroupedTokenColors = Record<
-  string,
-  {
-    foreground?: string;
-    fontStyle?: string;
-  }
->;
-export interface FontsSettings {
-  editor: {
-    fontSize: number;
-    fontFamily: string;
-    fontWeight:
-      | "normal"
-      | "bold"
-      | "100"
-      | "200"
-      | "300"
-      | "400"
-      | "500"
-      | "600"
-      | "700"
-      | "800"
-      | "900";
-    lineHeight: number;
-    letterSpacing: number;
-    tabSize: number;
-  };
-  terminal: {
-    fontSize: number;
-    fontFamily: string;
-    fontWeight:
-      | "normal"
-      | "bold"
-      | "100"
-      | "200"
-      | "300"
-      | "400"
-      | "500"
-      | "600"
-      | "700"
-      | "800"
-      | "900";
-    lineHeight: number;
-    letterSpacing: number;
-  };
-  ui: {
-    fontSize: number;
-    fontFamily: string;
-    fontWeight:
-      | "normal"
-      | "bold"
-      | "100"
-      | "200"
-      | "300"
-      | "400"
-      | "500"
-      | "600"
-      | "700"
-      | "800"
-      | "900";
-    breadcrumbs: { fontSize: number };
-    statusBar: { fontSize: number; fontFamily: string };
-    activityBar: { fontSize: number; fontFamily: string };
-    sideBar: { fontSize: number; fontFamily: string };
-    menuBar: { fontSize: number; fontFamily: string };
-    titleBar: { fontSize: number; fontFamily: string };
-  };
-}
-
-// ---------- UI layout ----------
-export interface UiLayoutSettings {
-  workbench: {
-    sideBarLocation: "left" | "right";
-    panelLocation: "bottom" | "right" | "left";
-    activityBarLocation: "top" | "bottom";
-  };
-  zenMode: {
-    fullScreen: boolean;
-    centerLayout: boolean;
-    hideLineNumbers: boolean;
-    hideTabs: boolean;
-    hideStatusBar: boolean;
-    hideActivityBar: boolean;
-    hideSideBar: boolean;
-    hideMenuBar: boolean;
-  };
-  window: {
-    titleBarStyle: "custom" | "native";
-    menuBarVisibility: "visible" | "toggle" | "hidden";
-    zoomLevel: number;
-    nativeFullScreen: boolean;
-    nativeTabs: boolean;
-  };
-  editor: {
-    showFoldingControls: "always" | "mouseover";
-    foldingStrategy: "auto" | "indentation";
-    showLineNumbers: "on" | "off" | "relative";
-    renderLineHighlight: "all" | "line" | "none" | "gutter";
-    renderWhitespace:
-      | "none"
-      | "boundary"
-      | "mark"
-      | "selection"
-      | "trailing"
-      | "all";
-    renderControlCharacters: boolean;
-    renderIndentGuides: boolean;
-    renderValidationDecorations: "on" | "off" | "editable";
-    guides: {
-      indentation: boolean;
-      bracketPairs: boolean;
-      bracketPairsHorizontal: boolean;
-      highlightActiveIndentation: boolean;
-      highlightActiveBracketPair: boolean;
-    };
-  };
-  explorer: {
-    compactFolders: boolean;
-    sortOrder:
-      | "default"
-      | "mixed"
-      | "filesFirst"
-      | "type"
-      | "modified"
-      | "foldersNestsFiles";
-    openEditorsVisible: number;
-    autoReveal: boolean;
-  };
-  search: {
-    showLineNumbers: boolean;
-    useGlobalIgnoreFiles: boolean;
-    useParentIgnoreFiles: boolean;
-    useIgnoreFiles: boolean;
-    useExcludeSettingsAndIgnoreFiles: boolean;
-    followSymlinks: boolean;
-  };
-}
-
-export interface VSCodeSettings {
-  fonts: FontsSettings;
-  uiLayout: UiLayoutSettings;
-}
-
-// ---------- Actions ----------
-export type FontAction = {
-  type: "UPDATE_FONT_BY_PATH";
-  path: string;
-  value: any;
-};
-export type ColorsAction = {
-  type: "SET_COLORS";
-  colors: Record<string, string>; // id -> value
-};
-export type TokenColorsAction = {
-  type: "SET_TOKEN_COLORS";
-  tokenColors: GroupedTokenColors;
-};
-export type UiLayoutAction = {
-  type: "UPDATE_UI_LAYOUT_BY_PATH";
-  path: string;
-  value: any;
-};
-
-export type SettingsAction =
-  | FontAction
-  | ColorsAction
-  | TokenColorsAction
-  | UiLayoutAction;
-
-export interface SettingsState {
-  settings: VSCodeSettings;
-  hasChanges: boolean;
-  isLoading: boolean;
-}
 export type DraftColor = Color;
 export type DraftToken = {
-  tokenColors: Record<string, { foreground?: string; fontStyle?: string }>;
-  semanticTokenColors: Record<string, string>;
+  tokenColors: Record<string, TokenColorSettings>;
+  userTokenColors: Record<string, string>;
 };
+
+const tokenStyleSchema = z.enum(["bold", "italic", "underline", "none"]);
+
+const tokenColorSettings = z.object({
+  foreground: z.string().optional(),
+  fontStyle: tokenStyleSchema.optional(),
+});
 
 export const draftState = z.object({
   colorCustomization: z.record(
@@ -325,11 +118,11 @@ export const draftState = z.object({
   ),
   tokenCustomization: z.record(
     z.string(),
-    z.string() // token colors also just hex strings
+    tokenColorSettings
   ),
   semanticTokenCustomization: z.record(
-    z.string(), // key
-    z.string() // hex color string
+    z.string(), 
+    tokenColorSettings
   ),
   settingsCustomization: z.record(
     z.string(),
@@ -347,6 +140,7 @@ export const draftFile = z.object({
   isSettingsRestored: z.boolean(),
 });
 
+export type TokenColorSettings = z.infer<typeof tokenColorSettings>;
 export type DraftFile = z.infer<typeof draftFile>;
 export type DraftState = z.infer<typeof draftState>;
 export type DraftStatePayload =
@@ -358,12 +152,12 @@ export type DraftStatePayload =
   | {
       type: "token";
       key: string;
-      value: string; // usually hex color
+      value: TokenColorSettings; // usually hex color
     }
   | {
       type: "semanticToken";
       key: string;
-      value: string; // VS Code style
+      value: TokenColorSettings;
     }
   | {
       type: "settings";
@@ -375,7 +169,17 @@ export type DraftStatePayloadKeys = DraftStatePayload["type"];
 
 export type DraftChangeHandlerMap = {
   color: (key: string, value: string) => void;
-  token: (key: string, value: string) => void;
-  semanticToken: (key: string, value: string) => void;
+  token: (key: string, value: TokenColorSettings) => void;
+  semanticToken: (key: string, value: TokenColorSettings) => void;
   settings: (key: string, value: string | number | boolean) => void;
 };
+
+
+export interface ThemeJson {
+  name: string;
+  type: "light" | "dark" | "high contrast";
+  semanticHighlighting: boolean;
+  colors: Record<string, string>;
+  semanticTokenColors: Record<string, string | TokenColorSettings>;
+  tokenColors: TextMateTokenRule[];
+}

@@ -54,7 +54,7 @@ export class AuthController {
     if (storedUser && storedSession) {
       this.currentUser = storedUser;
       this.currentSession = storedSession;
-      log("[AuthController] Restored authentication session");
+      ;
     }
   }
 
@@ -211,7 +211,7 @@ export class AuthController {
   public async signOut(): Promise<{ success: boolean }> {
     try {
       await this.clearStoredAuth();
-      log("[AuthController] User signed out successfully");
+      ;
       return { success: true };
     } catch (error) {
       log(`[AuthController] Sign-out error: ${error}`);

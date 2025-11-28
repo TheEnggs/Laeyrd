@@ -1,37 +1,23 @@
 import * as vscode from "vscode";
 import {
-  Color,
-  ColorGroups,
-  GroupedColors,
-  Theme,
-  TokenColorsList,
-  SemanticTokenColors,
+  ThemeJson,
   ColorMetaGrouped,
   DraftColor,
-  DraftToken,
   DraftState,
-  draftState,
+  TokenColorsList,
 } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
 import { SaveThemeModes } from "@shared/types/event";
 import { parse } from "jsonc-parser";
 import { ToastController } from "./toast";
-import {
-  convertTokenColors,
-  convertTokenColorsBackToTheme,
-  generateColors,
-} from "src/utils/colors";
-import DraftManager from "./draft";
+import { generateColors } from "src/utils/colors";
 import { BackupManager } from "./backup";
-
-export function groupColors(colors: Color): GroupedColors {
-  return Object.entries(colors).reduce((acc, [key, value]) => {
-    const [category, subKey] = (key as `${ColorGroups}.${string}`).split(".");
-    if (!acc[category as ColorGroups]) acc[category as ColorGroups] = {};
-    acc[category as ColorGroups][subKey as string] = value;
-    return acc;
-  }, {} as GroupedColors);
-}
+import { generateVscodeTheme } from "@shared/utils/themeGenerator";
+import {
+  convertDraftUserTokenColorsToTokenColors,
+  convertUserTokenColorsToTokenColorsList,
+  generateTokenMapColorsFromTheme,
+} from "@shared/data/token/tokenList";
 
 interface ThemeContribution {
   id?: string;
@@ -41,11 +27,11 @@ interface ThemeContribution {
 }
 
 export class ThemeController {
-  public currentTheme?: Theme;
+  public currentTheme?: ThemeJson;
   private currentThemeUri?: vscode.Uri;
   private themesDirUri?: vscode.Uri;
 
-  private constructor() { }
+  private constructor() {}
 
   public static async create(): Promise<ThemeController> {
     const controller = new ThemeController();
@@ -63,6 +49,7 @@ export class ThemeController {
         console.warn("No active theme detected");
         return;
       }
+
       const themeExt = vscode.extensions.all.find((ext) => {
         const themes = ext.packageJSON?.contributes?.themes || [];
         return themes.some(
@@ -90,40 +77,82 @@ export class ThemeController {
       );
       this.currentThemeUri = themeUri;
 
-      const themeContent = await vscode.workspace.fs.readFile(themeUri);
-      this.currentTheme = parse(Buffer.from(themeContent).toString("utf8"));
+      this.currentTheme = await this.loadThemeWithIncludes(themeUri);
     } catch (error) {
       console.error("Error loading current theme", error);
     }
   }
 
+  private async loadThemeWithIncludes(uri: vscode.Uri): Promise<any> {
+    const themeContent = await vscode.workspace.fs.readFile(uri);
+    const rawTheme = parse(Buffer.from(themeContent).toString("utf8"));
+
+    if (!rawTheme || !rawTheme.include) {
+      return rawTheme;
+    }
+
+    const includeUri = this.resolveIncludeUri(uri, rawTheme.include);
+    const parentTheme = await this.loadThemeWithIncludes(includeUri);
+
+    const { include, ...childTheme } = rawTheme;
+
+    return this.mergeThemes(parentTheme, childTheme);
+  }
+
+  private resolveIncludeUri(
+    themeUri: vscode.Uri,
+    includePath: string
+  ): vscode.Uri {
+    const baseDir = themeUri.with({
+      path: themeUri.path.replace(/\/[^\/]+$/, "/"),
+    });
+    return vscode.Uri.joinPath(baseDir, includePath);
+  }
+
+  private mergeThemes(parent: any, child: any): any {
+    if (!parent) return child;
+    if (!child) return parent;
+
+    return {
+      ...parent,
+      ...child,
+      colors: {
+        ...(parent.colors ?? {}),
+        ...(child.colors ?? {}),
+      },
+      tokenColors: [
+        ...(parent.tokenColors ?? []),
+        ...(child.tokenColors ?? []),
+      ],
+      semanticTokenColors: {
+        ...(parent.semanticTokenColors ?? {}),
+        ...(child.semanticTokenColors ?? {}),
+      },
+    };
+  }
+
   /** Force reload theme from disk */
   public async refreshTheme() {
-    log("refreshing theme");
     await this.loadCurrentTheme();
   }
 
   public getColors(): ColorMetaGrouped | undefined {
-    log("current theme", this.currentTheme);
     const colors = this.currentTheme?.colors;
     return colors ? generateColors(colors) : undefined;
   }
 
-  public getTokenColors(): TokenColorsList | undefined {
-    return this.currentTheme?.tokenColors
-      ? convertTokenColors(this.currentTheme.semanticTokenColors)
-      : undefined;
-  }
-
-  public getSemanticTokenColors(): SemanticTokenColors | undefined {
-    return this.currentTheme?.semanticTokenColors;
+  public getTokenMapColors(): TokenColorsList | undefined {
+    const tokenColors = this.currentTheme?.tokenColors;
+    const semanticTokenColors = this.currentTheme?.semanticTokenColors;
+    if (!tokenColors && !semanticTokenColors) return undefined;
+    return generateTokenMapColorsFromTheme(tokenColors, semanticTokenColors);
   }
 
   public getName(): string | undefined {
     return this.currentTheme?.name;
   }
 
-  public getType(): Theme["type"] | undefined {
+  public getType(): ThemeJson["type"] | undefined {
     return this.currentTheme?.type;
   }
 
@@ -160,6 +189,7 @@ export class ThemeController {
       .update("colorTheme", themeName, vscode.ConfigurationTarget.Global);
     ToastController.showToast;
   }
+
   public async handleSaveTheme(
     payload: {
       mode: keyof typeof SaveThemeModes;
@@ -172,19 +202,31 @@ export class ThemeController {
     try {
       const draftState = payload.draftState;
       const colors = draftState.colorCustomization;
-      const tokens = draftState.semanticTokenCustomization;
+
+      //semantic tokens
+      const semanticTokenColors = convertDraftUserTokenColorsToTokenColors(
+        draftState.semanticTokenCustomization
+      );
+      //textmate tokens
+      const textmateTokenColors = convertDraftUserTokenColorsToTokenColors(
+        draftState.tokenCustomization
+      );
+
       const themeName = payload.themeName;
+      if (!this.currentTheme) throw new Error("Current theme not found");
+      //generate theme
+      const themeJson = generateVscodeTheme(this.currentTheme, {
+        userThemeColors: colors,
+        userThemeName: themeName,
+        userSemanticTokenColors: semanticTokenColors,
+        userTextmateTokenColors: textmateTokenColors,
+        userThemeType: this.currentTheme.type,
+      });
 
       if (payload.mode === SaveThemeModes.OVERWRITE) {
-        await this.overwriteThemeByLabel(context, themeName, colors, {
-          tokenColors: {},
-          semanticTokenColors: tokens,
-        });
+        await this.overwriteThemeByLabel(context, themeName, themeJson);
       } else {
-        const res = await this.createTheme(context, themeName, colors, {
-          tokenColors: {},
-          semanticTokenColors: tokens,
-        });
+        const res = await this.createTheme(context, themeName, themeJson);
         if (!res.success) throw new Error("Failed to create theme");
         await this.addThemeToPackageJson(
           context,
@@ -195,52 +237,32 @@ export class ThemeController {
 
       return { success: true };
     } catch (e) {
-      console.log(e)
+      console.log(e);
       throw e;
     }
   }
+
   public async overwriteThemeByLabel(
     context: vscode.ExtensionContext,
     themeLabel: string,
-    colors: DraftColor | undefined,
-    tokenColors: DraftToken | undefined
+    themeJson: ThemeJson
   ) {
+    const { themeUri } = await this.getThemeJson(context, themeLabel);
 
-    const { themeJson, themeUri } = await this.getThemeJson(context, themeLabel)
-
-    const updatedTheme: Theme = {
-      ...themeJson,
-      ...this.generateThemeColors(colors, tokenColors)
-    };
-
-    this.writeToThemeFile(context, themeLabel, updatedTheme);
+    this.writeToThemeFile(context, themeLabel, themeJson);
 
     // Refresh if this was active theme
     if (this.getActiveThemeLabel() === themeLabel) {
       this.currentThemeUri = themeUri;
-      this.currentTheme = updatedTheme;
       await this.refreshTheme();
     }
   }
 
-
   public async createTheme(
     context: vscode.ExtensionContext,
     themeName: string,
-    colors: DraftColor | undefined,
-    tokenColors: DraftToken | undefined,
-    type: "light" | "dark" = "dark"
+    themeJson: ThemeJson
   ): Promise<{ success: boolean }> {
-    if (!themeName || /[\\/:*?"<>|]/.test(themeName))
-      throw new Error("Invalid theme name");
-
-    const themeJson: Theme & { publisher: string } = {
-      name: themeName,
-      type,
-      publisher: "Laeyrd",
-      ...this.generateThemeColors(colors, tokenColors)
-    };
-
     return this.writeToThemeFile(context, themeName, themeJson);
   }
 
@@ -280,7 +302,6 @@ export class ThemeController {
     }
   }
 
-
   /** Ensure themes folder exists */
   private async ensureThemesFolder(context: vscode.ExtensionContext) {
     if (!this.themesDirUri) {
@@ -303,7 +324,7 @@ export class ThemeController {
   public async writeToThemeFile(
     context: vscode.ExtensionContext,
     themeName: string,
-    themeJson: Theme
+    themeJson: ThemeJson
   ) {
     try {
       const fileUri = await this.getThemePath(themeName, context);
@@ -333,46 +354,24 @@ export class ThemeController {
     }
   }
 
-
   /** Overwrite a theme JSON by its label from our extension package.json */
-
 
   async getThemeJson(context: vscode.ExtensionContext, themeLabel: string) {
     try {
       const themes = await this.listOwnThemes(context);
       const target = themes.find((t) => t.label === themeLabel);
       if (!target) {
-        throw new Error("Theme not found")
+        throw new Error("Theme not found");
       }
 
       const themeUri = vscode.Uri.joinPath(context.extensionUri, target.path);
       const themeContent = await vscode.workspace.fs.readFile(themeUri);
-      const themeJson: Theme = JSON.parse(
+      const themeJson: ThemeJson = JSON.parse(
         Buffer.from(themeContent).toString("utf8")
       );
-      return { themeJson, themeUri }
+      return { themeJson, themeUri };
     } catch (e) {
-      throw e
-    }
-  }
-
-  generateThemeColors(colors: DraftColor | undefined,
-    tokenColors: DraftToken | undefined) {
-
-    const tokensArray = tokenColors
-      ? convertTokenColorsBackToTheme(tokenColors)
-      : { tokenColors: [], semanticTokenColors: {} };
-
-    return {
-      colors: { ...(this.currentTheme?.colors ?? {}), ...colors },
-      semanticTokenColors: {
-        ...(this.currentTheme?.semanticTokenColors ?? {}),
-        ...tokensArray.semanticTokenColors,
-      },
-      tokenColors: [
-        ...(this.currentTheme?.tokenColors ?? []),
-        ...tokensArray.tokenColors,
-      ],
+      throw e;
     }
   }
 
@@ -413,11 +412,12 @@ export class ThemeController {
       .showInformationMessage(message, "Reload Window")
       .then((selection) => {
         if (selection === "Reload Window") {
-          return vscode.commands.executeCommand("workbench.action.reloadWindow");
+          return vscode.commands.executeCommand(
+            "workbench.action.reloadWindow"
+          );
         }
-      })
+      });
   }
-
 
   /**
    * Add a theme contribution to package.json

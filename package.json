@@ -1,6 +1,6 @@
 {
   "name": "Laeyrd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Laeyrd is a theme and settings customizer for VSCode with sync functionality.",
   "publisher": "TheEnggs",
   "readme": "README.extension.md",
@@ -20,7 +20,7 @@
     "onStartupFinished"
   ],
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.103.0"
   },
   "keywords": [
     "theme",
@@ -48,7 +48,7 @@
     "build:extension": "NODE_ENV=production node packages/extension/esbuild.config.mjs",
     "build:webview": "vite build --config packages/webview-ui/vite.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.base.json",
-    "copy:media": "mkdir -p dist/media && cp -r packages/media/* dist/media/",
+    "copy:media": "mkdir -p dist/media/icons && cp -r packages/media/icons/* dist/media/icons/",
     "prepublishOnly": "npm run build",
     "package": "rm -rf dist && npm run build && mkdir -p dist/release && vsce package --no-yarn --out dist/release/$(node -p \"require('./package.json').name\")-$(node -p \"require('./package.json').version\").vsix",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --concurrency auto",
@@ -62,8 +62,8 @@
     "@types/node": "^24.9.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/vscode": "^1.80.0",
-    "@types/vscode-webview": "^1.57.5",
+    "@types/vscode": "^1.103.0",
+    "@types/vscode-webview": "1.57.5",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "@vitejs/plugin-react": "^5.1.0",
@@ -126,6 +126,7 @@
     "tailwind-merge": "^3.3.1",
     "use-debounce": "^10.0.6",
     "uuid": "^13.0.0",
+    "vscode-extension-telemetry": "^0.4.5",
     "zod": "^3.24.1"
   }
 }

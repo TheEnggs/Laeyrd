@@ -7,9 +7,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, User, Copy, CloudCheck } from "lucide-react";
-import { useMutation } from "@/hooks/use-query";
-import { useAuth } from "../auth-provider";
-import CountdownTimer from "../ui/countdown-timer";
 /** ------------------- Auth Section ------------------- */
 export default function AuthSection() {
   //   const { authUser, signIn, signOut, deviceFlow } = useAuth();

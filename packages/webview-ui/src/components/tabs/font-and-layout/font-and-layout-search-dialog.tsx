@@ -7,27 +7,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "./ui/button";
-import { List, Search, Settings2 } from "lucide-react";
+import { Button } from "../../ui/button";
+import { Search, Settings2 } from "lucide-react";
 import { useDraft } from "@/contexts/draft-context";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import RemoveDraftChange from "./remove-draft-change";
-import { Input } from "./ui/input";
+import RemoveDraftChange from "../shared/remove-draft-change";
+import { Input } from "../../ui/input";
 import { useQuery } from "@/hooks/use-query";
 
-import { Switch } from "./ui/switch";
+import { Switch } from "../../ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../../ui/select";
 import { UiLayoutMetaWithKey } from "./layout-settings";
 import { useDebounce } from "use-debounce";
 
-export default function SettingsSearchDialog() {
+export default function FontAndLayoutSearchDialog() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const { drafts } = useDraft();

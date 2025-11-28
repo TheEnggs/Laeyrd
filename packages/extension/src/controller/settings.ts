@@ -141,17 +141,17 @@ export class SettingsController {
     );
 
     watcher.onDidChange(async () => {
-      log("Detected change in settings.json");
+      ;
       await this.refreshSettings();
     });
 
     watcher.onDidCreate(async () => {
-      log("settings.json created");
+      ;
       await this.refreshSettings();
     });
 
     watcher.onDidDelete(() => {
-      log("settings.json deleted");
+      ;
       this.currentSettings = undefined;
     });
 
@@ -161,7 +161,7 @@ export class SettingsController {
   // ========== Public APIs ==========
 
   public async refreshSettings(): Promise<void> {
-    log("Refreshing user settings...");
+    ;
     await this.loadCurrentSettings();
     this.notifySettingsChanged();
   }
@@ -183,7 +183,7 @@ export class SettingsController {
   }
 
   public testSettingsChange(): void {
-    log("[SettingsController] Testing settings change notification...");
+    ;
     this.notifySettingsChanged();
   }
 

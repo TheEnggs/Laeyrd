@@ -13,8 +13,8 @@ import { AuthController } from "./auth";
 import { ToastController } from "./toast";
 import { log } from "@shared/utils/debug-logs";
 import SyncController from "./sync";
-import { DraftColor, DraftToken } from "@shared/types/theme";
 import DraftManager from "./draft";
+import { TelemetryService } from "./telemetry";
 
 export class MessageController {
   private _themeController?: ThemeController;
@@ -89,23 +89,13 @@ export class MessageController {
           },
         });
         break;
-      case "GET_THEME_TOKEN_COLORS":
-        this.responseHandler<"GET_THEME_TOKEN_COLORS", "response">({
+      case "GET_THEME_TOKEN_MAP_COLORS":
+        this.responseHandler<"GET_THEME_TOKEN_MAP_COLORS", "response">({
           command,
           requestId: message.requestId,
           executor: async () => {
             const tc = await this.themeController();
-            return tc.getTokenColors();
-          },
-        });
-        break;
-      case "GET_SEMANTIC_TOKEN_COLORS":
-        this.responseHandler({
-          command,
-          requestId: message.requestId,
-          executor: async () => {
-            const tc = await this.themeController();
-            return tc.getSemanticTokenColors();
+            return tc.getTokenMapColors();
           },
         });
         break;
@@ -354,16 +344,6 @@ export class MessageController {
     }
   }
 
-  //   private async handleSaveTheme(payload: {
-  //     mode: keyof typeof SaveThemeModes;
-  //     themeName: string;
-  //   }) {
-  //     log("SAVE_THEME", payload);
-  //     if (!payload.themeName) throw new Error("Invalid theme name");
-  //     const tc = await this.themeController();
-  //     return await tc.handleSaveTheme(payload, this.context);
-  //   }
-
   private async handleOverwriteSettings(payload: {
     settings: Record<string, string | number | boolean>;
   }) {
@@ -385,8 +365,13 @@ export class MessageController {
     requestId: string;
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
-    log("outgoing command", command);
     try {
+      if(command === "PUBLISH_DRAFT_CHANGES"){
+        TelemetryService.instance.sendEvent("MESSAGE_RESPONSE_HANDLER", {
+          command,
+          requestId,
+        });
+      }
       const response = await executor();
       this.POST_MESSAGE<T, K>({
         command,
@@ -395,6 +380,10 @@ export class MessageController {
         payload: response,
       });
     } catch (err) {
+      TelemetryService.instance.sendError("MESSAGE RESPONSE HANDLER", err, {
+        command,
+        requestId,
+      });
       log("error occurred in response handler", err);
       this.POST_MESSAGE<T, K>({
         command,
@@ -412,7 +401,7 @@ export class MessageController {
     const messageData = { command, payload, requestId, status, error };
     try {
       if (!this.panel) {
-        log("Panel not found");
+        ;
         return;
       }
       this.panel.webview.postMessage(messageData);
@@ -440,6 +429,15 @@ export class MessageController {
         executor: async () => {
           const tc = await this.themeController();
           return tc.getColors();
+        },
+      });
+      this.responseHandler({
+        command: "UPDATE_TOKEN_MAP_COLORS",
+        requestId: "",
+        mode: "payload",
+        executor: async () => {
+          const tc = await this.themeController();
+          return tc.getTokenMapColors();
         },
       });
     }
@@ -474,7 +472,7 @@ export class MessageController {
     const mergedSettings = settingsController.getMergedSettings();
 
     if (mergedSettings) {
-      log("[MessageHandler] Notifying frontend of settings changes");
+      ;
       this.responseHandler({
         command: "UPDATE_FONT_AND_LAYOUT_SETTINGS",
         requestId: "",

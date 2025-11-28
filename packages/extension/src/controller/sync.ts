@@ -16,8 +16,8 @@ import {
   SyncResponse,
   SyncState,
 } from "@shared/types/sync";
-import { Theme } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
+import { ThemeJson } from "@shared/utils/themeGenerator";
 
 const SyncActionFactory = {
   [SyncState.UNTRACKED]: async (self: SyncController, meta: LocalFileMeta) => {
@@ -301,7 +301,7 @@ export default class SyncController {
       themeController.writeToThemeFile(
         this.context,
         localMeta.fileName,
-        res.data as unknown as Theme
+        res.data as unknown as ThemeJson
       );
       return true;
     } catch (e) {
@@ -530,7 +530,7 @@ export default class SyncController {
   }
 
   public async syncAll() {
-    log("🚀 Starting full sync for all categories...");
+    ;
     await this.fetchRemoteVersions();
 
     const categories: SyncCategory[] = ["themes", "settings"];

@@ -41,7 +41,7 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
   };
 
   return (
-    <div className="flex gap-3 z-9999">
+    <div className="flex gap-3">
       <Popover
         open={isOpen}
         onOpenChange={(open) => {

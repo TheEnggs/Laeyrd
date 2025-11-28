@@ -5,11 +5,20 @@ import {
   DraftState,
   DraftStatePayload,
   DraftStatePayloadKeys,
+  TextMateTokenRule,
+  TokenColorSettings,
+  UserTokenColors,
 } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
 import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { PublishType, SaveThemeModes } from "@shared/types/event";
+import { TextMateScopeMap } from "@shared/data/token/textMateScopeMap";
+import { generateTextMateTokenColors } from "@shared/utils/themeGenerator";
+import {
+  convertDraftUserTokenColorsToTokenColors,
+  convertUserTokenColorsToTokenColorsList,
+} from "@shared/data/token/tokenList";
 
 const defaultDraft: DraftFile = {
   lastUpdatedOn: new Date().toISOString(),
@@ -32,11 +41,11 @@ const defaultDraft: DraftFile = {
 
 type DraftHandlerContext = {
   existingColors: Record<string, string>;
-  existingTokenColors: Record<string, string>;
-  existingSemanticRules: Record<string, any>;
+  existingTokenColors: Record<string, TokenColorSettings>;
+  existingSemanticRules: Record<string, TokenColorSettings>;
   pendingColors: Record<string, string>;
-  pendingTokenColors: Record<string, string>;
-  pendingSemanticRules: Record<string, any>;
+  pendingTokenColors: Record<string, TokenColorSettings>;
+  pendingSemanticRules: Record<string, TokenColorSettings>;
   pendingSettings: Record<string, string | number | boolean>;
 };
 export default class DraftManager {
@@ -124,12 +133,12 @@ export default class DraftManager {
     const draft = this.draftFileContent;
     const config = await this.getVSCodeConfig();
 
+    const test = config.get("editor.tokenColorCustomizations");
     // Take snapshots ONCE so we don't keep reading config
     const existingColors =
       config.get<Record<string, string>>("workbench.colorCustomizations") || {};
     const existingTokenColors =
-      config.get<Record<string, string>>("editor.tokenColorCustomizations") ||
-      {};
+      config.get<Record<string, any>>("editor.tokenColorCustomizations") || {};
     const existingSemanticTokens =
       config.get<{ rules?: Record<string, any> }>(
         "editor.semanticTokenColorCustomizations"
@@ -138,8 +147,8 @@ export default class DraftManager {
 
     // Accumulators for new values
     const pendingColors: Record<string, string> = {};
-    const pendingTokenColors: Record<string, string> = {};
-    const pendingSemanticRules: Record<string, any> = {};
+    const pendingTokenColors: UserTokenColors = {};
+    const pendingSemanticRules: UserTokenColors = {};
     const pendingSettings: Record<string, string | number | boolean> = {};
 
     // We pass these through to the handlers
@@ -189,24 +198,42 @@ export default class DraftManager {
 
     // 2. editor.tokenColorCustomizations
     if (Object.keys(pendingTokenColors).length > 0) {
-      await this.updateConfigSection<Record<string, string>>(
+
+      const getTokenColoredMap =
+        convertDraftUserTokenColorsToTokenColors(pendingTokenColors);
+      const generateScopedTokenColors =
+        generateTextMateTokenColors(getTokenColoredMap);
+      await this.updateConfigSection<Record<string, any>>(
         "editor.tokenColorCustomizations",
-        (existing) => ({
-          ...existing,
-          ...pendingTokenColors,
-        })
+        (existing) => {
+          const existingRules: TextMateTokenRule[] = existing?.textMateRules ?? [];
+
+          // Build a map of existing rules by name
+          const existingMap = new Map(
+            existingRules.map((rule) => [rule.name, rule])
+          );
+
+          // Add/overwrite with your new rules
+          for (const rule of generateScopedTokenColors) {
+            existingMap.set(rule.name, rule); // overwrite if name exists
+          }
+
+          return {
+            ...(existing ?? {}),
+            textMateRules: Array.from(existingMap.values()), // convert map back to array
+          };
+        }
       );
     }
 
     // 3. editor.semanticTokenColorCustomizations
     if (Object.keys(pendingSemanticRules).length > 0) {
-      await this.updateConfigSection<{ rules?: Record<string, any> }>(
-        "editor.semanticTokenColorCustomizations",
-        (existing) => {
-          const rules = { ...(existing.rules ?? {}), ...pendingSemanticRules };
-          return { ...existing, rules };
-        }
-      );
+      await this.updateConfigSection<{
+        rules?: Record<string, TokenColorSettings>;
+      }>("editor.semanticTokenColorCustomizations", (existing) => {
+        const rules = { ...(existing.rules ?? {}), ...pendingSemanticRules };
+        return { ...existing, rules };
+      });
     }
 
     // 4. arbitrary settings (each key is its own setting)
@@ -242,25 +269,26 @@ export default class DraftManager {
         pendingColors[key] = value;
       },
 
-      token: (key: string, value: string) => {
+      token: (key: string, value: TokenColorSettings) => {
         const { existingTokenColors, pendingTokenColors } = ctx;
+        // const existingTextmateColors = existingTokenColors?.textMateRules as TextMateTokenRule[]
 
-        if (!(key in draft.oldSettings.tokenCustomization)) {
-          draft.oldSettings.tokenCustomization[key] =
-            existingTokenColors[key] ?? "";
-        }
+        // if (!(key in draft.oldSettings.tokenCustomization)) {
+        //   draft.oldSettings.tokenCustomization[key] =
+        //     existingTextmateColors?.find(t=>t.name?.split("(Laeyrd)")[0])?.settings ?? {};
+        // }
 
         draft.draftState.tokenCustomization[key] = value;
         pendingTokenColors[key] = value;
       },
 
-      semanticToken: (key: string, value: string) => {
+      semanticToken: (key: string, value: TokenColorSettings) => {
         const { existingSemanticRules, pendingSemanticRules } = ctx;
 
-        if (!(key in draft.oldSettings.semanticTokenCustomization)) {
-          draft.oldSettings.semanticTokenCustomization[key] =
-            existingSemanticRules[key] ?? "";
-        }
+        // if (!(key in draft.oldSettings.semanticTokenCustomization)) {
+        //   draft.oldSettings.semanticTokenCustomization[key] =
+        //     existingSemanticRules[key] ?? "";
+        // }
 
         draft.draftState.semanticTokenCustomization[key] = value;
         pendingSemanticRules[key] = value;
@@ -313,19 +341,32 @@ export default class DraftManager {
           "editor.tokenColorCustomizations",
           (existing) => {
             const copy = { ...existing };
+            const existingRules: TextMateTokenRule[] = copy.textMateRules ?? [];
+            // Build a map of existing rules by name
+            // const existingMap = new Map(
+            //   existingRules.map((rule) => [rule.name, rule])
+            // );
             tokenCustomizations.forEach(({ key, value, type }) => {
-              const keyInOldSettings = oldSettings.tokenCustomization[key];
-              if (keyInOldSettings) {
-                // restore old value
-                existing[key] = keyInOldSettings;
-              } else {
-                // delete value entirely
-                delete copy[key];
-              }
+              const keyWithLaeyrd = key+"(Laeyrd)";
+            //   const keyInOldSettings = oldSettings.tokenCustomization[key];
+            //   if (keyInOldSettings && Object.keys(keyInOldSettings).length > 0) {
+            //     // restore old value
+            //     existingMap.set(keyWithLaeyrd, {
+            //       ...existingMap.get(keyWithLaeyrd),
+            //       scope: existingMap.get(key)?.scope ?? [],
+            //       settings: {
+            //         foreground: keyInOldSettings.foreground ?? "",
+            //         fontStyle: keyInOldSettings.fontStyle ?? "none"
+            //       },
+            //     });
+            //   } else {
+            //     // delete value entirely
+                existingRules.filter(rule => rule.name !== keyWithLaeyrd);
+            //   }
               delete draft.tokenCustomization[key];
               successData.push({ key, value, type });
             });
-            return copy;
+            return { ...copy, textMateRules: existingRules };
           }
         );
       }
@@ -335,19 +376,22 @@ export default class DraftManager {
           (existing) => {
             const copy = { ...existing.rules };
             semanticTokenCustomizations.forEach(({ key, value, type }) => {
-              const keyInOldSettings =
-                oldSettings.semanticTokenCustomization[key];
-              if (keyInOldSettings && keyInOldSettings !== "") {
-                // restore old value
-                copy[key] = keyInOldSettings;
-              } else {
+              // const keyInOldSettings =
+              //   oldSettings.semanticTokenCustomization[key];
+              // if (
+              //   keyInOldSettings &&
+              //   Object.keys(keyInOldSettings).length > 0
+              // ) {
+              //   // restore old value
+              //   copy[key] = keyInOldSettings;
+              // } else {
                 // delete value entirely
                 delete copy[key];
-              }
+              // }
               delete draft.semanticTokenCustomization[key];
               successData.push({ key, value, type });
             });
-            return { rules: copy };
+            return { enabled: true, rules: copy };
           }
         );
       }
@@ -471,34 +515,18 @@ export default class DraftManager {
 
         // Tokens
         if (Object.keys(oldSettings.tokenCustomization).length) {
-          await this.revertConfigSection(
-            "editor.tokenColorCustomizations",
-            oldSettings.tokenCustomization,
-            (existing, oldValues) => {
-              const reverted = { ...existing };
-              for (const [key, val] of Object.entries(oldValues)) {
-                if (val === "") delete reverted[key];
-                else reverted[key] = val;
-              }
-              return reverted;
-            }
-          );
+          const config = await this.getVSCodeConfig();
+          const existing = config.get("editor.tokenColorCustomizations") ?? ({});
+          await config.update("editor.tokenColorCustomizations", 
+            {...existing, textMateRules: []}, vscode.ConfigurationTarget.Global);
         }
 
         // Semantic tokens
         if (Object.keys(oldSettings.semanticTokenCustomization).length) {
-          await this.revertConfigSection(
-            "editor.semanticTokenColorCustomizations",
-            oldSettings.semanticTokenCustomization,
-            (existing, oldValues) => {
-              const reverted = { ...existing };
-              for (const [key, val] of Object.entries(oldValues)) {
-                if (!val) delete reverted[key];
-                else reverted[key] = val;
-              }
-              return reverted;
-            }
-          );
+          const config = await this.getVSCodeConfig();
+          const existing = config.get("editor.semanticTokenColorCustomizations") ?? ({});
+          await config.update("editor.semanticTokenColorCustomizations", 
+            {...existing, rules: {}}, vscode.ConfigurationTarget.Global);
         }
       }
       if (saveTrigger === "discard_all") {

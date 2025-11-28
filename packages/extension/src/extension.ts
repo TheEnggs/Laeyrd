@@ -2,12 +2,19 @@ import * as vscode from "vscode";
 import { PanelManager } from "./controller/panelManager";
 import { AuthController } from "./controller/auth";
 import ExtensionController from "./controller/extensionController";
-import { log } from "@shared/utils/debug-logs";
 import { BackupManager } from "./controller/backup";
+import { TelemetryService } from "./controller/telemetry";
 
 let panelManager: PanelManager | null = null;
 let authController: AuthController | null = null;
 export async function activate(context: vscode.ExtensionContext) {
+    const telemetry = TelemetryService.instance;
+  telemetry.init(context);
+
+  telemetry.sendEvent("extension_activated", {
+    vscodeVersion: vscode.version,
+    platform: process.platform,
+  });
   const extensionController = await ExtensionController.create(context);
 
   const isVersionUpdated = await extensionController.checkForVersionUpdate();

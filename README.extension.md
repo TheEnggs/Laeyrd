@@ -4,10 +4,6 @@
 
 ![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
-> **⚠️ Pre-release Notice**
-> Laeyrd is currently in **early testing** and not production-ready.
-> Expect bugs, missing features, and the occasional UI chaos.
-
 ---
 
 ## ✨ What Is Laeyrd?
@@ -24,7 +20,7 @@ Laeyrd turns theme editing and configuration into something actually fun.
 
 ---
 
-## 🧠 Current Features (Pre-release)
+## 🧠 Current Features
 
 ### 🎨 Theme Customization
 

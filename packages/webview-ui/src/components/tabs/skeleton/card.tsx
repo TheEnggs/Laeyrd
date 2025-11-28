@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export const ColorSettingsSkeleton = () => {
+export const CardSkeleton = () => {
   return (
     <div className="space-y-6 mt-6">
       {Array.from({ length: 2 }).map((_, tabIdx) => (

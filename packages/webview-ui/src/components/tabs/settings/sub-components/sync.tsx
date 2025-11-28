@@ -11,12 +11,13 @@ import { CheckCircle2, Palette, RefreshCw, XCircleIcon } from "lucide-react";
 import { useMutation } from "@/hooks/use-query";
 import { ConflictResolvedResponse, SyncResponse } from "@shared/types/sync";
 import useToast from "@/hooks/use-toast";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 export default function SyncThemesCard() {
   const toast = useToast();
   const [syncResponse, setSyncResponse] = useState<SyncResponse[] | null>(null);
-  const [conflictResolution, setConflictResolution] = useState<ConflictResolvedResponse | null>(null);
+  const [conflictResolution, setConflictResolution] =
+    useState<ConflictResolvedResponse | null>(null);
   const [conflictIndex, setConflictIndex] = useState(0);
 
   const { mutate: sync, isPending } = useMutation("SYNC", {
@@ -29,25 +30,31 @@ export default function SyncThemesCard() {
         }));
     },
   });
-  const { mutate: resolveConflict, isPending: resolvingConflict } = useMutation("RESOLVE_CONFLICT", {
-    onSuccess: (data) => {
-      // Convert to Record
-      const resultMap = data.data.reduce<Record<string, { success: boolean; error?: string }>>((acc, e) => {
-        acc[e.fileId] = { success: e.success, error: e.error };
-        return acc;
-      }, {});
+  const { mutate: resolveConflict, isPending: resolvingConflict } = useMutation(
+    "RESOLVE_CONFLICT",
+    {
+      onSuccess: (data) => {
+        // Convert to Record
+        const resultMap = data.data.reduce<
+          Record<string, { success: boolean; error?: string }>
+        >((acc, e) => {
+          acc[e.fileId] = { success: e.success, error: e.error };
+          return acc;
+        }, {});
 
-      setSyncResponse(prev =>
-        prev?.map(p => {
-          const result = resultMap[p.fileId];
-          if (!result) return p;
-          return result.success
-            ? { ...p, resolve: true }
-            : { ...p, resolvedError: result.error };
-        }) ?? []
-      );
-    },
-  });
+        setSyncResponse(
+          (prev) =>
+            prev?.map((p) => {
+              const result = resultMap[p.fileId];
+              if (!result) return p;
+              return result.success
+                ? { ...p, resolve: true }
+                : { ...p, resolvedError: result.error };
+            }) ?? []
+        );
+      },
+    }
+  );
   // Flatten conflicts into an array for the carousel
   const conflicts: SyncResponse[] = syncResponse
     ? syncResponse.filter((r) => r.status === "CONFLICT")
@@ -110,14 +117,22 @@ export default function SyncThemesCard() {
             <pre className="text-sm">{conflict.remoteFileContent}</pre>
           </div>
         </div>
-        {conflict.resolved !== -1 ? <div><Badge>{conflict.resolved ? <CheckCircle2 /> : <XCircleIcon />}</Badge></div> : <div className="mt-2 flex gap-2">
-          <Button size="sm" onClick={() => handleResolveConflict("local")}>
-            Keep Local
-          </Button>
-          <Button size="sm" onClick={() => handleResolveConflict("remote")}>
-            Keep Remote
-          </Button>
-        </div>}
+        {conflict.resolved !== -1 ? (
+          <div>
+            <Badge>
+              {conflict.resolved ? <CheckCircle2 /> : <XCircleIcon />}
+            </Badge>
+          </div>
+        ) : (
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" onClick={() => handleResolveConflict("local")}>
+              Keep Local
+            </Button>
+            <Button size="sm" onClick={() => handleResolveConflict("remote")}>
+              Keep Remote
+            </Button>
+          </div>
+        )}
         {/* <Button size="sm" onClick={resolveConflict()}/> */}
       </div>
     );
