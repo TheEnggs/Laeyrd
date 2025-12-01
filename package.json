@@ -1,9 +1,9 @@
 {
   "name": "Laeyrd",
-  "version": "1.0.1",
-  "description": "Laeyrd is a theme and settings customizer for VSCode with sync functionality.",
+  "version": "1.0.2",
+  "description": "Laeyrd is a theme creator and settings customizer for VSCode with sync functionality.",
   "publisher": "TheEnggs",
-  "readme": "README.extension.md",
+  "readme": "README.md",
   "icon": "dist/media/icons/laeyrd_logo.png",
   "license": "MIT",
   "repository": {
@@ -32,12 +32,33 @@
     "commands": [
       {
         "command": "laeyrd.open",
-        "title": "Laeyrd | TheEnggs",
+        "title": "Laeyrd | Customize VSCode",
         "icon": "dist/media/icons/laeyrd_ae_dark.svg",
-        "category": "Customization"
+        "category": "Customize"
       }
     ],
-    "themes": []
+    "themes": [
+      {
+        "label": "Dark_EverForest_2.json",
+        "uiTheme": "vs-dark",
+        "path": "dist/themes/Dark_EverForest_2.json.json"
+      },
+      {
+        "label": "Dark_Everforest.json",
+        "uiTheme": "vs-dark",
+        "path": "dist/themes/Dark_Everforest.json.json"
+      },
+      {
+        "label": "Laeyrd_dark.json",
+        "uiTheme": "vs-dark",
+        "path": "dist/themes/Laeyrd_dark.json.json"
+      },
+      {
+        "label": "mocha_laeyrd.json",
+        "uiTheme": "vs-dark",
+        "path": "dist/themes/mocha_laeyrd.json.json"
+      }
+    ]
   },
   "scripts": {
     "dev": "npm-run-all --parallel dev:*",

@@ -202,7 +202,7 @@ export class BackupManager {
       }
       vscode.window
         .showInformationMessage(
-          `Themes backed up! Reload window to activate.`,
+          `[Laeyrd] Themes backed up! Reload window to see updates.`,
           "Reload Window Now"
         )
         .then((selection) => {
