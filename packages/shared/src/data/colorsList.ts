@@ -112,7 +112,7 @@ export const colorCategoryMap: ColorMetaGrouped = {
     description: "Default editor text color",
     groupName: "primary_text",
   },
-  "editorGroup.border": {
+  "editorGroupHeader.tabsBorder": {
     category: "Editor",
     subcategory: "Group",
     displayName: "Group Border Color",

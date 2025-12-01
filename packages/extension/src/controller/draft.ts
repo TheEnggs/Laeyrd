@@ -144,7 +144,6 @@ export default class DraftManager {
       pendingTokenColors: TextMateTokenRule[] = [],
       pendingSemanticRules: UserTokenColors = {},
       pendingSettings: Record<string, string | number | boolean> = {};
-    console.log("payload", payload);
 
     // Process all payload items, but don't touch config yet
     payload.forEach((item) => {
@@ -183,12 +182,6 @@ export default class DraftManager {
               originalTheme?.semanticTokenColors,
               getTokenColoredMap
             );
-          console.log("getTokenMap", getTokenColoredMap);
-          console.log("generatedScopedTokenColors", generatedScopedTokenColors);
-          console.log(
-            "generatedSemanticTokenColors",
-            generatedSemanticTokenColors
-          );
           // Add/overwrite with your new rules
           for (const rule of generatedScopedTokenColors) {
             pendingTokenColors.push(rule);
@@ -280,7 +273,6 @@ export default class DraftManager {
     draft.isEditing = true;
     draft.isSettingsRestored = false;
     this.draftFileContent = draft;
-    console.log("updated draft", draft);
 
     return await this.writeFile();
   }

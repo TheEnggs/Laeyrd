@@ -222,7 +222,6 @@ export function convertDraftUserTokenColorsToTokenColors(
 
   for (const [key, value] of Object.entries(tokenColors)) {
     const category = normalizeTokenMapKey(key);
-    console.log("Key:", key, "Normalized Category:", category);
     if (!category) {continue;}
 
     const base = tokenColorMap[category];
