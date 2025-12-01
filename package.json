@@ -37,28 +37,7 @@
         "category": "Customize"
       }
     ],
-    "themes": [
-      {
-        "label": "Dark_EverForest_2.json",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/Dark_EverForest_2.json.json"
-      },
-      {
-        "label": "Dark_Everforest.json",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/Dark_Everforest.json.json"
-      },
-      {
-        "label": "Laeyrd_dark.json",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/Laeyrd_dark.json.json"
-      },
-      {
-        "label": "mocha_laeyrd.json",
-        "uiTheme": "vs-dark",
-        "path": "dist/themes/mocha_laeyrd.json.json"
-      }
-    ]
+    "themes": []
   },
   "scripts": {
     "dev": "npm-run-all --parallel dev:*",
