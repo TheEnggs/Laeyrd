@@ -1,6 +1,6 @@
 {
   "name": "Laeyrd",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Laeyrd is a theme creator and settings customizer for VSCode with sync functionality.",
   "publisher": "TheEnggs",
   "readme": "README.md",
@@ -20,7 +20,7 @@
     "onStartupFinished"
   ],
   "engines": {
-    "vscode": "^1.103.0"
+    "vscode": "^1.80.0"
   },
   "keywords": [
     "theme",
@@ -63,7 +63,7 @@
     "@types/node": "^24.9.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/vscode": "^1.103.0",
+    "@types/vscode": "^1.80.0",
     "@types/vscode-webview": "1.57.5",
     "@vitejs/plugin-react": "^5.1.0",
     "esbuild": "^0.25.12",

@@ -35,6 +35,9 @@ Laeyrd has to work on top of how VS Code and different forks load themes and set
 * **Cached UI elements**
   Some UI parts (like activity bar, notifications, or panel borders) can lag behind after major theme changes. A **window reload** usually fixes it.
 
+* **Asked to reload twice**
+  Vscode will ask you to reload twice, its not a bug just how vscode works.
+
 These aren’t “hard” bugs, more like VS Code being stubborn about when it listens. If something looks completely wrong or breaks consistently, that *is* a bug and you should absolutely report it.
 
 ---
@@ -115,6 +118,7 @@ If your editor is VS Code–compatible, there’s a good chance Laeyrd can read 
    * Generate a new theme
    * Overwrite an existing Laeyrd theme
    * Update your editor settings safely
+   * Reload vscode and that's it
 
 ---
 
