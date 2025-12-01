@@ -2,9 +2,9 @@
 
 ![Laeyrd Preview](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
-# Laeyrd – Themes, Settings & Sync for VS Code
+# Laeyrd – Create Themes, Customize Settings & Sync Your Code
 
-Design your own theme, tune your editor settings, and keep everything in sync across machines – without touching `settings.json` even once.
+Design and create your own theme, tune your editor settings, and keep everything in sync across machines – without touching `any JSON file` even once.
 
 ---
 
@@ -17,12 +17,6 @@ Laeyrd adds a **visual control panel** on top of VS Code so you can:
 * ☁️ **Sync your setup** using your GitHub account (coming online gradually)
 
 All inside VS Code. No JSON, no config hunting, no “where does this fork store `settings.json`?” pain.
-
----
-
-You want a “known quirks” section so users don’t open 500 issues for things you can’t fully control. Sensible for once.
-
-Here’s a clean section you can bolt under your “How To Use” in the marketplace README.
 
 ---
 
