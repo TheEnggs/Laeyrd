@@ -4,17 +4,16 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User, Copy, CloudCheck } from "lucide-react";
+} from "@webview/components/ui/card";
+import { CloudCheck, User } from "lucide-react";
 /** ------------------- Auth Section ------------------- */
 export default function AuthSection() {
-  //   const { authUser, signIn, signOut, deviceFlow } = useAuth();
+  //   Const { authUser, signIn, signOut, deviceFlow } = useAuth();
 
-  //   const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
+  //   Const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
 
-  //   const handleOpenExternalUrl = (url: string) => {
-  //     openExternalUrlMutation.mutate({ url });
+  //   Const handleOpenExternalUrl = (url: string) => {
+  //     OpenExternalUrlMutation.mutate({ url });
   //   };
 
   return (

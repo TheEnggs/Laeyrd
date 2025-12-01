@@ -1,8 +1,26 @@
 {
-  "files": [],
-  "references": [
-    { "path": "packages/shared" },
-    { "path": "packages/extension" },
-    { "path": "packages/webview-ui" }
-  ]
+  "compilerOptions": {
+    /* common JS/TS baseline */
+    "target": "ES2024",
+    "module": "NodeNext",
+    "lib": ["ES2024", "DOM"],
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "incremental": true,
+
+    /* module aliases */
+    "baseUrl": "./packages",
+    "paths": {
+      "@shared/*": ["shared/src/*"],
+      "@webview/*": ["webview-ui/src/*"],
+      "@extension/*": ["extension/src/*"]
+    }
+  }
 }

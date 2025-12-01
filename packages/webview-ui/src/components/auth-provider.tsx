@@ -1,121 +1,121 @@
 // "use client";
 
-// import {
-//   createContext,
-//   useContext,
-//   useState,
-//   useEffect,
+// Import {
+//   CreateContext,
+//   UseContext,
+//   UseState,
+//   UseEffect,
 //   ReactNode,
 // } from "react";
-// import { useQuery, useMutation } from "../hooks/use-query";
-// import { AuthUser } from "@shared/types/user";
-// import useToast from "../hooks/use-toast";
+// Import { useQuery, useMutation } from "../hooks/use-query";
+// Import { AuthUser } from "@shared/types/user";
+// Import useToast from "../hooks/use-toast";
 
-// interface AuthContextType {
-//   authUser: AuthUser | null;
-//   isLoading: boolean;
-//   signIn: () => Promise<void>;
-//   signOut: () => Promise<void>;
-//   refreshAuth: () => void;
-//   deviceFlow: DeviceFlow;
+// Interface AuthContextType {
+//   AuthUser: AuthUser | null;
+//   IsLoading: boolean;
+//   SignIn: () => Promise<void>;
+//   SignOut: () => Promise<void>;
+//   RefreshAuth: () => void;
+//   DeviceFlow: DeviceFlow;
 // }
 
-// const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// interface AuthProviderProps {
-//   children: ReactNode;
+// Interface AuthProviderProps {
+//   Children: ReactNode;
 // }
-// export type DeviceFlow = {
-//   user_code: string;
-//   verificationUri: string;
-//   expiresIn: number;
+// Export type DeviceFlow = {
+//   User_code: string;
+//   VerificationUri: string;
+//   ExpiresIn: number;
 // } | null;
-// export function AuthProvider({ children }: AuthProviderProps) {
-//   const toast = useToast();
-//   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [deviceFlow, setDeviceFlow] = useState<DeviceFlow>(null);
+// Export function AuthProvider({ children }: AuthProviderProps) {
+//   Const toast = useToast();
+//   Const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+//   Const [isLoading, setIsLoading] = useState(true);
+//   Const [deviceFlow, setDeviceFlow] = useState<DeviceFlow>(null);
 
 //   // VS Code extension backend communication
-//   const { data: backendUser } = useQuery({
-//     command: "GET_AUTH_USER",
-//     payload: null,
+//   Const { data: backendUser } = useQuery({
+//     Command: "GET_AUTH_USER",
+//     Payload: null,
 //   });
 
-//   const signInMutation = useMutation("WEBAPP_SIGN_IN", {
-//     onSuccess: (data) => {
-//       if (!data) throw new Error("Failed to sign in");
-//       if (!data.user_code || !data.verificationUri || !data.expiresIn)
-//         throw new Error("Failed to sign in");
-//       setDeviceFlow({
-//         user_code: data.user_code,
-//         verificationUri: data.verificationUri,
-//         expiresIn: data.expiresIn,
+//   Const signInMutation = useMutation("WEBAPP_SIGN_IN", {
+//     OnSuccess: (data) => {
+//       If (!data) throw new Error("Failed to sign in");
+//       If (!data.user_code || !data.verificationUri || !data.expiresIn)
+//         Throw new Error("Failed to sign in");
+//       SetDeviceFlow({
+//         User_code: data.user_code,
+//         VerificationUri: data.verificationUri,
+//         ExpiresIn: data.expiresIn,
 //       });
 //     },
-//     onError: (error) => {
-//       toast({
-//         message: "Failed to sign in",
-//         type: "error",
+//     OnError: (error) => {
+//       Toast({
+//         Message: "Failed to sign in",
+//         Type: "error",
 //       });
 //     },
 //   });
-//   const signOutMutation = useMutation("SIGN_OUT");
-//   const updateUserMutation = useMutation("UPDATE_AUTH_USER");
+//   Const signOutMutation = useMutation("SIGN_OUT");
+//   Const updateUserMutation = useMutation("UPDATE_AUTH_USER");
 
 //   // Sync with backend auth state
-//   useEffect(() => {
-//     if (backendUser) {
-//       setAuthUser(backendUser);
+//   UseEffect(() => {
+//     If (backendUser) {
+//       SetAuthUser(backendUser);
 //     } else {
-//       setAuthUser(null);
+//       SetAuthUser(null);
 //     }
 //   }, [backendUser]);
 
-//   useEffect(() => {
-//     setIsLoading(false);
+//   UseEffect(() => {
+//     SetIsLoading(false);
 //   }, [backendUser]);
 
-//   const signIn = async () => {
-//     try {
-//       await signInMutation.mutate(null);
+//   Const signIn = async () => {
+//     Try {
+//       Await signInMutation.mutate(null);
 //     } catch (error) {
-//       console.error("Sign in failed:", error);
-//       throw error;
+//       Console.error("Sign in failed:", error);
+//       Throw error;
 //     }
 //   };
 
-//   const signOut = async () => {
-//     try {
-//       await signOutMutation.mutate(null);
-//       setAuthUser(null);
+//   Const signOut = async () => {
+//     Try {
+//       Await signOutMutation.mutate(null);
+//       SetAuthUser(null);
 //     } catch (error) {
-//       console.error("Sign out failed:", error);
-//       throw error;
+//       Console.error("Sign out failed:", error);
+//       Throw error;
 //     }
 //   };
 
-//   const refreshAuth = () => {
+//   Const refreshAuth = () => {
 //     // Trigger a refresh of auth state from backend
-//     window.location.reload();
+//     Window.location.reload();
 //   };
 
-//   const value: AuthContextType = {
-//     authUser,
-//     isLoading,
-//     signIn,
-//     signOut,
-//     refreshAuth,
-//     deviceFlow,
+//   Const value: AuthContextType = {
+//     AuthUser,
+//     IsLoading,
+//     SignIn,
+//     SignOut,
+//     RefreshAuth,
+//     DeviceFlow,
 //   };
 
-//   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+//   Return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 // }
 
-// export function useAuth() {
-//   const context = useContext(AuthContext);
-//   if (context === undefined) {
-//     throw new Error("useAuth must be used within an AuthProvider");
+// Export function useAuth() {
+//   Const context = useContext(AuthContext);
+//   If (context === undefined) {
+//     Throw new Error("useAuth must be used within an AuthProvider");
 //   }
-//   return context;
+//   Return context;
 // }

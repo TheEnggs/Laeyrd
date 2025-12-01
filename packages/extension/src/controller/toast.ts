@@ -7,10 +7,10 @@ export const ToastController = {
     message: string;
     type: "info" | "error" | "warn" | "success";
   }) {
-    if (type === "info") vscode.window.showInformationMessage(message);
-    else if (type === "warn") vscode.window.showWarningMessage(message);
-    else if (type === "error") vscode.window.showErrorMessage(message);
-    else if (type === "success") vscode.window.showInformationMessage(message);
+    if (type === "info") {vscode.window.showInformationMessage(message);}
+    else if (type === "warn") {vscode.window.showWarningMessage(message);}
+    else if (type === "error") {vscode.window.showErrorMessage(message);}
+    else if (type === "success") {vscode.window.showInformationMessage(message);}
     vscode.window.showInformationMessage(message);
   },
 };

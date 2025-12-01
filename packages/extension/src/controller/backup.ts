@@ -1,15 +1,14 @@
 
 import * as vscode from "vscode";
-import { ThemeController } from "./theme";
 import { detectFork, getSettingsPath } from "@extension/utils/getSettings";
 import { ThemeJson } from "@shared/types/theme";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+const encoder = new TextEncoder(),
+ decoder = new TextDecoder();
 
 export interface ThemeBackupPayload {
-  // whatever shape your theme/draft state has
-  // you can replace this with your DraftState or DraftFile type
+  // Whatever shape your theme/draft state has
+  // You can replace this with your DraftState or DraftFile type
   id?: string;
   name: string;
   data: ThemeJson;
@@ -47,10 +46,10 @@ export class BackupManager {
     try {
       // If file exists, don't touch it
       await vscode.workspace.fs.stat(this.settingsBackupFile);
-      // stat succeeded → backup already exists
+      // Stat succeeded → backup already exists
       return;
     } catch {
-      // stat failed → no backup yet
+      // Stat failed → no backup yet
     }
 
     const settingsUri = this.getUserSettingsUri();
@@ -67,7 +66,7 @@ export class BackupManager {
         settingsBytes
       );
     } catch (error) {
-      // swallow failure but log if you have a logger
+      // Swallow failure but log if you have a logger
       console.error("Failed to create initial settings backup:", error);
     }
   }
@@ -77,19 +76,19 @@ export class BackupManager {
    * Call this whenever you create/update a theme or apply draft changes.
    */
   public async backupTheme(payload: ThemeBackupPayload) {
-    const safeName = payload.name?.replace(/[^\w\-]+/g, "_") || "theme";
-    const fileName = `${safeName}.json`;
-    const fileUri = vscode.Uri.joinPath(this.themesDir, fileName);
+    const safeName = payload.name?.replace(/[^\w\-]+/g, "_") || "theme",
+     fileName = `${safeName}.json`,
+     fileUri = vscode.Uri.joinPath(this.themesDir, fileName),
 
-    const content = {
+     content = {
       id: payload.id ?? null,
       name: payload.name ?? null,
       createdAt: new Date().toISOString(),
       data: payload.data,
-    };
+    },
 
-    const json = JSON.stringify(content, null, 2);
-    const bytes = encoder.encode(json);
+     json = JSON.stringify(content, null, 2),
+     bytes = encoder.encode(json);
 
     try {
       await vscode.workspace.fs.writeFile(fileUri, bytes);
@@ -99,7 +98,7 @@ export class BackupManager {
   }
 
   public async deleteBackedUpThemeFile(themeName: string) {
-    const themeUri = vscode.Uri.joinPath(this.themesDir, themeName + ".json");
+    const themeUri = vscode.Uri.joinPath(this.themesDir, `${themeName  }.json`);
     await vscode.workspace.fs.delete(themeUri, { recursive: false });
   }
 
@@ -160,18 +159,18 @@ export class BackupManager {
       const packageUri = vscode.Uri.joinPath(
         context.extensionUri,
         "package.json"
-      );
-      const content = await vscode.workspace.fs.readFile(packageUri);
-      const pkg = JSON.parse(Buffer.from(content).toString("utf8"));
+      ),
+       content = await vscode.workspace.fs.readFile(packageUri),
+       pkg = JSON.parse(Buffer.from(content).toString("utf8"));
 
-      if (!pkg.contributes) pkg.contributes = {};
-      if (!pkg.contributes.themes) pkg.contributes.themes = [];
+      if (!pkg.contributes) {pkg.contributes = {};}
+      if (!pkg.contributes.themes) {pkg.contributes.themes = [];}
 
       const alreadyExists = pkg.contributes.themes.some(
         (t: any) => t.label === themeName
       );
       if (alreadyExists)
-        throw new Error(`Theme "${themeName}" already exists in package.json.`);
+        {throw new Error(`Theme "${themeName}" already exists in package.json.`);}
       pkg.contributes.themes.push({
         label: themeName,
         uiTheme: type === "dark" ? "vs-dark" : "vs",
@@ -195,20 +194,20 @@ export class BackupManager {
       const entries = await vscode.workspace.fs.readDirectory(this.themesDir);
       for (const [name, type] of entries) {
         if (type === vscode.FileType.File && name.endsWith(".json")) {
-          const themeUri = vscode.Uri.joinPath(this.themesDir, name);
-          const bytes = await vscode.workspace.fs.readFile(themeUri);
-          const themeJson: ThemeJson = JSON.parse(new TextDecoder().decode(bytes));
+          const themeUri = vscode.Uri.joinPath(this.themesDir, name),
+           bytes = await vscode.workspace.fs.readFile(themeUri),
+           themeJson: ThemeJson = JSON.parse(new TextDecoder().decode(bytes));
           await this.addTheme_UpdatePackageJson(this.context, name, themeJson);
         }
       }
       vscode.window
         .showInformationMessage(
-          `Themes backed up! Reload window to activate.`,
+          `[Laeyrd] Themes backed up! Reload window to see updates.`,
           "Reload Window Now"
         )
         .then((selection) => {
           if (selection === "Reload Window Now")
-            vscode.commands.executeCommand("workbench.action.reloadWindow");
+            {vscode.commands.executeCommand("workbench.action.reloadWindow");}
         });
     } catch (e) {
       vscode.window.showErrorMessage(`Failed to pull backups`);
@@ -220,9 +219,9 @@ export class BackupManager {
    * This uses VS Code workspace APIs instead of guessing OS paths.
    */
   private getUserSettingsUri(): vscode.Uri {
-    const fork = detectFork();
-    const settingsPath = getSettingsPath(fork); // your function returning a string
-    const uri = vscode.Uri.file(settingsPath);
+    const fork = detectFork(),
+     settingsPath = getSettingsPath(fork), // Your function returning a string
+     uri = vscode.Uri.file(settingsPath);
     return uri;
   }
 }

@@ -1,4 +1,4 @@
-// src/telemetry.ts
+// Src/telemetry.ts
 import * as vscode from "vscode";
 import TelemetryReporter from "vscode-extension-telemetry";
 
@@ -45,8 +45,8 @@ export class TelemetryService {
         return;
       }
 
-      const extensionId = extension.id;
-      const extensionVersion = extension.packageJSON.version;
+      const extensionId = extension.id,
+       extensionVersion = extension.packageJSON.version;
 
       this.reporter = new TelemetryReporter(
         extensionId,
@@ -108,7 +108,7 @@ export class TelemetryService {
     if (error instanceof Error) {
       baseProps.message = error.message;
       // Intentionally NOT adding stack to avoid PII
-      // baseProps.stack = error.stack ?? "";
+      // BaseProps.stack = error.stack ?? "";
     }
 
     try {

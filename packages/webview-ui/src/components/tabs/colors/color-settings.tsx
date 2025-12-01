@@ -1,32 +1,36 @@
 "use client";
 
 import {
-  Tabs,
-  TabsContent,
   AnimatedTabsList,
   AnimatedTabsTrigger,
-} from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+  Tabs,
+  TabsContent,
+} from "@webview/components/ui/tabs";
 import {
-  Palette,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@webview/components/ui/card";
+import {
+  Braces,
+  Brackets,
   FileText,
   Layout,
-  Braces,
-  Zap,
-  Terminal,
+  Palette,
   Square,
-  Search,
-  Brackets,
+  Terminal,
+  Zap,
 } from "lucide-react";
 import { mainTabs } from "@shared/utils/colors";
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
-import { useDraft } from "@/contexts/draft-context";
+import { cn } from "@webview/lib/utils";
+import { useDraft } from "@webview/contexts/draft-context";
 import { Category, DraftStatePayload, GroupName } from "@shared/types/theme";
-import { useQuery } from "@/hooks/use-query";
+import { useQuery } from "@webview/hooks/use-query";
 import { CardSkeleton } from "../skeleton/card";
 import RemoveDraftChange from "../shared/remove-draft-change";
-import ColorPicker from "@/components/ui/color-picker";
+import ColorPicker from "@webview/components/ui/color-picker";
 import ApplyGroupColors from "./apply-group-colors";
 import TokenColorSettings from "./token-color-settings";
 // 🔹 Map main tabs to icons
@@ -37,7 +41,7 @@ export const iconMap = {
   Tokens: Brackets,
   "UI & Layout": Layout,
   Extras: Zap,
-  Terminal: Terminal,
+  Terminal,
 } as const;
 
 export type ColorRendered = {
@@ -52,25 +56,25 @@ export type ColorRendered = {
 };
 export type CategoryTree = Record<string, Record<string, ColorRendered[]>>;
 export default function ColorSettings() {
-  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
-  const { data: colorsState, isLoading: isLoadingColors } = useQuery({
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft(),
+   { data: colorsState, isLoading: isLoadingColors } = useQuery({
     command: "GET_THEME_COLORS",
     payload: [],
-  });
+  }),
 
-  const [activeTab, setActiveTab] = useState<string>(mainTabs[0]);
+   [activeTab, setActiveTab] = useState<string>(mainTabs[0]),
 
   // 🔹 Memoized tree: category → subcategory → colors[]
-  const categoryTree = useMemo(() => {
-    if (!colorsState) return {};
+   categoryTree = useMemo(() => {
+    if (!colorsState) {return {};}
     const tree: CategoryTree = {};
 
     for (const [key, def] of Object.entries(colorsState)) {
-      const category = def.category;
-      const subcategory = def.subcategory || "General";
+      const {category} = def,
+       subcategory = def.subcategory || "General";
 
-      if (!tree[category]) tree[category] = {};
-      if (!tree[category][subcategory]) tree[category][subcategory] = [];
+      if (!tree[category]) {tree[category] = {};}
+      if (!tree[category][subcategory]) {tree[category][subcategory] = [];}
       const draftColor = drafts.find(
         (c): c is Extract<DraftStatePayload, { type: "color" }> =>
           c.key === key && c.type === "color"
@@ -84,7 +88,7 @@ export default function ColorSettings() {
         groupName: def.groupName,
         value: draftColor?.value ?? def.defaultValue ?? "",
         originalValue: def.defaultValue,
-        isTouched: !!draftColor,
+        isTouched: Boolean(draftColor),
       });
     }
     return tree;
@@ -128,8 +132,8 @@ export default function ColorSettings() {
         {isLoadingColors && <CardSkeleton />}
         {/* 🔹 Tabs Content */}
         {mainTabs.map((tab) => {
-          const subcategories = categoryTree[tab] || {};
-          const IconComponent = iconMap[tab as keyof typeof iconMap] || Square;
+          const subcategories = categoryTree[tab] || {},
+           IconComponent = iconMap[tab as keyof typeof iconMap] || Square;
 
           return (
             <TabsContent

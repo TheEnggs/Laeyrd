@@ -1,6 +1,6 @@
-// src/hooks/useVSCodeMessenger.ts
-import { RequestMessage, WebViewEvent } from "@shared/types/event";
-import { HandleAcquireVsCodeApi } from "@/lib/acquireVsCodeApi";
+// Src/hooks/useVSCodeMessenger.ts
+import { WebViewEvent } from "@shared/types/event";
+import { HandleAcquireVsCodeApi } from "@webview/lib/acquireVsCodeApi";
 import { log } from "@shared/utils/debug-logs";
 
 type GET_REQUEST_MESSAGE<T extends keyof WebViewEvent> = {

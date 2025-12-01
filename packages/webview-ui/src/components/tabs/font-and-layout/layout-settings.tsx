@@ -1,21 +1,26 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDraft } from "@/contexts/draft-context";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@webview/components/ui/card";
+import { useDraft } from "@webview/contexts/draft-context";
 import { CardSkeleton } from "../skeleton/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@webview/components/ui/input";
+import { Switch } from "@webview/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@webview/components/ui/select";
 import { UiLayoutMeta } from "@shared/types/layout";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@/hooks/use-query";
+import { cn } from "@webview/lib/utils";
+import { useQuery } from "@webview/hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
 import { DraftStatePayload } from "@shared/types/theme";
 import RemoveDraftChange from "../shared/remove-draft-change";
@@ -27,31 +32,31 @@ export type UiLayoutMetaWithKey = UiLayoutMeta & {
 };
 
 export default function LayoutSettings() {
-  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
-  const { data: layoutState, isLoading: isLoadingLayout } = useQuery({
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft(),
+   { data: layoutState, isLoading: isLoadingLayout } = useQuery({
     command: "GET_FONT_AND_LAYOUT_SETTINGS",
     payload: [],
   });
   log("layoutState", drafts);
   // Merge draftState with default values and organize by subcategory
   const layoutTree = useMemo(() => {
-    if (!layoutState) return {};
-    const tree: Record<string, UiLayoutMetaWithKey[]> = {};
-    const subcategoryToggles: Record<string, UiLayoutMetaWithKey> = {};
+    if (!layoutState) {return {};}
+    const tree: Record<string, UiLayoutMetaWithKey[]> = {},
+     subcategoryToggles: Record<string, UiLayoutMetaWithKey> = {};
 
     Object.entries(layoutState).forEach(([key, item]) => {
-      if (!tree[item.subcategory]) tree[item.subcategory] = [];
+      if (!tree[item.subcategory]) {tree[item.subcategory] = [];}
       const draftValue = drafts.find(
         (c): c is Extract<DraftStatePayload, { type: "settings" }> =>
           c.key === key && c.type === "settings"
-      );
+      ),
       // Create a new item with the current value, maintaining type safety
-      const currentItem = {
+       currentItem = {
         ...item,
-        key: key,
+        key,
         defaultValue: draftValue ? draftValue.value : item.defaultValue,
         originalValue: item.defaultValue,
-        isTouched: !!draftValue,
+        isTouched: Boolean(draftValue),
       } as UiLayoutMetaWithKey;
 
       // Store subcategory toggles separately
@@ -97,8 +102,7 @@ export default function LayoutSettings() {
                       : "md:grid-cols-1"
                 )}
               >
-                {items.map((item) => {
-                  return (
+                {items.map((item) => (
                     <div
                       key={item.displayName}
                       className={cn(
@@ -211,8 +215,7 @@ export default function LayoutSettings() {
                     }
                   {/* /> */}
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             </CardContent>
           </Card>

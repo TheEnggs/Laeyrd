@@ -1,53 +1,53 @@
-import { queryClient } from "@/controller/query-client";
+import { queryClient } from "@webview/controller/query-client";
 import { WebViewEvent } from "@shared/types/event";
-import { promiseController } from "@/controller/promise-controller";
+import { promiseController } from "@webview/controller/promise-controller";
 
-let isAttached = false;
-let detachFns: (() => void)[] = [];
+let isAttached = false,
+ detachFns: (() => void)[] = [];
 
 export function startListeners() {
-  if (isAttached) return;
+  if (isAttached) {return;}
   isAttached = true;
 
   const detachTheme = attach("UPDATE_THEME_COLORS", (payload) => {
     if (payload)
-      queryClient.setData({
+      {queryClient.setData({
         command: "GET_THEME_COLORS",
         data: payload,
-      });
-  });
+      });}
+  }),
 
-  const detachTokenMapColors = attach("UPDATE_TOKEN_MAP_COLORS", (payload) => {
+   detachTokenMapColors = attach("UPDATE_TOKEN_MAP_COLORS", (payload) => {
     if (payload)
-      queryClient.setData({
+      {queryClient.setData({
         command: "GET_THEME_TOKEN_MAP_COLORS",
         data: payload,
-      });
-  });
+      });}
+  }),
 
-  const detachThemeList = attach("UPDATE_THEME_LIST", (payload) => {
+   detachThemeList = attach("UPDATE_THEME_LIST", (payload) => {
     if (payload)
-      queryClient.setData({
+      {queryClient.setData({
         command: "GET_THEME_LIST",
         data: payload,
-      });
-  });
-  const detachFontAndLayout = attach(
+      });}
+  }),
+   detachFontAndLayout = attach(
     "UPDATE_FONT_AND_LAYOUT_SETTINGS",
     (payload) => {
       if (payload)
-        queryClient.setData({
+        {queryClient.setData({
           command: "GET_FONT_AND_LAYOUT_SETTINGS",
           data: payload,
-        });
+        });}
     }
-  );
-  const detachAuthUser = attach("UPDATE_AUTH_USER", (payload) => {
+  ),
+   detachAuthUser = attach("UPDATE_AUTH_USER", (payload) => {
     if (payload)
-      queryClient.setData({
+      {queryClient.setData({
         command: "GET_AUTH_USER",
         data: payload,
-      });
+      });}
   });
 
   detachFns = [
@@ -65,7 +65,7 @@ export function stopListeners() {
   isAttached = false;
 }
 
-// helper
+// Helper
 function attach<T extends keyof WebViewEvent>(
   event: T,
   handler: (payload: WebViewEvent[T]["payload"]) => void

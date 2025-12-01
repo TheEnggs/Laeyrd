@@ -40,10 +40,10 @@ export default class ExtensionController {
       const filePath = vscode.Uri.joinPath(
         this.context.globalStorageUri,
         this.fileName
-      );
-      const bytes = await vscode.workspace.fs.readFile(filePath);
-      const text = new TextDecoder("utf8").decode(bytes);
-      const parsed = JSON.parse(text);
+      ),
+       bytes = await vscode.workspace.fs.readFile(filePath),
+       text = new TextDecoder("utf8").decode(bytes),
+       parsed = JSON.parse(text);
       this.extensionConfiguration = {
         ...this.extensionConfiguration,
         ...parsed,
@@ -58,8 +58,8 @@ export default class ExtensionController {
     const filePath = vscode.Uri.joinPath(
       this.context.globalStorageUri,
       this.fileName
-    );
-    const data = new TextEncoder().encode(
+    ),
+     data = new TextEncoder().encode(
       JSON.stringify(this.extensionConfiguration, null, 2)
     );
     await vscode.workspace.fs.writeFile(filePath, data);
@@ -78,7 +78,7 @@ export default class ExtensionController {
   }
 
   async autoSync(userId: string | null) {
-    if (!userId) return;
+    if (!userId) {return;}
     const syncController = new SyncController(this.context, userId);
     await syncController.syncAll();
   }
@@ -87,29 +87,29 @@ export default class ExtensionController {
     await vscode.commands.executeCommand("laeyrd.open");
   }
   async loadEvents(userId?: string) {
-    // if (this.extensionConfiguration.relaunchRequired) {
-    //   this.relaunch()
+    // If (this.extensionConfiguration.relaunchRequired) {
+    //   This.relaunch()
     // }
     if (this.extensionConfiguration.autoSync && userId) {
       this.autoSync(userId);
     }
-    return;
+    
   }
   async detectPanelClosingState(relaunchRequired: boolean) {
     log(relaunchRequired, "here to set the relaunch required to false");
     await this.setValue("relaunchRequired", relaunchRequired);
-    return;
+    
   }
 
   public async checkForVersionUpdate() {
-    const extension = vscode.extensions.getExtension("TheEnggs.Laeyrd"); // publisher.name
+    const extension = vscode.extensions.getExtension("TheEnggs.Laeyrd"); // Publisher.name
     let currentVersion = extension?.packageJSON.version as string | undefined;
     if (!currentVersion) {
       const bytes = await vscode.workspace.fs.readFile(
         vscode.Uri.joinPath(this.context.extensionUri, "package.json")
-      );
-      const text = new TextDecoder("utf8").decode(bytes);
-      const parsed = JSON.parse(text);
+      ),
+       text = new TextDecoder("utf8").decode(bytes),
+       parsed = JSON.parse(text);
       currentVersion = parsed.version as string;
     }
     const previousVersion = this.extensionConfiguration.currentVersion;

@@ -1,36 +1,36 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useDraft } from "@/contexts/draft-context";
+import { Button } from "@webview/components/ui/button";
+import { Input } from "@webview/components/ui/input";
+import { ScrollArea } from "@webview/components/ui/scroll-area";
+import { useDraft } from "@webview/contexts/draft-context";
 import { DraftStatePayload } from "@shared/types/theme";
 import { semanticToTokenKeyMap } from "@shared/data/token/tokenList";
-import { ArrowRight, Loader2, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 
 function getSemanticTokenKey(token: string) {
   return semanticToTokenKeyMap[token] || token;
 }
 
 export default function JsonImporter() {
-  const { updateUnsavedChanges } = useDraft();
+  const { updateUnsavedChanges } = useDraft(),
 
-  const [rawJson, setRawJson] = useState("");
-  const [preview, setPreview] = useState<DraftStatePayload[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isParsing, setIsParsing] = useState(false);
+   [rawJson, setRawJson] = useState(""),
+   [preview, setPreview] = useState<DraftStatePayload[]>([]),
+   [error, setError] = useState<string | null>(null),
+   [isParsing, setIsParsing] = useState(false),
 
-  const onFile = useCallback((file: File | null) => {
+   onFile = useCallback((file: File | null) => {
     setError(null);
-    if (!file) return;
+    if (!file) {return;}
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result ?? "");
@@ -38,11 +38,11 @@ export default function JsonImporter() {
     };
     reader.onerror = () => setError("Failed to read file");
     reader.readAsText(file);
-  }, []);
+  }, []),
 
-  const parseThemeToPayload = useCallback((obj: any): DraftStatePayload[] => {
+   parseThemeToPayload = useCallback((obj: any): DraftStatePayload[] => {
     const out: DraftStatePayload[] = [];
-    if (!obj || typeof obj !== "object") return out;
+    if (!obj || typeof obj !== "object") {return out;}
 
     // 1. UI/workbench colors
     if (obj.colors && typeof obj.colors === "object") {
@@ -63,11 +63,11 @@ export default function JsonImporter() {
               ? (def as any).foreground
               : null;
         if (value)
-          out.push({
+          {out.push({
             key: getSemanticTokenKey(token),
             value,
-            type: "semanticToken",
-          });
+            type: "token",
+          });}
       }
     }
 
@@ -79,11 +79,11 @@ export default function JsonImporter() {
       const sem = obj.editor.semanticTokenColorCustomizations;
 
       if (sem.enabled === false) {
-        // if theme disables semantic tokens, skip
+        // If theme disables semantic tokens, skip
         return out;
       }
 
-      // direct userTokenColors under customization
+      // Direct userTokenColors under customization
       if (sem.userTokenColors && typeof sem.userTokenColors === "object") {
         for (const [token, def] of Object.entries(sem.userTokenColors)) {
           const value =
@@ -93,19 +93,19 @@ export default function JsonImporter() {
                 ? (def as any).foreground
                 : null;
           if (value)
-            out.push({
+            {out.push({
               key: getSemanticTokenKey(token),
               value,
-              type: "semanticToken",
-            });
+              type: "token",
+            });}
         }
       }
     }
 
     return out;
-  }, []);
+  }, []),
 
-  const runParse = useCallback(() => {
+   runParse = useCallback(() => {
     setError(null);
     setPreview([]);
     setIsParsing(true);
@@ -113,8 +113,8 @@ export default function JsonImporter() {
     // Small timeout to allow UI to update if JSON is huge
     setTimeout(() => {
       try {
-        const parsed = JSON.parse(rawJson);
-        const payload = parseThemeToPayload(parsed);
+        const parsed = JSON.parse(rawJson),
+         payload = parseThemeToPayload(parsed);
         setPreview(payload);
       } catch (e) {
         setError(String(e));
@@ -122,20 +122,20 @@ export default function JsonImporter() {
         setIsParsing(false);
       }
     }, 100);
-  }, [rawJson, parseThemeToPayload]);
+  }, [rawJson, parseThemeToPayload]),
 
-  const importSelected = useCallback(() => {
+   importSelected = useCallback(() => {
     setError(null);
     updateUnsavedChanges(preview);
     // Maybe show a toast or success message?
-  }, [preview, updateUnsavedChanges]);
+  }, [preview, updateUnsavedChanges]),
 
-  const colorsList = useMemo(
+   colorsList = useMemo(
     () => preview.filter((it) => it.type === "color"),
     [preview]
-  );
-  const tokenColors = useMemo(
-    () => preview.filter((it) => it.type === "semanticToken"),
+  ),
+   tokenColors = useMemo(
+    () => preview.filter((it) => it.type === "token"),
     [preview]
   );
 

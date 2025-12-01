@@ -1,8 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@webview/components/ui/card";
+import { cn } from "@webview/lib/utils";
 
-export const CardSkeleton = () => {
-  return (
+export const CardSkeleton = () => (
     <div className="space-y-6 mt-6">
       {Array.from({ length: 2 }).map((_, tabIdx) => (
         <Card
@@ -39,4 +43,3 @@ export const CardSkeleton = () => {
       ))}
     </div>
   );
-};

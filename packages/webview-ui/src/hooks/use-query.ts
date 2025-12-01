@@ -8,17 +8,17 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   payload: WebViewEvent[T]["payload"];
   staleTime?: number;
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<WebViewEvent[T]["response"] | null>(null);
-  const [error, setError] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false),
+   [data, setData] = useState<WebViewEvent[T]["response"] | null>(null),
+   [error, setError] = useState<any>(null),
 
   // Stable cache key (right now only command, you may want command+payload hash)
-  const cacheKey = queryParameter.command;
+   cacheKey = queryParameter.command,
 
   // Memoize payload string so JSON.stringify doesn't change every render by accident
-  const payloadString = JSON.stringify(queryParameter.payload);
+   payloadString = JSON.stringify(queryParameter.payload),
 
-  const fetchQuery = useCallback(
+   fetchQuery = useCallback(
     async (options?: { force?: boolean }) => {
       setIsLoading(true);
       setError(null);
@@ -50,7 +50,7 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
     const unsubscribe = queryClient.subscribe({
       command: cacheKey,
       cb: (newData) => {
-        if (!canceled) setData(newData);
+        if (!canceled) {setData(newData);}
       },
     });
 
@@ -61,9 +61,7 @@ export const useQuery = <T extends keyof WebViewEvent>(queryParameter: {
   }, [cacheKey, fetchQuery]);
 
   const refetch = useCallback(
-    (options?: { force?: boolean }) => {
-      return fetchQuery({ force: true });
-    },
+    (options?: { force?: boolean }) => fetchQuery({ force: true }),
     [fetchQuery]
   );
 
@@ -78,13 +76,13 @@ export const useMutation = <T extends keyof WebViewEvent>(
     onSettled?: () => void;
   }
 ) => {
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<any>(null);
-  const [mutationData, setMutationData] = useState<
+  const [isPending, setIsPending] = useState(false),
+   [error, setError] = useState<any>(null),
+   [mutationData, setMutationData] = useState<
     WebViewEvent[T]["response"] | null
-  >(null);
+  >(null),
 
-  const mutate = useCallback(
+   mutate = useCallback(
     (payload: WebViewEvent[T]["payload"]) => {
       setIsPending(true);
       setError(null);

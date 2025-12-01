@@ -1,20 +1,20 @@
 // DraftProvider.tsx
 import {
+  ReactNode,
   createContext,
-  useContext,
-  useState,
   useCallback,
+  useContext,
   useEffect,
   useRef,
-  ReactNode,
+  useState,
 } from "react";
 import {
   DraftState,
   DraftStatePayload,
   DraftStatePayloadKeys,
 } from "@shared/types/theme";
-import useToast from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@/hooks/use-query";
+import useToast from "@webview/hooks/use-toast";
+import { useMutation, useQuery } from "@webview/hooks/use-query";
 import { log } from "@shared/utils/debug-logs";
 import { PublishType, SaveThemeModes } from "@shared/types/event";
 
@@ -49,7 +49,7 @@ function getDraftStatePayload(draftState: DraftState): DraftStatePayload[] {
     value: any;
     type: T;
   }[] {
-    if (!items) return [];
+    if (!items) {return [];}
     const entries = Object.entries(items);
     return entries
       ? entries.length > 0
@@ -59,21 +59,20 @@ function getDraftStatePayload(draftState: DraftState): DraftStatePayload[] {
   }
   return [
     ...make(draftState.colorCustomization, "color"),
-    ...make(draftState.semanticTokenCustomization, "semanticToken"),
     ...make(draftState.tokenCustomization, "token"),
     ...make(draftState.settingsCustomization, "settings"),
   ];
 }
 
 export function DraftProvider({ children }: { children: ReactNode }) {
-  const toast = useToast();
-  const { data, isLoading, refetch } = useQuery({
+  const toast = useToast(),
+   { data, isLoading, refetch } = useQuery({
     command: "GET_DRAFT_STATE",
     payload: {},
-  });
-  //   const hydrationRequiredRef = useRef(true);
-  const [drafts, setDrafts] = useState<DraftStatePayload[]>([]);
-  const draftsRef = useRef(drafts);
+  }),
+  //   Const hydrationRequiredRef = useRef(true);
+   [drafts, setDrafts] = useState<DraftStatePayload[]>([]),
+   draftsRef = useRef(drafts);
 
   useEffect(() => {
     draftsRef.current = drafts;
@@ -81,11 +80,11 @@ export function DraftProvider({ children }: { children: ReactNode }) {
 
   const saveDrafts = useCallback(() => {
     commitDrafts(draftsRef.current);
-  }, []);
+  }, []),
 
-  const updateUnsavedChanges = useCallback((changes: DraftStatePayload[]) => {
+   updateUnsavedChanges = useCallback((changes: DraftStatePayload[]) => {
     setDrafts((prev) => {
-      if (changes.length === 0) return prev;
+      if (changes.length === 0) {return prev;}
       const next = [...prev];
       for (const change of changes) {
         const idx = next.findIndex(
@@ -104,16 +103,16 @@ export function DraftProvider({ children }: { children: ReactNode }) {
 
       return next;
     });
-  }, []);
+  }, []),
 
-  const handleRemoveDraftChange = useCallback((drafts: DraftStatePayload[]) => {
+   handleRemoveDraftChange = useCallback((drafts: DraftStatePayload[]) => {
     removeDraftChange(drafts);
   }, []);
 
   useEffect(() => {
     if (!isLoading && data?.draftState) {
       setDrafts(getDraftStatePayload(data.draftState));
-      //   hydrationRequiredRef.current = false;
+      //   HydrationRequiredRef.current = false;
     }
   }, [data?.draftState, isLoading]);
 
@@ -125,12 +124,12 @@ export function DraftProvider({ children }: { children: ReactNode }) {
       },
       onError: (err) =>
         toast({
-          message: "Something went wrong while saving the draft" + err,
+          message: `Something went wrong while saving the draft${  err}`,
           type: "error",
         }),
     }
-  );
-  const { mutate: publishDraftChanges, isPending: isPublishingDraftChanges } =
+  ),
+   { mutate: publishDraftChanges, isPending: isPublishingDraftChanges } =
     useMutation("PUBLISH_DRAFT_CHANGES", {
       onSuccess: (data) => {
         setDrafts(getDraftStatePayload(data.data.draftFile.draftState));
@@ -143,9 +142,9 @@ export function DraftProvider({ children }: { children: ReactNode }) {
         log(error);
         toast({ message: "Failed to publish changes", type: "error" });
       },
-    });
+    }),
 
-  const { mutate: discardChanges, isPending: isDiscarding } = useMutation(
+   { mutate: discardChanges, isPending: isDiscarding } = useMutation(
     "DISCARD_DRAFT_CHANGES",
     {
       onSuccess: () => {
@@ -157,9 +156,9 @@ export function DraftProvider({ children }: { children: ReactNode }) {
         toast({ message: "Failed to discard draft changes", type: "error" });
       },
     }
-  );
+  ),
 
-  const { mutate: removeDraftChange, isPending: isRemovingDraftChange } =
+   { mutate: removeDraftChange, isPending: isRemovingDraftChange } =
     useMutation("REMOVE_DRAFT_CHANGE", {
       onSuccess: (data) => {
         const { data: removedDrafts } = data;
@@ -168,7 +167,7 @@ export function DraftProvider({ children }: { children: ReactNode }) {
         );
         if (data.error) {
           toast({
-            message: "Failed to remove some changes, Reason: " + data.error,
+            message: `Failed to remove some changes, Reason: ${  data.error}`,
             type: "error",
           });
         }
@@ -201,6 +200,6 @@ export function DraftProvider({ children }: { children: ReactNode }) {
 
 export function useDraft() {
   const ctx = useContext(DraftContext);
-  if (!ctx) throw new Error("useDraft must be used within DraftProvider");
+  if (!ctx) {throw new Error("useDraft must be used within DraftProvider");}
   return ctx;
 }

@@ -61,17 +61,17 @@ export class SettingsController {
     parsedSettings: Record<string, string | number | boolean>,
     config: vscode.WorkspaceConfiguration
   ): Record<keyof typeof fontsLayoutUI, number | boolean | string> {
-    const merged: Record<string, string | number | boolean> = {};
-    const fontAndLayoutKeys = Object.keys(fontsLayoutUI);
+    const merged: Record<string, string | number | boolean> = {},
+     fontAndLayoutKeys = Object.keys(fontsLayoutUI);
 
     fontAndLayoutKeys.forEach((key) => {
       let value = fontsLayoutUI[key as keyof typeof fontsLayoutUI].defaultValue;
 
       const configValue = config.get(key);
       if (configValue !== undefined)
-        value = configValue as string | number | boolean;
+        {value = configValue as string | number | boolean;}
 
-      if (parsedSettings[key] !== undefined) value = parsedSettings[key];
+      if (parsedSettings[key] !== undefined) {value = parsedSettings[key];}
       merged[key] = value;
     });
 
@@ -83,9 +83,9 @@ export class SettingsController {
 
   private async loadCurrentSettings(): Promise<void> {
     try {
-      const fork = detectFork();
-      const settingsPath = getSettingsPath(fork);
-      const uri = vscode.Uri.file(settingsPath);
+      const fork = detectFork(),
+       settingsPath = getSettingsPath(fork),
+       uri = vscode.Uri.file(settingsPath);
       this.currentSettingsPath = uri;
 
       log("settingsPath", settingsPath);
@@ -99,18 +99,18 @@ export class SettingsController {
         return;
       }
 
-      const fileContent = await this.readFileUtf8(uri);
-      const parsed = parse(fileContent) as Record<string, unknown>;
+      const fileContent = await this.readFileUtf8(uri),
+       parsed = parse(fileContent) as Record<string, unknown>,
 
-      const fontsLayoutSettings: Record<string, string | number | boolean> = {};
-      const fontAndLayoutKeys = Object.keys(fontsLayoutUI);
+       fontsLayoutSettings: Record<string, string | number | boolean> = {},
+       fontAndLayoutKeys = Object.keys(fontsLayoutUI);
       fontAndLayoutKeys.forEach((key) => {
         if (parsed[key] !== undefined)
-          fontsLayoutSettings[key] = parsed[key] as string | number | boolean;
+          {fontsLayoutSettings[key] = parsed[key] as string | number | boolean;}
       });
 
-      const config = vscode.workspace.getConfiguration();
-      const mergedSettings = this.mergeSettingsWithDefaults(
+      const config = vscode.workspace.getConfiguration(),
+       mergedSettings = this.mergeSettingsWithDefaults(
         fontsLayoutSettings,
         config
       );
@@ -134,7 +134,7 @@ export class SettingsController {
   // ========== Watching ==========
 
   private startWatching(): void {
-    if (!this.currentSettingsPath) return;
+    if (!this.currentSettingsPath) {return;}
 
     const watcher = vscode.workspace.createFileSystemWatcher(
       this.currentSettingsPath.fsPath
@@ -214,7 +214,7 @@ export class SettingsController {
     key: string,
     value: string | number | boolean
   ): Promise<void> {
-    if (!this.currentSettings) return;
+    if (!this.currentSettings) {return;}
 
     await vscode.workspace
       .getConfiguration()

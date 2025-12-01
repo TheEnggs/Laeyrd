@@ -71,7 +71,7 @@ export class UserSettingsController {
    * Rollback applied changes to original settings.json
    */
   public async rollbackToOriginal() {
-    if (!fs.existsSync(this.originalBackupFile)) return;
+    if (!fs.existsSync(this.originalBackupFile)) {return;}
 
     const originalSettings = this.readBackupFile(this.originalBackupFile);
     for (const [key, value] of Object.entries(originalSettings)) {
@@ -87,9 +87,9 @@ export class UserSettingsController {
    * Create a versioned backup of current settings
    */
   public async createVersionedBackup() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupFile = path.join(this.backupDir, `settings-${timestamp}.json`);
-    const currentSettings = await this.getAllSettings();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-"),
+     backupFile = path.join(this.backupDir, `settings-${timestamp}.json`),
+     currentSettings = await this.getAllSettings();
     this.writeBackupFile(backupFile, currentSettings);
   }
 
@@ -99,7 +99,7 @@ export class UserSettingsController {
   private async getAllSettings(): Promise<JsonObject> {
     const config = vscode.workspace.getConfiguration();
     // VS Code doesn't provide raw settings.json directly, so we can only
-    // fetch the keys we care about, or backup from disk for full snapshot
+    // Fetch the keys we care about, or backup from disk for full snapshot
     return this.readUserSettingsFromDisk();
   }
 
@@ -108,7 +108,7 @@ export class UserSettingsController {
    */
   private readUserSettingsFromDisk(): JsonObject {
     const filePath = this.getUserSettingsPath();
-    if (!fs.existsSync(filePath)) return {};
+    if (!fs.existsSync(filePath)) {return {};}
     try {
       const text = fs.readFileSync(filePath, "utf8");
       return text.trim() ? (JSON.parse(text) as JsonObject) : {};
@@ -141,7 +141,7 @@ export class UserSettingsController {
   }
 
   private readBackupFile(filePath: string): JsonObject {
-    if (!fs.existsSync(filePath)) return {};
+    if (!fs.existsSync(filePath)) {return {};}
     try {
       return JSON.parse(fs.readFileSync(filePath, "utf8"));
     } catch {

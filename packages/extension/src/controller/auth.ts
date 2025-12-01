@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { AuthUser, AuthSession, ServerConfig } from "@shared/types/user";
+import { AuthSession, AuthUser, ServerConfig } from "@shared/types/user";
 import { log } from "@shared/utils/debug-logs";
 import os from "os";
 import { v4 as uuidv4 } from "uuid";
@@ -12,7 +12,7 @@ export interface DeviceInfo {
   deviceName?: string;
   os?: string;
   extensionVersion?: string;
-  ipAddress?: string; // optional if you want to fetch external IP
+  ipAddress?: string; // Optional if you want to fetch external IP
 }
 
 export class AuthController {
@@ -38,11 +38,11 @@ export class AuthController {
 
   /** Load stored authentication data from VS Code global state */
   public async getStoredUserAndSession() {
-    if (!this.context) return { storedUser: null, storedSession: null };
+    if (!this.context) {return { storedUser: null, storedSession: null };}
     const storedUser = JSON.parse(
       (await this.context.secrets.get("auth_user")) || "{}"
-    );
-    const storedSession = JSON.parse(
+    ),
+     storedSession = JSON.parse(
       (await this.context.secrets.get("auth_session")) || "{}"
     );
 
@@ -59,7 +59,7 @@ export class AuthController {
   }
 
   public async clearStoredAuth(): Promise<void> {
-    if (!this.context) return;
+    if (!this.context) {return;}
     await this.context.globalState.update("auth_user", undefined);
     await this.context.globalState.update("auth_session", undefined);
     this.currentUser = null;
@@ -68,7 +68,7 @@ export class AuthController {
   }
 
   private async storeAuth(user: AuthUser, session: AuthSession): Promise<void> {
-    if (!this.context) return;
+    if (!this.context) {return;}
     await this.context.secrets.store("auth_session", JSON.stringify(session));
     await this.context.secrets.store("auth_user", JSON.stringify(user));
     this.currentUser = user;
@@ -106,15 +106,15 @@ export class AuthController {
   public async startDeviceFlow() {
     this.currentSession = null;
     this.currentUser = null;
-    const deviceInfo = await this.getDeviceInfo();
-    const res = await fetch(
+    const deviceInfo = await this.getDeviceInfo(),
+     res = await fetch(
       `${SERVER_CONFIG.webappUrl}/api/device-auth/start`,
       {
         method: "POST",
         body: JSON.stringify(deviceInfo),
       }
     );
-    if (!res.ok) throw new Error("Failed to start device flow");
+    if (!res.ok) {throw new Error("Failed to start device flow");}
     const data = (await res.json()) as {
       device_code: string;
       user_code: string;
@@ -133,11 +133,11 @@ export class AuthController {
     deviceCode: string,
     expiresIn: number
   ): Promise<void> {
-    const timeoutMs = expiresIn * 1000 + 60000; // expiresIn + 1 minute buffer
-    const intervalMs = 5000; // 5 seconds
-    const startTime = Date.now();
+    const timeoutMs = expiresIn * 1000 + 60000, // ExpiresIn + 1 minute buffer
+     intervalMs = 5000, // 5 seconds
+     startTime = Date.now(),
 
-    const result = await new Promise<{ session: AuthSession; user: AuthUser }>(
+     result = await new Promise<{ session: AuthSession; user: AuthUser }>(
       (resolve, reject) => {
         const interval = setInterval(async () => {
           try {
@@ -176,16 +176,16 @@ export class AuthController {
               };
               success: boolean;
               userIs: string;
-            };
-            const authData = json.authData;
+            },
+             {authData} = json;
             log("device approved", authData);
 
             // Success! Device approved
             clearInterval(interval);
 
-            const session: AuthSession = authData.session;
+            const {session} = authData,
 
-            const user: AuthUser = authData.user;
+             {user} = authData;
 
             resolve({ session, user });
           } catch (err) {
@@ -198,11 +198,11 @@ export class AuthController {
     this.currentSession = result.session;
     this.currentUser = result.user as AuthUser;
     if (!this.currentSession || !this.currentUser)
-      throw new Error("Failed to store auth");
+      {throw new Error("Failed to store auth");}
     await this.storeAuth(this.currentUser, this.currentSession);
 
     this.notifyAuthChanged();
-    return;
+    
   }
 
   /**
@@ -236,8 +236,8 @@ export class AuthController {
    * Update user info locally
    */
   public async updateUser(user: AuthUser): Promise<AuthUser> {
-    if (!this.context) throw new Error("Context not set");
-    if (!this.currentUser) throw new Error("No authenticated user to update");
+    if (!this.context) {throw new Error("Context not set");}
+    if (!this.currentUser) {throw new Error("No authenticated user to update");}
     const updatedUser = { ...this.currentUser, ...user };
     await this.context.globalState.update("auth_user", updatedUser);
     this.currentUser = updatedUser;
@@ -247,7 +247,7 @@ export class AuthController {
 
   async getDeviceInfo(): Promise<DeviceInfo> {
     // Unique machine ID (can be generated once and stored in global state)
-    let machineId =
+    const machineId =
       vscode.workspace
         .getConfiguration("laeyrd")
         .get<string>("deviceMachineId") || uuidv4();
@@ -265,13 +265,13 @@ export class AuthController {
       extensionVersion:
         vscode.extensions.getExtension("your.extension.id")?.packageJSON
           .version || "unknown",
-      ipAddress: undefined, // optionally fetch via external service
+      ipAddress: undefined, // Optionally fetch via external service
     };
 
     // Optional: fetch public IP if needed
     try {
-      const res = await fetch("https://api.ipify.org?format=json");
-      const data = (await res.json()) as { ip: string };
+      const res = await fetch("https://api.ipify.org?format=json"),
+       data = (await res.json()) as { ip: string };
       deviceInfo.ipAddress = data.ip;
     } catch (err) {
       console.warn("Failed to fetch public IP", err);
@@ -280,7 +280,7 @@ export class AuthController {
     return deviceInfo;
   }
   async registerEventListeners() {
-    if (!this.context) return;
+    if (!this.context) {return;}
     const messageController = new MessageController(this.context);
     this.onAuthChanged((user) =>
       messageController.POST_MESSAGE({

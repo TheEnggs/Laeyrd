@@ -5,8 +5,8 @@ import path from "path";
 import { createHash } from "crypto";
 import { ThemeController } from "./theme";
 import {
-  ConflictResolvedResponse,
   ConflictResolvePayload,
+  ConflictResolvedResponse,
   LocalFileMeta,
   LocalVersionFile,
   RemoteFileMeta,
@@ -17,35 +17,29 @@ import {
   SyncState,
 } from "@shared/types/sync";
 import { log } from "@shared/utils/debug-logs";
-import { ThemeJson } from "@shared/utils/themeGenerator";
+import { ThemeJson } from "@shared/types/theme";
 
 const SyncActionFactory = {
-  [SyncState.UNTRACKED]: async (self: SyncController, meta: LocalFileMeta) => {
-    return await self.pushFile(meta, "create");
-  },
+  [SyncState.UNTRACKED]: async (self: SyncController, meta: LocalFileMeta) => await self.pushFile(meta, "create"),
 
   [SyncState.LOCAL_AHEAD]: async (
     self: SyncController,
     meta: LocalFileMeta
-  ) => {
-    return await self.pushFile(meta);
-  },
+  ) => await self.pushFile(meta),
 
   [SyncState.REMOTE_AHEAD]: async (
     self: SyncController,
     meta: LocalFileMeta,
     remoteMeta: RemoteFileMeta
-  ) => {
-    return await self.pullFile(meta, remoteMeta);
-  },
+  ) => await self.pullFile(meta, remoteMeta),
 
-  [SyncState.CONFLICT]: async () => {
+  [SyncState.CONFLICT]: async () => 
     // 🔥 Manual resolution mode (future: merge UI)
-    return {
+     ({
       success: false,
       reason: "Conflict detected, manual resolution required.",
-    };
-  },
+    })
+  ,
 
   [SyncState.UP_TO_DATE]: async () => true,
 };
@@ -64,19 +58,19 @@ export default class SyncController {
   }
 
   private get getUserId() {
-    if (!this.userId) throw new Error("User id is missing");
+    if (!this.userId) {throw new Error("User id is missing");}
     return this.userId;
   }
 
   private get backend() {
     if (!this._backendController)
-      this._backendController = new BackendController();
+      {this._backendController = new BackendController();}
     return this._backendController;
   }
 
   public async fetchRemoteVersions() {
     const remoteData = await this.backend.fetchRemoteVersion();
-    if (!remoteData.success) throw new Error(remoteData.error as string);
+    if (!remoteData.success) {throw new Error(remoteData.error as string);}
     this.remoteVersionStore = remoteData.data;
   }
 
@@ -100,31 +94,31 @@ export default class SyncController {
       localStore[this.getUserId] = { themes: {}, settings: {} };
     }
 
-    const userThemes = localStore[this.getUserId].themes;
+    const userThemes = localStore[this.getUserId].themes,
 
     // Read package.json to get available themes
-    const pkgPath = path.join(this.context.extensionPath, "package.json");
+     pkgPath = path.join(this.context.extensionPath, "package.json");
     if (fs.existsSync(pkgPath)) {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-      const themeFiles: { label: string; path: string; uiTheme: string }[] =
-        pkg.contributes?.themes;
-      const filteredThemes = themeFiles.filter(
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")),
+       themeFiles: { label: string; path: string; uiTheme: string }[] =
+        pkg.contributes?.themes,
+       filteredThemes = themeFiles.filter(
         (theme) => !theme.label.includes("Live Preview")
       );
       filteredThemes.forEach((theme) => {
         if (!userThemes[theme.label]) {
           // Add missing theme
-          const now = new Date().toISOString();
-          const localFilePath = this.getLocalFilePath();
+          const now = new Date().toISOString(),
+           localFilePath = this.getLocalFilePath();
           if (!fs.existsSync(path.dirname(localFilePath)))
-            fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
+            {fs.mkdirSync(path.dirname(localFilePath), { recursive: true });}
           const themePath = path.join(
             this.context.extensionPath,
             "/src/themes",
-            theme.label + ".json"
-          );
-          const fileContent = this.getFileContent(themePath);
-          const hash = this.getFileHash(fileContent);
+            `${theme.label  }.json`
+          ),
+           fileContent = this.getFileContent(themePath),
+           hash = this.getFileHash(fileContent);
           userThemes[theme.path] = {
             fileName: theme.label,
             createdAt: now,
@@ -154,20 +148,20 @@ export default class SyncController {
     local: LocalFileMeta,
     remote?: RemoteFileMeta
   ): SyncState {
-    if (!remote) return SyncState.UNTRACKED;
+    if (!remote) {return SyncState.UNTRACKED;}
 
-    const localHash = local.localCommitHash;
-    const parentHash = local.parentHash;
-    const remoteHash = remote.headVersionHash;
+    const localHash = local.localCommitHash,
+     {parentHash} = local,
+     remoteHash = remote.headVersionHash;
 
     // No changes
-    if (localHash === remoteHash) return SyncState.UP_TO_DATE;
+    if (localHash === remoteHash) {return SyncState.UP_TO_DATE;}
 
     // Local ahead
-    if (parentHash === remoteHash) return SyncState.LOCAL_AHEAD;
+    if (parentHash === remoteHash) {return SyncState.LOCAL_AHEAD;}
 
     // Remote ahead
-    if (localHash === remote.parentHash) return SyncState.REMOTE_AHEAD;
+    if (localHash === remote.parentHash) {return SyncState.REMOTE_AHEAD;}
 
     // Conflict (diverged)
     return SyncState.CONFLICT;
@@ -191,24 +185,24 @@ export default class SyncController {
   ): Promise<boolean> {
     try {
       // 1️⃣ Get the file content to upload
-      const fileContent = this.getFileContent(localMeta.localFilePath);
+      const fileContent = this.getFileContent(localMeta.localFilePath),
 
       // 2️⃣ Initialize upload session with backend
-      const uploadInit = await this.backend.initThemesUpload(
+       uploadInit = await this.backend.initThemesUpload(
         localMeta,
         fileContent
       );
-      if (!uploadInit.success) throw new Error("Failed to initialize upload");
+      if (!uploadInit.success) {throw new Error("Failed to initialize upload");}
 
-      const signedUrl = uploadInit.data.endpoint.signedUrl;
+      const {signedUrl} = uploadInit.data.endpoint,
 
       // 3️⃣ Upload the file content
-      const upload = await this.backend.uploadFile(signedUrl, fileContent);
-      if (!upload.success) throw new Error(upload.error);
+       upload = await this.backend.uploadFile(signedUrl, fileContent);
+      if (!upload.success) {throw new Error(upload.error);}
 
       // 4️⃣ Push the metadata depending on mode
       const pushResult = await this.handlePushMode(localMeta, mode, signedUrl);
-      if (!pushResult) throw new Error("Failed to push file metadata");
+      if (!pushResult) {throw new Error("Failed to push file metadata");}
 
       // 5️⃣ Update local metadata to reflect new version state
       this.updateLocalMeta(localMeta, pushResult);
@@ -236,7 +230,7 @@ export default class SyncController {
   } | null> {
     if (mode === "create") {
       const res = await this.backend.createFile(localMeta, signedUrl);
-      if (!res.success) return null;
+      if (!res.success) {return null;}
 
       const {
         theme,
@@ -257,7 +251,7 @@ export default class SyncController {
 
     // "update" mode
     const res = await this.backend.pushFile(localMeta);
-    if (!res.success) return null;
+    if (!res.success) {return null;}
 
     return res.data;
   }
@@ -287,19 +281,18 @@ export default class SyncController {
   /** 📥 Pull file from backend */
   async pullFile(localMeta: LocalFileMeta, remoteMeta: RemoteFileMeta) {
     try {
-      if (!remoteMeta.headVersionFilePath) return false;
+      if (!remoteMeta.headVersionFilePath) {return false;}
 
       const res = await this.backend.downloadFile(remoteMeta);
-      if (!res.success) throw new Error("Failed to pull file");
+      if (!res.success) {throw new Error("Failed to pull file");}
       localMeta.id = remoteMeta.id;
       localMeta.localCommitHash = remoteMeta.headVersionHash!;
       localMeta.parentHash = remoteMeta.parentHash;
       localMeta.isDirty = false;
       localMeta.hasConflict = false;
 
-      const themeController = await ThemeController.create();
+      const themeController = await ThemeController.getInstance(this.context);
       themeController.writeToThemeFile(
-        this.context,
         localMeta.fileName,
         res.data as unknown as ThemeJson
       );
@@ -312,7 +305,7 @@ export default class SyncController {
   private getLocalFilePath(): string {
     const storagePath = this.context.globalStorageUri.fsPath;
     if (!fs.existsSync(storagePath))
-      fs.mkdirSync(storagePath, { recursive: true });
+      {fs.mkdirSync(storagePath, { recursive: true });}
     return path.join(storagePath, "laeyrd-local-versions.json");
   }
 
@@ -327,15 +320,15 @@ export default class SyncController {
   ): Promise<ConflictResolvedResponse> {
     await this.fetchRemoteVersions();
     if (!this.remoteVersionStore)
-      throw new Error("Failed to get remote versions");
+      {throw new Error("Failed to get remote versions");}
 
-    const keepLocalFiles = payload.filter((f) => f.keepState === "local");
-    const keepRemoteFiles = payload.filter((f) => f.keepState === "remote");
+    const keepLocalFiles = payload.filter((f) => f.keepState === "local"),
+     keepRemoteFiles = payload.filter((f) => f.keepState === "remote"),
 
-    const results: ConflictResolvedResponse = [];
+     results: ConflictResolvedResponse = [],
 
     // Helper: upload local file to remote bucket
-    const uploadLocalFile = async (
+     uploadLocalFile = async (
       fileId: number,
       type: SupportedSyncFileTypes
     ) => {
@@ -344,22 +337,22 @@ export default class SyncController {
           this.localVersionStore[this.userId][type]
         ).find((e) => e.id === fileId);
         if (!localMeta)
-          return results.push({
+          {return results.push({
             fileId,
             fileType: type,
             success: false,
             error: `Local ${type} metadata not found.`,
-          });
+          });}
 
         const pushResult = await this.pushFile(localMeta, "update");
-        if (pushResult) results.push({ fileId, fileType: type, success: true });
+        if (pushResult) {results.push({ fileId, fileType: type, success: true });}
         else
-          results.push({
+          {results.push({
             fileId,
             fileType: type,
             success: false,
             error: `Failed to upload ${type}.`,
-          });
+          });}
       } catch (err: any) {
         results.push({
           fileId,
@@ -368,34 +361,34 @@ export default class SyncController {
           error: err.message,
         });
       }
-    };
+    },
 
     // Helper: download remote file and replace local
-    const downloadRemoteFile = async (
+     downloadRemoteFile = async (
       fileId: number,
       type: SupportedSyncFileTypes
     ) => {
       try {
-        if (!this.remoteVersionStore) throw new Error("error");
+        if (!this.remoteVersionStore) {throw new Error("error");}
         const remoteMeta = this.remoteVersionStore[type].find(
           (f) => f.id === fileId
         );
         if (!remoteMeta || !remoteMeta.remoteFileUrl)
-          return results.push({
+          {return results.push({
             fileId,
             fileType: type,
             success: false,
             error: `Remote ${type} metadata or download URL missing.`,
-          });
+          });}
 
         const response = await fetch(remoteMeta.remoteFileUrl);
         if (!response.ok)
-          throw new Error(
+          {throw new Error(
             `Failed to fetch remote ${type} file (${response.status})`
-          );
+          );}
 
-        const fileContent = await response.text();
-        const filePath = this.context.globalStorageUri.with({
+        const fileContent = await response.text(),
+         filePath = this.context.globalStorageUri.with({
           path: `${this.context.globalStorageUri.path}/${type}/${fileId}.json`,
         });
 
@@ -404,8 +397,8 @@ export default class SyncController {
           Buffer.from(fileContent, "utf-8")
         );
 
-        const userStore = this.localVersionStore[this.userId];
-        const target = Object.values(userStore[type]).find(
+        const userStore = this.localVersionStore[this.userId],
+         target = Object.values(userStore[type]).find(
           (e) => e.id === fileId
         );
         if (target) {
@@ -443,8 +436,8 @@ export default class SyncController {
     }
 
     // Clean up timestamps and flags
-    const userStore = this.localVersionStore[this.userId];
-    const now = new Date().toISOString();
+    const userStore = this.localVersionStore[this.userId],
+     now = new Date().toISOString();
 
     results
       .filter((r) => r.success)
@@ -464,32 +457,32 @@ export default class SyncController {
   }
   /** 🔁 Sync a single category (themes/settings) */
   public async syncCategory(category: SyncCategory) {
-    const localCategory = this.localVersionStore[this.getUserId]?.[category];
-    const remoteCategory = this.remoteVersionStore?.[category];
+    const localCategory = this.localVersionStore[this.getUserId]?.[category],
+     remoteCategory = this.remoteVersionStore?.[category];
     if (!localCategory || !remoteCategory)
-      throw new Error(`Missing ${category} data for user ${this.getUserId}`);
+      {throw new Error(`Missing ${category} data for user ${this.getUserId}`);}
 
     const results: SyncResponse[] = [];
 
     for (const [fileName, localMeta] of Object.entries(localCategory)) {
-      const remoteMeta = remoteCategory.find((m) => m.id === localMeta.id);
+      const remoteMeta = remoteCategory.find((m) => m.id === localMeta.id),
 
-      const state = this.determineSyncState(localMeta, remoteMeta);
+       state = this.determineSyncState(localMeta, remoteMeta);
       log(`🧩 Syncing [${fileName}] → state: ${state}`);
 
       try {
         const action = SyncActionFactory[state];
-        if (state === SyncState.REMOTE_AHEAD && !remoteMeta) continue;
-        const result = await action(this, localMeta, remoteMeta!);
-        const SyncActionState =
+        if (state === SyncState.REMOTE_AHEAD && !remoteMeta) {continue;}
+        const result = await action(this, localMeta, remoteMeta!),
+         SyncActionState =
           state === SyncState.CONFLICT
             ? "CONFLICT"
             : SyncState.REMOTE_AHEAD
               ? "PULLED"
               : SyncState.UP_TO_DATE
                 ? "UP_TO_DATE"
-                : "PUSHED";
-        const latestLocalMeta = this.getLatestLocalMeta(
+                : "PUSHED",
+         latestLocalMeta = this.getLatestLocalMeta(
           localMeta.fileName,
           category
         );
@@ -498,7 +491,7 @@ export default class SyncController {
           fileId: latestLocalMeta.id!,
           fileType: category,
           remoteFileUrl: remoteMeta?.remoteFileUrl || "",
-          success: !!result,
+          success: Boolean(result),
           status: SyncActionState,
           localUpdatedOn: new Date().toISOString(),
           remoteUpdatedOn: new Date().toISOString(),
@@ -530,15 +523,14 @@ export default class SyncController {
   }
 
   public async syncAll() {
-    ;
     await this.fetchRemoteVersions();
 
-    const categories: SyncCategory[] = ["themes", "settings"];
+    const categories: SyncCategory[] = ["themes", "settings"],
 
-    const results = await Promise.allSettled(
+     results = await Promise.allSettled(
       categories.map((cat) => this.syncCategory(cat))
-    );
-    const fulfilled: SyncResponse[] = results
+    ),
+     fulfilled: SyncResponse[] = results
       .filter(
         (r): r is PromiseFulfilledResult<SyncResponse[]> =>
           r.status === "fulfilled"

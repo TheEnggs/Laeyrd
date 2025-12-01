@@ -9,16 +9,16 @@ export type VsCodeApi = {
 };
 
 function createFallbackApi(): VsCodeApi {
-  let state: unknown = undefined;
+  let state: unknown;
   return {
     postMessage: (message: any) => {
-      // eslint-disable-next-line no-console
+       
       log("[Mock vscode.postMessage]", message);
     },
     getState: <T>() => state as T,
     setState: (newState: unknown) => {
       state = newState;
-      // eslint-disable-next-line no-console
+       
       log("[Mock vscode.setState]", newState);
     },
   };
@@ -28,8 +28,8 @@ export class HandleAcquireVsCodeApi {
   private static instance: VsCodeApi | undefined;
 
   private constructor() {
-    const hasWindow = typeof window !== "undefined";
-    const globalAcquire = hasWindow
+    const hasWindow = typeof window !== "undefined",
+     globalAcquire = hasWindow
       ? (window as any).acquireVsCodeApi
       : undefined;
     try {

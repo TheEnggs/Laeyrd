@@ -4,17 +4,17 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@webview/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
+const Dialog = DialogPrimitive.Root,
 
-const DialogTrigger = DialogPrimitive.Trigger;
+ DialogTrigger = DialogPrimitive.Trigger,
 
-const DialogPortal = DialogPrimitive.Portal;
+ DialogPortal = DialogPrimitive.Portal,
 
-const DialogClose = DialogPrimitive.Close;
+ DialogClose = DialogPrimitive.Close,
 
-const DialogOverlay = React.forwardRef<
+ DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (

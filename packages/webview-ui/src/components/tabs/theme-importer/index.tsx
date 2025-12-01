@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import {
+  AnimatedTabsList,
+  AnimatedTabsTrigger,
   Tabs,
   TabsContent,
-  AnimatedTabsTrigger,
-  AnimatedTabsList,
-} from "@/components/ui/tabs";
-import { Palette, FileJson, Import } from "lucide-react";
+} from "@webview/components/ui/tabs";
+import { FileJson, Palette } from "lucide-react";
 import PaletteImporter from "./palette-importer";
 import JsonImporter from "./json-importer";
 

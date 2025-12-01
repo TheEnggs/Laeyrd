@@ -4,8 +4,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@webview/components/ui/card";
+import { Button } from "@webview/components/ui/button";
 import { RotateCcw } from "lucide-react";
 export default function ResetSettings({
   handleResetEverything,

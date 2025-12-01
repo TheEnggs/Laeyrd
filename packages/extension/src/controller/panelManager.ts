@@ -6,16 +6,26 @@ import { fontsLayoutUI } from "@shared/data/fonts-layout";
 import { log } from "@shared/utils/debug-logs";
 
 export class PanelManager implements vscode.Disposable {
+  private static instance: PanelManager;
   public panel?: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
   private messageHandler: MessageController;
 
-  constructor(
+  private constructor(
     private readonly context: vscode.ExtensionContext,
-    public relaunchRequired: (state: boolean) => Promise<void>
   ) {
     this.messageHandler = new MessageController(this.context);
   }
+
+    public static getInstance(
+      context: vscode.ExtensionContext
+    ): PanelManager {
+      if (!this.instance) {
+        const manager = new PanelManager(context);
+        this.instance = manager;
+      }
+      return this.instance;
+    }
 
   public open() {
     if (this.panel) {
@@ -61,7 +71,7 @@ export class PanelManager implements vscode.Disposable {
   }
 
   private registerEventListeners() {
-    if (!this.panel) return;
+    if (!this.panel) {return;}
     this.messageHandler.setPanel(this.panel);
     // Configuration changes
     this.disposables.push(
@@ -98,7 +108,6 @@ export class PanelManager implements vscode.Disposable {
   }
 
   private async disposePanel() {
-    await this.relaunchRequired(false);
     this.panel = undefined;
     this.dispose();
   }
@@ -113,8 +122,8 @@ export class PanelManager implements vscode.Disposable {
   private isFontOrLayoutSetting(
     event: vscode.ConfigurationChangeEvent
   ): boolean {
-    const keys = Object.keys(fontsLayoutUI);
-    const affected = keys.filter((k) => event.affectsConfiguration(k));
+    const keys = Object.keys(fontsLayoutUI),
+     affected = keys.filter((k) => event.affectsConfiguration(k));
     if (affected.length > 0) {
       log(`[PanelManager] Font/Layout changed: ${affected.join(", ")}`);
       return true;

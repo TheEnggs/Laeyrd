@@ -10,6 +10,6 @@ await esbuild.build({
   external: ["vscode"],
   sourcemap: false,
   minify: true,
-  tsconfig: "./packages/extension/tsconfig.json",
+  tsconfig: "./tsconfig.json",
   mainFields: ["module", "main"],
 });

@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "@webview/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+const Tabs = TabsPrimitive.Root,
 
-const TabsList = React.forwardRef<
+ TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
@@ -48,8 +48,7 @@ const AnimatedTabsTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & {
     children: React.ReactNode;
   }
->(({ className, children, ...props }, ref) => {
-  return (
+>(({ className, children, ...props }, ref) => (
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
@@ -61,8 +60,7 @@ const AnimatedTabsTrigger = React.forwardRef<
     >
       {children}
     </TabsPrimitive.Trigger>
-  );
-});
+  ));
 AnimatedTabsTrigger.displayName = "AnimatedTabsTrigger";
 
 // Animated TabsList with background indicator
@@ -75,13 +73,13 @@ const AnimatedTabsList = React.forwardRef<
 >(({ className, activeTab, tabValues = [], children, ...props }, ref) => {
   // Calculate the position of the active tab
   const getActiveTabPosition = () => {
-    if (!activeTab || !tabValues.length) return 0;
+    if (!activeTab || !tabValues.length) {return 0;}
     const activeIndex = tabValues.indexOf(activeTab);
-    if (activeIndex === -1) return 0;
+    if (activeIndex === -1) {return 0;}
     return (activeIndex / tabValues.length) * 100 + 0.2;
-  };
+  },
 
-  const tabWidth = tabValues.length > 0 ? 100 / tabValues.length - 0.4 : 100;
+   tabWidth = tabValues.length > 0 ? 100 / tabValues.length - 0.4 : 100;
 
   return (
     <TabsPrimitive.List
@@ -97,7 +95,7 @@ const AnimatedTabsList = React.forwardRef<
       {/* Animated background indicator */}
       {activeTab && tabValues.length > 0 && (
         <motion.div
-          layoutId={"activeTabBackground" + activeTab}
+          layoutId={`activeTabBackground${  activeTab}`}
           className="absolute top-1/2 -translate-y-1/2 inset-0 h-[calc(100%-2px)] bg-gradient-to-r from-primary/90 to-primary/80 rounded-full shadow-sm"
           initial={false}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
