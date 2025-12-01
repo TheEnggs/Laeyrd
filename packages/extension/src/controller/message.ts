@@ -12,6 +12,7 @@ import { ToastController } from "./toast";
 import { log } from "@shared/utils/debug-logs";
 import SyncController from "./sync";
 import DraftManager from "./draft";
+import { TelemetryService } from "./telemetry";
 
 export class MessageController {
   private _themeController?: ThemeController;
@@ -316,12 +317,12 @@ export class MessageController {
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
     try {
-      // If(command === "PUBLISH_DRAFT_CHANGES"){
-      //   TelemetryService.instance.sendEvent("MESSAGE_RESPONSE_HANDLER", {
-      //     Command,
-      //     RequestId,
-      //   });
-      // }
+      if(command === "PUBLISH_DRAFT_CHANGES"){
+        TelemetryService.instance.sendEvent("MESSAGE RESPONSE HANDLER", {
+          command,
+          requestId,
+        });
+      }
       const response = await executor();
       this.POST_MESSAGE<T, K>({
         command,
@@ -330,10 +331,10 @@ export class MessageController {
         payload: response,
       });
     } catch (err) {
-      // TelemetryService.instance.sendError("MESSAGE RESPONSE HANDLER", err, {
-      //   Command,
-      //   RequestId,
-      // });
+      TelemetryService.instance.sendError("MESSAGE RESPONSE HANDLER", err, {
+        command,
+        requestId,
+      });
       log("error occurred in response handler", err);
       this.POST_MESSAGE<T, K>({
         command,
