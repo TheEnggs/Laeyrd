@@ -3,17 +3,17 @@ import { PanelManager } from "./controller/panelManager";
 import ExtensionController from "./controller/extensionController";
 import { BackupManager } from "./controller/backup";
 import { ThemeController } from "./controller/theme";
-// Import { TelemetryService } from "./controller/telemetry";
+import { TelemetryService } from "./controller/telemetry";
 
 let panelManager: PanelManager | null = null;
 export async function activate(context: vscode.ExtensionContext) {
-  //   Const telemetry = TelemetryService.instance;
-  // Telemetry.init(context);
+    const telemetry = TelemetryService.instance;
+  telemetry.init(context);
 
-  // Telemetry.sendEvent("extension_activated", {
-  //   VscodeVersion: vscode.version,
-  //   Platform: process.platform,
-  // });
+  telemetry.sendEvent("extension_activated", {
+    VscodeVersion: vscode.version,
+    Platform: process.platform,
+  });
   const extensionController = await ExtensionController.create(context),
     isVersionUpdated = await extensionController.checkForVersionUpdate(),
     backupManager = new BackupManager(context);
