@@ -1,72 +1,157 @@
-![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/icons/laeyrd.png)
+---
 
-# 🧩 Laeyrd — Theme, Settings & Sync for VS Code
+![Laeyrd Preview](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
 
-> **🎉 Extension is available on marketplace 🎉**
-> [Check Out](https://marketplace.visualstudio.com/items?itemName=TheEnggs.Laeyrd)
+# Laeyrd – Themes, Settings & Sync for VS Code
 
-![Logo](https://raw.githubusercontent.com/TheEnggs/Laeyrd/master/packages/media/preview.png)
+Design your own theme, tune your editor settings, and keep everything in sync across machines – without touching `settings.json` even once.
 
 ---
 
-## ✨ Overview
+## ✨ What Laeyrd Does
 
-**Laeyrd** is a Visual Studio Code extension designed to give developers full control over their editor’s **look, feel, and behavior** — all from within VS Code itself.
+Laeyrd adds a **visual control panel** on top of VS Code so you can:
 
-It’s not just a theme — it’s a _theme builder_, _settings manager_, and _sync engine_ rolled into one extension.
+* 🎨 **Build & edit themes** with live preview
+* ⚙️ **Adjust settings visually** (fonts, layout, UI behavior, etc.)
+* ☁️ **Sync your setup** using your GitHub account (coming online gradually)
 
-At its core, Laeyrd lets you:
-
-1. 🎨 **Create and customize new themes** directly inside VS Code.
-2. ⚙️ **Modify and sync your settings** seamlessly across machines.
-3. ☁️ **Authenticate with GitHub** (via device flow) to sync your personalized environment safely.
+All inside VS Code. No JSON, no config hunting, no “where does this fork store `settings.json`?” pain.
 
 ---
 
-## 🚧 Status
+You want a “known quirks” section so users don’t open 500 issues for things you can’t fully control. Sensible for once.
 
-This extension is in **active development**.
-Expect occasional bugs, rough edges, and missing polish while testing.
-
-- 🐛 Some UI actions may fail or behave inconsistently.
-- 🔐 Sync and authentication are under active development.
-- 💾 File paths, schema, and local storage locations may change in future releases.
+Here’s a clean section you can bolt under your “How To Use” in the marketplace README.
 
 ---
 
-## 🧠 Features
+## ⚠️ Known Quirks & Gotchas
 
-### 🎨 Theme Customization
+Laeyrd has to work on top of how VS Code and different forks load themes and settings. That comes with a few edge cases:
 
-- Create your **own theme** from scratch or base it on an existing one.
-- Modify editor colors, token colors, and UI accents.
-- Save and apply new themes that behave like any installed VS Code theme.
-- Your generated theme files are stored locally (for now) and automatically registered with VS Code.
+* **Some theme colors may not update immediately**
+  If themes colors don’t seem to show up on screen (especially with the **built-in VS Code themes** like “Dark+” or “Light+”):
 
-> Example: Create a new theme, tweak its syntax colors, and it instantly appears in your theme picker.
+  * Run the **“Preferences: Color Theme”** command
+  * Switch to another theme
 
----
+  This forces VS Code to fully reload the theme instead of partially reusing cached colors.
 
-### ⚙️ Settings Customization
+* **Cached UI elements**
+  Some UI parts (like activity bar, notifications, or panel borders) can lag behind after major theme changes. A **window reload** usually fixes it.
 
-- Manage your VS Code settings from within a clean, integrated UI.
-- Adjust configuration categories such as:
-  - Font family & size
-  - Line height & minimap visibility
-  - Editor background & caret color
-  - Workbench behavior and layout options
-- All changes are applied in real-time, without manually editing `settings.json`.
-
-> Laeyrd aims to make “editor personalization” accessible without touching raw JSON.
+These aren’t “hard” bugs, more like VS Code being stubborn about when it listens. If something looks completely wrong or breaks consistently, that *is* a bug and you should absolutely report it.
 
 ---
 
-## 🧩 Tech Stack
+## 🎨 Theme Designer
 
-| Part                  | Description                                           |
-| --------------------- | ----------------------------------------------------- |
-| **Extension Backend** | Node.js (CommonJS) with TypeScript                    |
-| **Webview UI**        | React + Vite + Tailwind CSS                           |
-| **Storage**           | Local VS Code global storage (for themes & settings)  |
-| **Sync**              | GitHub Device Flow API                                |
-| **Build Tooling**     | VSCE + Vite + ESBuild + TypeScript project references |
+Create and manage themes directly in the editor:
+
+* Edit **editor, sidebar, panel, activity bar, tabs**, and more
+* Customize **syntax highlighting**, UI accents, and backgrounds
+* See changes **instantly** in a live preview
+* Save themes that show up like any other theme in the **Color Theme picker**
+* Safely experiment: Laeyrd keeps **backups** of generated themes
+
+Perfect if you:
+
+* Like existing themes but want to “fix just a few colors”
+* Want a theme that matches your OS / terminal / brand
+* Hate tweaking hex values in plain JSON
+
+---
+
+## ⚙️ Visual Settings Editor
+
+Tweak core editor behavior with a clean UI:
+
+* Font family, font size, line height
+* Cursor style, minimap, rulers, line numbers
+* Bracket guides, indentation, whitespace rendering
+* Layout / UI-related settings
+
+You get:
+
+* Immediate feedback for changes
+* A more discoverable, structured view than raw `settings.json`
+* No need to remember every obscure setting name
+
+---
+
+## ☁️ Sync & Backups(This feature is in **active development**.)
+
+Laeyrd is designed for people who use more than one machine or editor fork.
+
+* Built-in **theme backup** via Laeyrd’s own backup manager
+* Smart detection for popular VS Code forks (VS Code, VSCodium, Cursor, Windsurf, etc.)
+* Planned / evolving: **GitHub-based sync** for themes and settings so your setup follows you
+
+If something goes wrong, you can roll back to a previous theme safely.
+
+---
+
+## 🧩 Works Across Popular VS Code Forks
+
+Laeyrd is built to work on:
+
+* Visual Studio Code
+* VSCodium
+* Cursor
+* Windsurf
+* Other compatible forks that follow similar settings / theme paths
+
+If your editor is VS Code–compatible, there’s a good chance Laeyrd can read and write your themes & settings.
+
+---
+
+## 🚀 How To Use
+
+1. **Install Laeyrd** from the Extensions view
+2. Open the **Laeyrd panel**:
+
+   * Command Palette → `Customize` or `Laeyrd | Customize VSCode`
+3. Start with:
+
+   * **Theme** tab → customize colors & create a new theme
+   * **Settings** tab → visually tweak editor behavior
+4. Click **Publish** to:
+
+   * Generate a new theme
+   * Overwrite an existing Laeyrd theme
+   * Update your editor settings safely
+
+---
+
+## 🧪 Status & Expectations
+
+Laeyrd is in **active development**.
+
+What that means for you:
+
+* Features will evolve and expand
+* Some parts may feel a bit experimental
+* You might hit rough edges on new forks or unusual setups
+
+If you’re okay living slightly on the edge in exchange for more control over your editor, you’re the target audience.
+
+---
+
+## 🐞 Feedback & Issues
+
+If something breaks, looks off, or you have a feature idea:
+
+* Use the **“Report Issue” / “Provide Feedback”** commands if available in the extension
+* Or visit the project repository linked on this marketplace page
+
+Bug reports that include:
+
+* OS
+* Editor (VS Code, VSCodium, Cursor, etc.)
+* What you were trying to do
+  make fixing things *much* faster.
+
+---
+
+Enjoy your theme rabbit hole. At least now it’s structured.
