@@ -1,17 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@webview/components/ui/button";
+import { Input } from "@webview/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@webview/components/ui/popover";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@webview/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { Badge } from "./badge";
-import { HexColorInput, HexAlphaColorPicker } from "react-colorful";
+import { HexAlphaColorPicker, HexColorInput } from "react-colorful";
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
@@ -19,23 +24,23 @@ interface ColorPickerProps {
 const randomColor = () =>
   `#${Math.floor(Math.random() * 0xffffff)
     .toString(16)
-    .padStart(6, "0")}`;
+    .padStart(6, "0")}`,
 
-const randomColors = (length: number): string[] =>
+ randomColors = (length: number): string[] =>
   Array.from({ length }, () => randomColor());
 
 export default function ColorPicker({ value, onChange }: ColorPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [customPalette, setCustomPalette] = useState<string[]>(randomColors(9));
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false),
+   [customPalette, setCustomPalette] = useState<string[]>(randomColors(9)),
+   triggerRef = useRef<HTMLButtonElement | null>(null),
 
-  const addToCustomPalette = (color: string) => {
+   addToCustomPalette = (color: string) => {
     if (!customPalette.includes(color)) {
       setCustomPalette([...customPalette, color]);
     }
-  };
+  },
 
-  const handleColorSelect = (color: string) => {
+   handleColorSelect = (color: string) => {
     onChange(color);
     addToCustomPalette(color);
   };

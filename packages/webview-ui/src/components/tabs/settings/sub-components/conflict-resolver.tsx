@@ -2,20 +2,20 @@
 
 import React from "react";
 import { diffLines } from "diff";
-import { Button } from "@/components/ui/button";
+import { Button } from "@webview/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+} from "@webview/components/ui/dialog";
+import { Textarea } from "@webview/components/ui/textarea";
+import { cn } from "@webview/lib/utils";
 
 // Virtualization constants
-const ITEM_HEIGHT = 24; // px, line height
-const OVERSCAN = 10;
+const ITEM_HEIGHT = 24, // Px, line height
+ OVERSCAN = 10;
 
 type DiffViewerProps = {
   initialLocal?: string;
@@ -35,19 +35,19 @@ export function DiffViewer({
   initialLocal = "",
   initialRemote = "",
 }: DiffViewerProps) {
-  const [localText, setLocalText] = React.useState(initialLocal);
-  const [remoteText, setRemoteText] = React.useState(initialRemote);
+  const [localText, setLocalText] = React.useState(initialLocal),
+   [remoteText, setRemoteText] = React.useState(initialRemote),
 
   // Build aligned rows with per-side line numbers
-  const rows = React.useMemo<Row[]>(() => {
-    const parts = diffLines(localText, remoteText);
-    const out: Row[] = [];
-    let leftNo = 1;
-    let rightNo = 1;
+   rows = React.useMemo<Row[]>(() => {
+    const parts = diffLines(localText, remoteText),
+     out: Row[] = [];
+    let leftNo = 1,
+     rightNo = 1;
 
     for (const part of parts) {
       const lines = part.value.split("\n");
-      if (lines.length && lines[lines.length - 1] === "") lines.pop();
+      if (lines.length && lines[lines.length - 1] === "") {lines.pop();}
 
       if (part.added) {
         for (const l of lines) {
@@ -83,23 +83,23 @@ export function DiffViewer({
       }
     }
     return out;
-  }, [localText, remoteText]);
+  }, [localText, remoteText]),
 
-  const changeIndices = React.useMemo(
+   changeIndices = React.useMemo(
     () =>
       rows.map((r, i) => (r.left !== r.right ? i : -1)).filter((i) => i !== -1),
     [rows]
-  );
-  const [currentChange, setCurrentChange] = React.useState(0);
+  ),
+   [currentChange, setCurrentChange] = React.useState(0),
 
   // Virtualizer states
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [scrollTop, setScrollTop] = React.useState(0);
-  const [viewportHeight, setViewportHeight] = React.useState<number>(480);
+   containerRef = React.useRef<HTMLDivElement | null>(null),
+   [scrollTop, setScrollTop] = React.useState(0),
+   [viewportHeight, setViewportHeight] = React.useState<number>(480);
 
   React.useLayoutEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el) {return;}
     const update = () => setViewportHeight(el.clientHeight || 480);
     update();
     const ro = new ResizeObserver(update);
@@ -107,56 +107,56 @@ export function DiffViewer({
     return () => ro.disconnect();
   }, []);
 
-  const totalHeight = rows.length * ITEM_HEIGHT;
-  const startIndex = Math.max(
+  const totalHeight = rows.length * ITEM_HEIGHT,
+   startIndex = Math.max(
     0,
     Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN
-  );
-  const endIndex = Math.min(
+  ),
+   endIndex = Math.min(
     rows.length - 1,
     Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + OVERSCAN
-  );
-  const visibleRows = rows.slice(startIndex, endIndex + 1);
-  const offsetY = startIndex * ITEM_HEIGHT;
+  ),
+   visibleRows = rows.slice(startIndex, endIndex + 1),
+   offsetY = startIndex * ITEM_HEIGHT,
 
-  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+   onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop((e.target as HTMLDivElement).scrollTop);
-  };
+  },
 
-  const scrollToIndex = (idx: number) => {
+   scrollToIndex = (idx: number) => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el) {return;}
     const targetTop = idx * ITEM_HEIGHT - viewportHeight / 2;
     el.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
-  };
+  },
 
-  const onPrev = () => {
-    if (!changeIndices.length) return;
+   onPrev = () => {
+    if (!changeIndices.length) {return;}
     const next =
       (currentChange - 1 + changeIndices.length) % changeIndices.length;
     setCurrentChange(next);
     scrollToIndex(changeIndices[next]);
-  };
+  },
 
-  const onNext = () => {
-    if (!changeIndices.length) return;
+   onNext = () => {
+    if (!changeIndices.length) {return;}
     const next = (currentChange + 1) % changeIndices.length;
     setCurrentChange(next);
     scrollToIndex(changeIndices[next]);
-  };
+  },
 
   // Actions
-  const keepLocal = () => setRemoteText(localText);
-  const keepRemote = () => setLocalText(remoteText);
+   keepLocal = () => setRemoteText(localText),
+   keepRemote = () => setLocalText(remoteText),
 
-  const formatJsonBoth = () => {
+   formatJsonBoth = () => {
     try {
-      const l = JSON.stringify(JSON.parse(localText), null, 2);
-      const r = JSON.stringify(JSON.parse(remoteText), null, 2);
+      const l = JSON.stringify(JSON.parse(localText), null, 2),
+       r = JSON.stringify(JSON.parse(remoteText), null, 2);
       setLocalText(l);
       setRemoteText(r);
     } catch {
-      // ignore non-JSON
+      // Ignore non-JSON
     }
   };
 
@@ -255,9 +255,9 @@ export function DiffViewer({
           <div style={{ height: totalHeight, position: "relative" }}>
             <div style={{ transform: `translateY(${offsetY}px)` }}>
               {visibleRows.map((row, i) => {
-                const idx = startIndex + i;
-                const isLeftRemoved = row.leftStatus === "removed";
-                const isRightAdded = row.rightStatus === "added";
+                const idx = startIndex + i,
+                 isLeftRemoved = row.leftStatus === "removed",
+                 isRightAdded = row.rightStatus === "added";
                 return (
                   <div
                     key={idx}

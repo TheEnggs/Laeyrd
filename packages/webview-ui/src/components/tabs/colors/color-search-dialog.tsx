@@ -1,7 +1,5 @@
 import {
   DraftStatePayload,
-  DraftStatePayloadKeys,
-  GroupName,
 } from "@shared/types/theme";
 import {
   Dialog,
@@ -10,33 +8,33 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@webview/components/ui/dialog";
 import { Button } from "../../ui/button";
-import { ChevronDown, List, Loader2, Search, Square } from "lucide-react";
+import { Search, Square } from "lucide-react";
 import ColorPicker from "../../ui/color-picker";
-import { useDraft } from "@/contexts/draft-context";
-import { CategoryTree, ColorRendered, iconMap } from "./color-settings";
+import { useDraft } from "@webview/contexts/draft-context";
+import { ColorRendered, iconMap } from "./color-settings";
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@webview/lib/utils";
 import RemoveDraftChange from "../shared/remove-draft-change";
 import { Input } from "../../ui/input";
 import ApplyGroupColors from "./apply-group-colors";
-import { useQuery } from "@/hooks/use-query";
+import { useQuery } from "@webview/hooks/use-query";
 import { useDebounce } from "use-debounce";
 
 export default function ColorSearchDialog() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  const [searchQuery, setSearchQuery] = useState(""),
+   [debouncedSearchQuery] = useDebounce(searchQuery, 500),
 
-  const { drafts } = useDraft();
-  const { data: colorsState, isLoading: isLoadingColors } = useQuery({
+   { drafts } = useDraft(),
+   { data: colorsState, isLoading: isLoadingColors } = useQuery({
     command: "GET_THEME_COLORS",
     payload: [],
-  });
+  }),
 
   // 🔹 Memoized tree: category → subcategory → colors[]
-  const colors = useMemo(() => {
-    if (!colorsState) return [];
+   colors = useMemo(() => {
+    if (!colorsState) {return [];}
     const colors = [];
     for (const [key, def] of Object.entries(colorsState)) {
       const draftColor = drafts.find(
@@ -51,19 +49,19 @@ export default function ColorSearchDialog() {
         groupName: def.groupName,
         value: draftColor?.value ?? def.defaultValue ?? "",
         originalValue: def.defaultValue,
-        isTouched: !!draftColor,
+        isTouched: Boolean(draftColor),
       });
     }
     return colors;
-  }, [colorsState, drafts]);
+  }, [colorsState, drafts]),
 
-  const filteredColors = useMemo(() => {
+   filteredColors = useMemo(() => {
     const query = debouncedSearchQuery.trim().toLowerCase();
-    if (query === "") return colors.slice(0, 20);
+    if (query === "") {return colors.slice(0, 20);}
 
     return colors.filter((color) => {
       const match = (value: unknown): boolean => {
-        if (value == null) return false;
+        if (value == null) {return false;}
         return String(value).toLowerCase().includes(query);
       };
 
@@ -78,10 +76,10 @@ export default function ColorSearchDialog() {
         match(color.originalValue)
       );
     });
-  }, [colors, debouncedSearchQuery]);
+  }, [colors, debouncedSearchQuery]),
 
-  // pick icon based on first color’s category, or fall back
-  const IconComponent =
+  // Pick icon based on first color’s category, or fall back
+   IconComponent =
     colors.length > 0
       ? iconMap[colors[0].category as keyof typeof iconMap] || Square
       : Square;

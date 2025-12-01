@@ -1,11 +1,11 @@
 import { Coffee } from "lucide-react";
-import { useMutation } from "@/hooks/use-query";
+import { useMutation } from "@webview/hooks/use-query";
 import { SERVER_CONFIG } from "@shared/utils/constants";
 
 export default function HeroSection() {
-  const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
+  const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL"),
 
-  const handleOpenExternalUrl = (url: string) => {
+   handleOpenExternalUrl = (url: string) => {
     openExternalUrlMutation.mutate({ url });
   };
   return (

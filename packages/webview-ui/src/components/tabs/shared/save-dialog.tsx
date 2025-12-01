@@ -1,26 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Save, CheckCircle2, BookCheck, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { BookCheck, CheckCircle2, ChevronUp, Save } from "lucide-react";
+import { Button } from "@webview/components/ui/button";
+import { Input } from "@webview/components/ui/input";
+import { Label } from "@webview/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@webview/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@webview/components/ui/popover";
 import clsx from "clsx";
 import { PublishType, SaveThemeModes } from "@shared/types/event";
-import useToast from "@/hooks/use-toast";
+import useToast from "@webview/hooks/use-toast";
 
 interface SaveChangesPopoverProps {
   isPublishingDraftChanges: boolean;
@@ -40,41 +39,36 @@ export function SaveChangesPopover({
   onPublish,
   isSavingDrafts,
 }: SaveChangesPopoverProps) {
-  const toast = useToast();
-  const [open, setOpen] = useState(false);
+  const toast = useToast(),
+   [open, setOpen] = useState(false),
 
-  // high-level: what user wants to save
-  const [publishType, setPublishType] = useState<PublishType>("both");
+  // High-level: what user wants to save
+   [publishType, setPublishType] = useState<PublishType>("both"),
 
-  // theme-specific state
-  const [mode, setMode] = useState<keyof typeof SaveThemeModes>(
+  // Theme-specific state
+   [mode, setMode] = useState<keyof typeof SaveThemeModes>(
     SaveThemeModes.OVERWRITE
-  );
-  const [themeName, setThemeName] = useState("");
-  const [selectedTheme, setSelectedTheme] = useState("");
-  const [isWarningConfirmed, setIsWarningConfirmed] = useState(false);
+  ),
+   [themeName, setThemeName] = useState(""),
+   [selectedTheme, setSelectedTheme] = useState(""),
 
-  const includesTheme = publishType === "theme" || publishType === "both";
+   includesTheme = publishType === "theme" || publishType === "both",
 
-  const themeReady = useMemo(() => {
-    if (!includesTheme) return true;
+   themeReady = useMemo(() => {
+    if (!includesTheme) {return true;}
 
     if (mode === SaveThemeModes.OVERWRITE) {
-      return !!selectedTheme;
+      return Boolean(selectedTheme);
     }
 
     if (mode === SaveThemeModes.CREATE) {
-      return !!themeName.trim() && isWarningConfirmed;
+      return Boolean(themeName.trim());
     }
 
     return false;
-  }, [includesTheme, mode, selectedTheme, themeName, isWarningConfirmed]);
+  }, [includesTheme, mode, selectedTheme, themeName]),
 
-  const canSave = themeReady && !isDiscarding;
-
-  const handleSave = () => {
-    if (!canSave) return;
-
+   handleSave = () => {
     let name: string | undefined;
 
     if (includesTheme) {
@@ -82,10 +76,6 @@ export function SaveChangesPopover({
         mode === SaveThemeModes.OVERWRITE
           ? selectedTheme
           : themeName.trim() || undefined;
-
-      if (mode === SaveThemeModes.CREATE && !isWarningConfirmed) {
-        return;
-      }
     }
     if (includesTheme && !name) {
       return toast({ message: "Theme name missing", type: "error" });
@@ -99,20 +89,7 @@ export function SaveChangesPopover({
     });
 
     setOpen(false);
-  };
-
-  const saveTypeLabel = (() => {
-    if (isPublishingDraftChanges) return "Publishing...";
-    switch (publishType) {
-      case "settings":
-        return "Save Settings";
-      case "theme":
-        return "Save Theme";
-      case "both":
-      default:
-        return "Publish";
-    }
-  })();
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -124,7 +101,7 @@ export function SaveChangesPopover({
           className="rounded-full font-medium gap-2"
         >
           <BookCheck className="w-4 h-4" />
-          <span>{saveTypeLabel}</span>
+          <span>Publish</span>
           <ChevronUp className="w-4 h-4 ml-2" />
         </Button>
       </PopoverTrigger>
@@ -132,7 +109,7 @@ export function SaveChangesPopover({
       <PopoverContent
         align="end"
         sideOffset={14}
-        className="w-[320px] md:w-[380px] bg-card border border-border/40 rounded-2xl shadow-xl p-4 space-y-4"
+        className="w-[320px] md:w-[380px] bg-primary/10 rounded-xl shadow-xl border border-primary/20 backdrop-blur-xl p-4 space-y-4"
       >
         {/* Header */}
         <div className="space-y-1">
@@ -264,22 +241,6 @@ export function SaveChangesPopover({
                     onChange={(e) => setThemeName(e.target.value)}
                   />
                 </div>
-
-                <div className="flex items-start gap-2">
-                  <Checkbox
-                    id="theme-warning"
-                    checked={isWarningConfirmed}
-                    onCheckedChange={(v: boolean) => setIsWarningConfirmed(v)}
-                    className="border border-input mt-0.5"
-                  />
-                  <Label
-                    htmlFor="theme-warning"
-                    className="text-[11px] leading-snug text-muted-foreground"
-                  >
-                    I understand that creating a new theme may reload the window
-                    and apply this theme.
-                  </Label>
-                </div>
               </div>
             )}
           </div>
@@ -289,14 +250,14 @@ export function SaveChangesPopover({
         <div className="flex items-center justify-between pt-1 gap-2">
           <p className="text-[11px] text-muted-foreground">
             {includesTheme
-              ? "Theme will be saved and available after reload"
+              ? "I understand that creating a new theme may reload the window and apply this theme."
               : "Only your editor settings will be updated."}
           </p>
 
           <Button
             size="sm"
             className="h-8 rounded-xl px-3 text-xs"
-            disabled={!canSave || isPublishingDraftChanges || isSavingDrafts}
+            disabled={!themeReady || isPublishingDraftChanges || isSavingDrafts}
             onClick={handleSave}
           >
             <Save className="w-3 h-3 mr-1.5" />

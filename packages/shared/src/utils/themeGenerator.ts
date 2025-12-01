@@ -1,11 +1,13 @@
-
-
 // --- Type Definitions for the Theme JSON Structure ---
 
 import { TextMateScopeMap } from "../data/token/textMateScopeMap";
 import { semanticToTokenKeyMap } from "../data/token/tokenList";
-import { TextMateTokenRule, ThemeJson, TokenColorSettings, TokenColorsList } from "../types/theme";
-
+import {
+  TextMateTokenRule,
+  ThemeJson,
+  TokenColorSettings,
+  TokenColorsList,
+} from "../types/theme";
 
 // --- Generator Functions ---
 
@@ -14,12 +16,17 @@ import { TextMateTokenRule, ThemeJson, TokenColorSettings, TokenColorsList } fro
  * @param styles The style strings from the map (e.g., "bold", "italic", "none").
  * @returns A space-separated string for the fontStyle property, or undefined.
  */
-export function getFontStyleString(styles: TokenColorSettings["fontStyle"]): TokenColorSettings["fontStyle"] | undefined {
+export function getFontStyleString(
+  styles: TokenColorSettings["fontStyle"]
+): TokenColorSettings["fontStyle"] | undefined {
   if (styles === "none" || !styles) {
     return undefined;
   }
   // VS Code accepts multiple styles separated by spaces (e.g., "bold italic")
-  return styles.split(/\s+/).filter(s => s !== 'none').join(' ') as TokenColorSettings["fontStyle"];
+  return styles
+    .split(/\s+/)
+    .filter((s) => s !== "none")
+    .join(" ") as TokenColorSettings["fontStyle"];
 }
 
 /**
@@ -27,35 +34,50 @@ export function getFontStyleString(styles: TokenColorSettings["fontStyle"]): Tok
  * This is the modern, high-priority coloring system.
  * @param userCustomizations A map of conceptual tokens and their user-selected styles.
  */
-function generateSemanticTokenColors(
+export function generateSemanticTokenColors(
+  originalSemanticTokens: Record<string, string | TokenColorSettings> | undefined,
   userCustomizations: TokenColorsList
-): Record<string, string | TokenColorSettings> {
-  const semanticRules: Record<string, string | TokenColorSettings> = {};
+): Record<string, TokenColorSettings> {
+  const semanticRules: Record<string, TokenColorSettings> = {};
 
-  // 1. Loop through the standardized semantic token selectors 
+  // 1. Loop through the standardized semantic token selectors
   //    (defined in semanticToTokenKeyMap)
   for (const semanticSelector in semanticToTokenKeyMap) {
-    const conceptualKey = semanticToTokenKeyMap[semanticSelector];
-    
+    const conceptualKey = semanticToTokenKeyMap[semanticSelector],
+
     // 2. Get the definition from the user's map (or default)
-    const definition = userCustomizations[conceptualKey];
+     definition = userCustomizations[conceptualKey];
 
     if (definition) {
-      const fontStyle = getFontStyleString(definition.defaultFontStyle);
+      const fontStyle = getFontStyleString(definition.defaultFontStyle),
+
+       findAllTheKeysInOriginal = Object.keys(
+        originalSemanticTokens || {}
+      ).filter(
+        (key) => key === conceptualKey || key.split(".")[0] === conceptualKey || key.split(":")[0] === conceptualKey
+      );
+      if (findAllTheKeysInOriginal.length > 1) {
+        for (const specificKey of findAllTheKeysInOriginal) {
+          semanticRules[specificKey] = {
+            foreground: definition.defaultColor,
+            fontStyle: getFontStyleString(definition.defaultFontStyle),
+          };
+        }
+      }
 
       // 3. Construct the style object based on color and font style
       if (fontStyle) {
         semanticRules[semanticSelector] = {
           foreground: definition.defaultColor,
-          fontStyle: fontStyle,
+          fontStyle,
         };
       } else {
         // If no special font style is needed, use the simpler hex string format
-        semanticRules[semanticSelector] = definition.defaultColor;
+        semanticRules[semanticSelector] = { foreground: definition.defaultColor || ""};
       }
     }
   }
-  
+
   return semanticRules;
 }
 
@@ -71,16 +93,16 @@ export function generateTextMateTokenColors(
 
   // 1. Loop through the conceptual tokens (e.g., 'keyword', 'comment')
   for (const key in userCustomizations) {
-    const conceptualKey = key as keyof TokenColorsList;
-    const definition = userCustomizations[conceptualKey];
-    const scopes = TextMateScopeMap[conceptualKey];
+    const conceptualKey = key as keyof TokenColorsList,
+     definition = userCustomizations[conceptualKey],
+     scopes = TextMateScopeMap[conceptualKey];
 
     if (scopes && scopes.length > 0) {
       const settings: TokenColorSettings = {
         foreground: definition.defaultColor,
-      };
-      
-      const fontStyle = getFontStyleString(definition.defaultFontStyle);
+      },
+
+       fontStyle = getFontStyleString(definition.defaultFontStyle);
       if (fontStyle) {
         settings.fontStyle = fontStyle;
       }
@@ -88,10 +110,10 @@ export function generateTextMateTokenColors(
       // 2. Create one rule that applies the defined style to ALL mapped TextMate scopes
       tokenColors.push({
         // Use the conceptual name for debugging/readability within the JSON
-        name: conceptualKey + "(Laeyrd)", 
+        name: `${conceptualKey}`,
         // Array of scopes derived from the TextMateScopeMap
-        scope: scopes, 
-        settings: settings,
+        scope: scopes,
+        settings,
       });
     }
   }
@@ -102,27 +124,40 @@ export function generateTextMateTokenColors(
 export function generateVscodeTheme(
   baseTheme: ThemeJson,
   overriddenConfig: {
-    userThemeName?: string,
-    userThemeType?: "light" | "dark" | "high contrast",
-    userThemeColors?: Record<string, string>
-    userSemanticTokenColors?: TokenColorsList,
-    userTextmateTokenColors?: TokenColorsList,
+    userThemeName?: string;
+    userThemeType?: "light" | "dark" | "high contrast";
+    userThemeColors?: Record<string, string>;
+    userSemanticTokenColors?: TokenColorsList;
+    userTextmateTokenColors?: TokenColorsList;
   }
 ): ThemeJson {
-  const generatedSemanticTokens = Object.keys(overriddenConfig.userSemanticTokenColors).length > 0 ? 
-  generateSemanticTokenColors(overriddenConfig.userSemanticTokenColors) : {}
+  const generatedSemanticTokens = overriddenConfig.userSemanticTokenColors
+    ? Object.keys(overriddenConfig.userSemanticTokenColors).length > 0
+      ? generateSemanticTokenColors(
+          baseTheme.semanticTokenColors,
+          overriddenConfig.userSemanticTokenColors
+        )
+      : {}
+    : {},
 
-  const generatedTokenColors = Object.keys(overriddenConfig.userTextmateTokenColors).length > 0 ? generateTextMateTokenColors(overriddenConfig.userTextmateTokenColors) : []
-  const themeJson = {
+   generatedTokenColors = overriddenConfig.userTextmateTokenColors
+    ? Object.keys(overriddenConfig.userTextmateTokenColors).length > 0
+      ? generateTextMateTokenColors(overriddenConfig.userTextmateTokenColors)
+      : []
+    : [],
+   themeJson = {
     name: overriddenConfig.userThemeName || baseTheme.name,
     type: overriddenConfig.userThemeType || baseTheme.type,
     // Essential flag to enable the modern semantic coloring engine
-    semanticHighlighting: true, 
+    semanticHighlighting: true,
     // --- Workbench UI Colors ---
-    colors: {...baseTheme.colors, ...overriddenConfig.userThemeColors},
+    colors: { ...baseTheme.colors, ...overriddenConfig.userThemeColors },
     // --- Syntax Coloring ---
-    semanticTokenColors: {...baseTheme.semanticTokenColors, ...generatedSemanticTokens},
+    semanticTokenColors: {
+      ...baseTheme.semanticTokenColors,
+      ...generatedSemanticTokens,
+    },
     tokenColors: [...baseTheme.tokenColors, ...generatedTokenColors],
   };
-  return themeJson
+  return themeJson;
 }

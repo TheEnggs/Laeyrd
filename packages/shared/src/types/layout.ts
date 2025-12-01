@@ -7,7 +7,7 @@ export type UiLayoutMeta =
       description: string;
       defaultValue: string | number | boolean;
       valueType: "number" | "boolean" | "string";
-      // options is not allowed for number/boolean
+      // Options is not allowed for number/boolean
     }
   | {
       category: string;
@@ -17,7 +17,7 @@ export type UiLayoutMeta =
       description: string;
       defaultValue: string;
       valueType: "select";
-      options: string[]; // required for select
+      options: string[]; // Required for select
     };
 
 export type UiLayoutMetaGrouped = Record<string, UiLayoutMeta>;

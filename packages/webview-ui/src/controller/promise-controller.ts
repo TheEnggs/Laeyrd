@@ -1,10 +1,9 @@
 import { log } from "@shared/utils/debug-logs";
 import {
-  RequestMessage,
   ResponseMessage,
   WebViewEvent,
 } from "@shared/types/event";
-import { VSCodeMessenger } from "@/hooks/use-vscode-messenger";
+import { VSCodeMessenger } from "@webview/hooks/use-vscode-messenger";
 
 type EventCallback<T = any> = (payload: T) => void;
 
@@ -20,22 +19,22 @@ class PromiseController {
     window.addEventListener("message", (event) => {
       // 1️⃣ Handle request-response
       log("new incoming message", event.data);
-      const requestId = event.data.requestId;
+      const {requestId} = event.data;
       if (requestId) {
         const message = event.data as ResponseMessage<
           keyof WebViewEvent,
           "payload"
-        >;
-        const existingPromise = this.pendingRequests.get(message.requestId);
+        >,
+         existingPromise = this.pendingRequests.get(message.requestId);
         if (existingPromise) {
           if (message.status === "success")
-            existingPromise.resolve(message.payload);
-          else existingPromise.reject(message.error);
+            {existingPromise.resolve(message.payload);}
+          else {existingPromise.reject(message.error);}
           this.pendingRequests.delete(message.requestId);
         } else {
-          reportError(new Error("Request not found: " + message.requestId));
+          reportError(new Error(`Request not found: ${  message.requestId}`));
         }
-        return;
+        
       } else {
         const message = event.data as ResponseMessage<
           keyof WebViewEvent,
@@ -49,7 +48,7 @@ class PromiseController {
             listeners.forEach((cb) => cb(message.payload));
           }
         }
-        return;
+        
       }
     });
   }
@@ -61,8 +60,8 @@ class PromiseController {
     command: T;
     payload: WebViewEvent[T]["payload"];
   }): Promise<ResponseMessage<T, "response">> {
-    const requestId = crypto.randomUUID();
-    const message = {
+    const requestId = crypto.randomUUID(),
+     message = {
       requestId,
       command,
       payload,
@@ -102,7 +101,7 @@ class PromiseController {
       this.eventListeners.set(command, new Set());
     }
     this.eventListeners.get(command)!.add(cb);
-    return () => this.eventListeners.get(command)!.delete(cb); // unsubscribe
+    return () => this.eventListeners.get(command)!.delete(cb); // Unsubscribe
   }
   off<T extends keyof WebViewEvent>(command: T) {
     this.eventListeners.delete(command);

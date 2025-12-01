@@ -1,17 +1,14 @@
 import { UiLayoutMetaGrouped } from "./layout";
 import {
   ColorMetaGrouped,
+  DraftFile,
+  DraftStatePayload,
   TokenColorsList,
   UserTokenColors,
-  DraftColor,
-  DraftToken,
-  DraftStatePayload,
-  DraftFile,
-  DraftState,
 } from "./theme";
 import {
-  ConflictResolvedResponse,
   ConflictResolvePayload,
+  ConflictResolvedResponse,
   SyncResponse,
 } from "./sync";
 import { fontsLayoutUI } from "../data/fonts-layout";
@@ -20,6 +17,7 @@ export const SaveThemeModes = {
   CREATE: "CREATE",
   OVERWRITE: "OVERWRITE",
 } as const;
+
 export type PublishType = "theme" | "settings" | "both";
 export type WebViewEvent = {
   SHOW_TOAST: {
@@ -109,11 +107,11 @@ export type WebViewEvent = {
   OPEN_DONATION: { payload: any; response: undefined };
   ENABLE_LIVE_PREVIEW: { payload: any; response: boolean };
   //   SAVE_THEME: {
-  //     payload: {
-  //       mode: keyof typeof SaveThemeModes;
-  //       themeName: string;
+  //     Payload: {
+  //       Mode: keyof typeof SaveThemeModes;
+  //       ThemeName: string;
   //     };
-  //     response: { success: boolean };
+  //     Response: { success: boolean };
   //   };
   DELETE_THEME: {
     payload: {
@@ -132,32 +130,12 @@ export type WebViewEvent = {
   SAVE_SUCCESS: { payload?: undefined; response?: undefined };
   REPORT_ERROR: { payload: { error: string }; response: undefined };
   ERROR: { payload: string; response: string };
-  // User Preferences Events
-  GET_USER_PREFERENCES: {
-    payload: any;
-    response: import("./user").UserPreferences;
-  };
-  UPDATE_USER_PREFERENCES: {
-    payload: Partial<import("./user").UserPreferences>;
-    response: import("./user").UserPreferences;
-  };
-  SYNC_USER_PREFERENCES: {
-    payload: import("./user").UserPreferences;
-    response: { success: boolean; message?: string };
-  };
+
   GET_SERVER_CONFIG: {
     payload: any;
     response: import("./user").ServerConfig;
   };
-  // Authentication Events
-  CLERK_SIGN_IN: {
-    payload: { returnUrl?: string };
-    response: { success: boolean; redirectUrl?: string };
-  };
-  CLERK_SIGN_OUT: {
-    payload: any;
-    response: { success: boolean };
-  };
+
   GET_AUTH_USER: {
     payload: any;
     response: import("./user").AuthUser | null;
@@ -197,9 +175,9 @@ export type WebViewEvent = {
   };
 
   //   CHECK_CONFLICTS: {
-  //     payload: { userId: string };
-  //     response: {
-  //       conflictingThemes: LocalThemeVersion[];
+  //     Payload: { userId: string };
+  //     Response: {
+  //       ConflictingThemes: LocalThemeVersion[];
   //     };
   //   };
 
@@ -213,14 +191,14 @@ export type WebViewEvent = {
   // FUTURE: SETTINGS SYNC
   FETCH_REMOTE_SETTINGS: {
     payload: { userId: string };
-    response: any[]; // define RemoteSettingsVersion type
+    response: any[]; // Define RemoteSettingsVersion type
   };
 
   PULL_SETTING: {
     payload: { settingId: number };
     response: {
       success: boolean;
-      setting: any; // define LocalSettingsVersion type
+      setting: any; // Define LocalSettingsVersion type
       message?: string;
     };
   };
@@ -229,7 +207,7 @@ export type WebViewEvent = {
     payload: { settingId: number };
     response: {
       success: boolean;
-      setting: any; // define LocalSettingsVersion type
+      setting: any; // Define LocalSettingsVersion type
       conflict?: boolean;
       remoteSetting?: any; // RemoteSettingsVersion
     };

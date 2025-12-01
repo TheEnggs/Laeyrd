@@ -4,19 +4,19 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 import {
   ExternalLink,
-  NotebookIcon,
-  MessageSquare,
   Github,
+  MessageSquare,
+  NotebookIcon,
 } from "lucide-react";
-import { useMutation } from "@/hooks/use-query";
+import { useMutation } from "@webview/hooks/use-query";
 import { SERVER_CONFIG } from "@shared/utils/constants";
 export default function AboutLinks() {
-  const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL");
+  const openExternalUrlMutation = useMutation("OPEN_EXTERNAL_URL"),
 
-  const handleOpenExternalUrl = (url: string) => {
+   handleOpenExternalUrl = (url: string) => {
     openExternalUrlMutation.mutate({ url });
   };
 

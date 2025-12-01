@@ -1,36 +1,36 @@
 import { useState } from "react";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@webview/components/ui/card";
+import { Button } from "@webview/components/ui/button";
 import { CheckCircle2, Palette, RefreshCw, XCircleIcon } from "lucide-react";
-import { useMutation } from "@/hooks/use-query";
+import { useMutation } from "@webview/hooks/use-query";
 import { ConflictResolvedResponse, SyncResponse } from "@shared/types/sync";
-import useToast from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import useToast from "@webview/hooks/use-toast";
+import { Badge } from "@webview/components/ui/badge";
 
 export default function SyncThemesCard() {
-  const toast = useToast();
-  const [syncResponse, setSyncResponse] = useState<SyncResponse[] | null>(null);
-  const [conflictResolution, setConflictResolution] =
-    useState<ConflictResolvedResponse | null>(null);
-  const [conflictIndex, setConflictIndex] = useState(0);
+  const toast = useToast(),
+   [syncResponse, setSyncResponse] = useState<SyncResponse[] | null>(null),
+   [conflictResolution, setConflictResolution] =
+    useState<ConflictResolvedResponse | null>(null),
+   [conflictIndex, setConflictIndex] = useState(0),
 
-  const { mutate: sync, isPending } = useMutation("SYNC", {
+   { mutate: sync, isPending } = useMutation("SYNC", {
     onSuccess: (data) => setSyncResponse(data.data),
     onError: (err) => {
       (console.error("Sync error:", err),
         toast({
-          message: "Sync Failed, " + err,
+          message: `Sync Failed, ${  err}`,
           type: "error",
         }));
     },
-  });
-  const { mutate: resolveConflict, isPending: resolvingConflict } = useMutation(
+  }),
+   { mutate: resolveConflict, isPending: resolvingConflict } = useMutation(
     "RESOLVE_CONFLICT",
     {
       onSuccess: (data) => {
@@ -46,7 +46,7 @@ export default function SyncThemesCard() {
           (prev) =>
             prev?.map((p) => {
               const result = resultMap[p.fileId];
-              if (!result) return p;
+              if (!result) {return p;}
               return result.success
                 ? { ...p, resolve: true }
                 : { ...p, resolvedError: result.error };
@@ -54,19 +54,19 @@ export default function SyncThemesCard() {
         );
       },
     }
-  );
+  ),
   // Flatten conflicts into an array for the carousel
-  const conflicts: SyncResponse[] = syncResponse
+   conflicts: SyncResponse[] = syncResponse
     ? syncResponse.filter((r) => r.status === "CONFLICT")
-    : [];
+    : [],
 
-  const handleResolveConflict = (keep: "local" | "remote") => {
-    // setConflictResolution((prev) => ({ ...prev, [conflictIndex]: keep }));
+   handleResolveConflict = (keep: "local" | "remote") => {
+    // SetConflictResolution((prev) => ({ ...prev, [conflictIndex]: keep }));
     setConflictIndex((prev) => prev + 1);
-  };
+  },
 
-  const renderCleanFiles = () => {
-    if (!syncResponse) return null;
+   renderCleanFiles = () => {
+    if (!syncResponse) {return null;}
 
     return (
       <div className="mt-2 space-y-1">
@@ -94,10 +94,10 @@ export default function SyncThemesCard() {
         </div>
       </div>
     );
-  };
+  },
 
-  const renderConflictCarousel = () => {
-    if (conflictIndex >= conflicts.length) return null;
+   renderConflictCarousel = () => {
+    if (conflictIndex >= conflicts.length) {return null;}
 
     const conflict = conflicts[conflictIndex];
 

@@ -1,18 +1,28 @@
-import { X } from "lucide-react";
+import { Trash, X } from "lucide-react";
 import { memo } from "react";
 import { Button } from "../../ui/button";
+import { cn } from "@webview/lib/utils";
 
 function Component({
   handleRemove,
+  className,
   isTouched,
 }: {
   handleRemove: () => void;
+  className?: string;
   isTouched: boolean;
 }) {
-  if (!isTouched) return null;
+  if (!isTouched) {
+    return null;
+  }
   return (
-    <Button variant={"ghost"} size={"sm"} className="absolute top-2 right-2">
-      <X className="w-4 h-4 text-red-500" onClick={handleRemove} />
+    <Button
+      variant={"destructive"}
+      size={"sm"}
+      className={cn("absolute top-2 right-2", className)}
+      onClick={handleRemove}
+    >
+      <Trash className="w-4 h-4" />
     </Button>
   );
 }

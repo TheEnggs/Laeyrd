@@ -255,7 +255,7 @@ export const fontsLayoutUI: UiLayoutMetaGrouped = {
     description:
       "Render vertical rulers after a certain number of monospace characters.",
     defaultValue: "",
-    valueType: "string", // array of numbers in VS Code schema, but your type system doesn’t support arrays
+    valueType: "string", // Array of numbers in VS Code schema, but your type system doesn’t support arrays
   },
   "editor.glyphMargin": {
     category: "editor",
@@ -627,9 +627,9 @@ export const fontsLayoutUI: UiLayoutMetaGrouped = {
     description: "Controls indentation width independent from tab size.",
     defaultValue: "tabSize", // Can be number or "tabSize"
     valueType: "select",
-    options: ["tabSize" /* you can later allow numeric values dynamically */],
+    options: ["tabSize" /* You can later allow numeric values dynamically */],
   },
-  //editor
+  //Editor
 
   "workbench.activityBar.visible": {
     category: "UI & Layout",

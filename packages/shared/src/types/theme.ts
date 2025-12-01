@@ -1,6 +1,6 @@
 import z from "zod";
 
-// new colors
+// New colors
 export type Category =
   | "Base"
   | "Editor"
@@ -27,7 +27,7 @@ export const GROUP_NAMES = [
   "accent_3",
 ] as const;
 
-export type GroupName = typeof GROUP_NAMES[number];
+export type GroupName = (typeof GROUP_NAMES)[number];
 
 export interface ColorMeta {
   category: Category;
@@ -68,7 +68,6 @@ export type TokenCategory =
 export type TokenColorMeta = {
   displayName: string;
   description: string; // ≤ 6 words
-  preferredType: "textmate" | "semantic";
   defaultColor?: string;
   defaultFontStyle?: TokenColorSettings["fontStyle"];
 };
@@ -77,7 +76,7 @@ export type TokenColorsList = Record<TokenCategory, TokenColorMeta>;
 
 export type Color = Record<string, string>;
 
-export type TextMateTokenRule = {
+export type   TextMateTokenRule = {
   name?: string;
   scope: string[];
   settings: TokenColorSettings;
@@ -104,36 +103,31 @@ export type DraftToken = {
   userTokenColors: Record<string, string>;
 };
 
-const tokenStyleSchema = z.enum(["bold", "italic", "underline", "none"]);
+const tokenStyleSchema = z.enum(["bold", "italic", "underline", "none"]),
 
-const tokenColorSettings = z.object({
+ tokenColorSettings = z.object({
   foreground: z.string().optional(),
   fontStyle: tokenStyleSchema.optional(),
-});
+}),
+ draftTokenColorSettings = z.object(tokenColorSettings.shape);
 
+ 
 export const draftState = z.object({
   colorCustomization: z.record(
-    z.string(), // key
-    z.string() // hex color string
+    z.string(), // Key
+    z.string() // Hex color string
   ),
-  tokenCustomization: z.record(
-    z.string(),
-    tokenColorSettings
-  ),
-  semanticTokenCustomization: z.record(
-    z.string(), 
-    tokenColorSettings
-  ),
+  tokenCustomization: z.record(z.string(), draftTokenColorSettings),
   settingsCustomization: z.record(
     z.string(),
-    z.union([z.string(), z.number(), z.boolean()]) // settings can be mixed type
+    z.union([z.string(), z.number(), z.boolean()]) // Settings can be mixed type
   ),
 });
 
 export const draftFile = z.object({
   themeName: z.string().optional(),
   oldSettings: draftState,
-  draftState: draftState,
+  draftState,
   lastUpdatedOn: z.string(),
   isContentSaved: z.boolean(),
   isEditing: z.boolean(),
@@ -141,39 +135,37 @@ export const draftFile = z.object({
 });
 
 export type TokenColorSettings = z.infer<typeof tokenColorSettings>;
+export type DraftTokenColorSettings = z.infer<typeof draftTokenColorSettings>;
 export type DraftFile = z.infer<typeof draftFile>;
 export type DraftState = z.infer<typeof draftState>;
 export type DraftStatePayload =
   | {
       type: "color";
       key: string;
-      value: string; // e.g., "#ff0000"
+      value: string; // E.g., "#ff0000"
     }
   | {
       type: "token";
       key: string;
-      value: TokenColorSettings; // usually hex color
-    }
-  | {
-      type: "semanticToken";
-      key: string;
-      value: TokenColorSettings;
+      value: DraftTokenColorSettings;
     }
   | {
       type: "settings";
       key: string;
-      value: boolean | number | string; // editor settings etc.
+      value: boolean | number | string; // Editor settings etc.
     };
 
 export type DraftStatePayloadKeys = DraftStatePayload["type"];
 
 export type DraftChangeHandlerMap = {
   color: (key: string, value: string) => void;
-  token: (key: string, value: TokenColorSettings) => void;
-  semanticToken: (key: string, value: TokenColorSettings) => void;
+  token: (
+    originalTheme: ThemeJson,
+    key: string,
+    value: DraftTokenColorSettings
+  ) => void;
   settings: (key: string, value: string | number | boolean) => void;
 };
-
 
 export interface ThemeJson {
   name: string;

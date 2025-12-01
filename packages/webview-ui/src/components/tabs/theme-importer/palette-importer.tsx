@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useDraft } from "@/contexts/draft-context";
+import { useCallback, useState } from "react";
+import { Button, buttonVariants } from "@webview/components/ui/button";
+import { Input } from "@webview/components/ui/input";
+import { useDraft } from "@webview/contexts/draft-context";
 import { DraftStatePayload, GROUP_NAMES, GroupName } from "@shared/types/theme";
 import { colorCategoryMap } from "@shared/data/colorsList";
-import ColorPicker from "@/components/ui/color-picker";
+import ColorPicker from "@webview/components/ui/color-picker";
 import {
+  ArrowRight,
+  Link,
   Loader2,
   RefreshCw,
   Trash2,
-  ArrowRight,
-  Import,
-  Link,
 } from "lucide-react";
 import {
   Card,
@@ -21,36 +20,36 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+} from "@webview/components/ui/select";
+import { Label } from "@webview/components/ui/label";
+import { cn } from "@webview/lib/utils";
 
 // Derive unique group names from the map
 const ALL_GROUPS = GROUP_NAMES;
 
 export default function PaletteImporter() {
-  const { updateUnsavedChanges } = useDraft();
+  const { updateUnsavedChanges } = useDraft(),
 
-  const [rawJson, setRawJson] = useState("");
-  const [mappedColors, setMappedColors] = useState<
+   [rawJson, setRawJson] = useState(""),
+   [mappedColors, setMappedColors] = useState<
     Partial<Record<GroupName, string>>
-  >({});
-  const [importedPalette, setImportedPalette] = useState<
+  >({}),
+   [importedPalette, setImportedPalette] = useState<
     Record<string, string>
-  >({});
-  const [isParsing, setIsParsing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  >({}),
+   [isParsing, setIsParsing] = useState(false),
+   [error, setError] = useState<string | null>(null),
 
-  const onFile = useCallback((file: File | null) => {
+   onFile = useCallback((file: File | null) => {
     setError(null);
-    if (!file) return;
+    if (!file) {return;}
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result ?? "");
@@ -58,17 +57,17 @@ export default function PaletteImporter() {
     };
     reader.onerror = () => setError("Failed to read file");
     reader.readAsText(file);
-  }, []);
+  }, []),
 
-  const parseImportedJson = useCallback(() => {
+   parseImportedJson = useCallback(() => {
     setError(null);
     setIsParsing(true);
 
     setTimeout(() => {
       try {
-        let parsed: any;
-        let isJson = false;
-        let jsonError = "";
+        let isJson = false,
+         jsonError = "",
+         parsed: any;
 
         // Strategy 1: Try JSON Parse
         try {
@@ -78,14 +77,14 @@ export default function PaletteImporter() {
           jsonError = (e as Error).message;
         }
 
-        const flattened: Record<string, string> = {};
-        const isValidColor = (c: string) =>
+        const flattened: Record<string, string> = {},
+         isValidColor = (c: string) =>
           /^#([0-9a-fA-F]{3}){1,2}([0-9a-fA-F]{2})?$/.test(c);
 
         if (isJson) {
           // Handle JSON (Object or Array)
           const processObject = (target: any, prefix = "") => {
-            if (!target) return;
+            if (!target) {return;}
 
             if (Array.isArray(target)) {
               target.forEach((val, idx) => {
@@ -104,14 +103,14 @@ export default function PaletteImporter() {
                     flattened[prefix + k] = v;
                   }
                 } else if (typeof v === "object") {
-                  processObject(v, prefix + k + ".");
+                  processObject(v, `${prefix + k  }.`);
                 }
               }
             }
           };
 
           // If it has a 'colors' property, we can focus on it, but for flexibility we process the whole thing
-          // unless 'colors' exists and is an object, then we prioritize that but maybe we shouldn't restrict it.
+          // Unless 'colors' exists and is an object, then we prioritize that but maybe we shouldn't restrict it.
           // Let's process the whole object to be "extensible".
           processObject(parsed);
 
@@ -126,8 +125,8 @@ export default function PaletteImporter() {
           // Strategy 2: Regex Extraction (Fallback for raw text, CSS, SCSS, invalid JSON)
           // Matches #123, #123456, #12345678 (alpha)
           const hexRegex =
-            /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
-          const matches = rawJson.match(hexRegex);
+            /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g,
+           matches = rawJson.match(hexRegex);
 
           if (matches && matches.length > 0) {
             matches.forEach((color, idx) => {
@@ -162,20 +161,20 @@ export default function PaletteImporter() {
         setIsParsing(false);
       }
     }, 100);
-  }, [rawJson, mappedColors]);
+  }, [rawJson, mappedColors]),
 
-  const handleColorChange = (group: GroupName, color: string) => {
+   handleColorChange = (group: GroupName, color: string) => {
     setMappedColors((prev) => ({ ...prev, [group]: color }));
-  };
+  },
 
-  const handleKeyMap = (group: GroupName, importedKey: string) => {
+   handleKeyMap = (group: GroupName, importedKey: string) => {
     const color = importedPalette[importedKey];
     if (color) {
       setMappedColors((prev) => ({ ...prev, [group]: color }));
     }
-  };
+  },
 
-  const applyPalette = () => {
+   applyPalette = () => {
     const changes: DraftStatePayload[] = [];
 
     // For each defined group color, find all VS Code keys that belong to it
@@ -183,24 +182,24 @@ export default function PaletteImporter() {
       if (meta.groupName && mappedColors[meta.groupName]) {
         changes.push({
           type: "color",
-          key: key,
+          key,
           value: mappedColors[meta.groupName]!,
         });
       }
     }
 
     updateUnsavedChanges(changes);
-  };
+  },
 
-  const clearAll = () => {
+   clearAll = () => {
     setMappedColors({});
     setImportedPalette({});
     setRawJson("");
     setError(null);
-  };
+  },
 
-  const filledCount = Object.keys(mappedColors).length;
-  const importedKeys = Object.keys(importedPalette).sort();
+   filledCount = Object.keys(mappedColors).length,
+   importedKeys = Object.keys(importedPalette).sort();
 
   return (
     <div className="flex flex-col gap-4">

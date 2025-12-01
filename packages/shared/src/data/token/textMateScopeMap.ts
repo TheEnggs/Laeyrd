@@ -1,6 +1,6 @@
 import { TokenColorsList } from "../../types/theme";
 
-// to the complex, standard TextMate scope strings required for broad coverage.
+// To the complex, standard TextMate scope strings required for broad coverage.
 export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
   // General code comments (e.g., //, /* */, #)
   comment: ["comment", "comment.block", "comment.line", "punctuation.definition.comment"],
@@ -15,7 +15,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
     "keyword.operator.new",
     "storage.type",
     "storage.modifier",
-    "variable.language" // e.g., 'this' in JS
+    "variable.language" // E.g., 'this' in JS
   ],
 
   // Generic variable references that aren't constants or parameters (fallback)
@@ -29,7 +29,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
 
   // Constant literals (true, false, null) and defined constants (const/final)
   constant: [
-    "constant.language", // true, false, null
+    "constant.language", // True, false, null
     "constant.numeric",  // (Usually overridden by semantic number type)
     "constant.other"
   ],

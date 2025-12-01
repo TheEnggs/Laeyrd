@@ -1,20 +1,20 @@
 import { useState } from "react";
 import {
+  AnimatedTabsList,
+  AnimatedTabsTrigger,
   Tabs,
   TabsContent,
-  AnimatedTabsTrigger,
-  AnimatedTabsList,
-} from "@/components/ui/tabs";
+} from "@webview/components/ui/tabs";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 import ColorSettings from "./colors/color-settings";
 import ThemeImporter from "./theme-importer";
-import { Palette, Layout, Settings, Store, Import } from "lucide-react";
+import { Import, Layout, Palette, Settings } from "lucide-react";
 import LayoutSettings from "./font-and-layout/layout-settings";
 import UserSettingsContent from "./settings/user-settings";
 import FloatingSave from "./shared/floating-save";

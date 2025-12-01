@@ -4,22 +4,18 @@ import { UserSettingsController } from "./userSettings";
 import {
   RequestMessage,
   ResponseMessage,
-  SaveThemeModes,
   WebViewEvent,
 } from "@shared/types/event";
 import { SettingsController } from "./settings";
-import { UserPreferencesController } from "./userPreferences";
 import { AuthController } from "./auth";
 import { ToastController } from "./toast";
 import { log } from "@shared/utils/debug-logs";
 import SyncController from "./sync";
 import DraftManager from "./draft";
-import { TelemetryService } from "./telemetry";
 
 export class MessageController {
   private _themeController?: ThemeController;
   private _authController?: AuthController;
-  private _userPreferenceController?: UserPreferencesController;
   private panel?: vscode.WebviewPanel;
 
   constructor(
@@ -31,7 +27,7 @@ export class MessageController {
 
   private async themeController(): Promise<ThemeController> {
     if (!this._themeController) {
-      this._themeController = await ThemeController.create();
+      this._themeController = await ThemeController.getInstance(this.context);
     }
     return this._themeController;
   }
@@ -42,16 +38,8 @@ export class MessageController {
 
   private get authController(): AuthController {
     if (!this._authController)
-      this._authController = AuthController.getInstance();
+      {this._authController = AuthController.getInstance();}
     return this._authController;
-  }
-
-  private get userPreferencesController(): UserPreferencesController {
-    if (!this._userPreferenceController)
-      this._userPreferenceController = new UserPreferencesController(
-        this.context
-      );
-    return this._userPreferenceController;
   }
 
   setPanel(panel: vscode.WebviewPanel) {
@@ -100,9 +88,9 @@ export class MessageController {
         });
         break;
       case "GET_THEME_LIST": {
-        const tc = await this.themeController();
-        const themes = await tc.listOwnThemes(this.context);
-        const active = tc.getActiveThemeLabel();
+        const tc = await this.themeController(),
+         themes = await tc.listOwnThemes(),
+         active = tc.getActiveThemeLabel();
         this.responseHandler<"GET_THEME_LIST", "response">({
           command,
           requestId: message.requestId,
@@ -113,20 +101,20 @@ export class MessageController {
         });
         break;
       }
-      //   case "SAVE_THEME":
-      //     this.responseHandler<"SAVE_THEME", "response">({
-      //       command,
-      //       requestId: message.requestId,
-      //       executor: () => this.handleSaveTheme(message.payload),
+      //   Case "SAVE_THEME":
+      //     This.responseHandler<"SAVE_THEME", "response">({
+      //       Command,
+      //       RequestId: message.requestId,
+      //       Executor: () => this.handleSaveTheme(message.payload),
       //     });
-      //     break;
+      //     Break;
       case "DELETE_THEME":
         this.responseHandler<"DELETE_THEME", "response">({
           command,
           requestId: message.requestId,
           executor: async () => {
             const tc = await this.themeController();
-            return await tc.deleteThemeFile(this.context, message.payload);
+            return await tc.deleteThemeFile(message.payload);
           },
         });
         break;
@@ -143,8 +131,8 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: async () => {
-            const draftManager = await DraftManager.init(this.context);
-            const result = await draftManager.applyDraftChanges(
+            const draftManager = await DraftManager.init(this.context),
+             result = await draftManager.applyDraftChanges(
               message.payload
             );
             return {
@@ -159,8 +147,8 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: async () => {
-            const draftManager = await DraftManager.init(this.context);
-            const result = await draftManager.publishDraftChanges(
+            const draftManager = await DraftManager.init(this.context),
+             result = await draftManager.publishDraftChanges(
               message.payload
             );
             if (
@@ -183,8 +171,8 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: async () => {
-            const draftManager = await DraftManager.init(this.context);
-            const result = await draftManager.removeDraftChange(
+            const draftManager = await DraftManager.init(this.context),
+             result = await draftManager.removeDraftChange(
               message.payload
             );
             return result;
@@ -196,8 +184,8 @@ export class MessageController {
           command,
           requestId: message.requestId,
           executor: async () => {
-            const draftManager = await DraftManager.init(this.context);
-            const result = await draftManager.discardChanges();
+            const draftManager = await DraftManager.init(this.context),
+             result = await draftManager.discardChanges();
             return result;
           },
         });
@@ -213,40 +201,7 @@ export class MessageController {
         const settings = new UserSettingsController(this.context);
         settings.rollbackToOriginal();
         break;
-      case "GET_USER_PREFERENCES":
-        this.responseHandler({
-          command,
-          requestId: message.requestId,
-          executor: () => this.userPreferencesController.getUserPreferences(),
-        });
-        break;
-      case "UPDATE_USER_PREFERENCES":
-        this.responseHandler({
-          command,
-          requestId: message.requestId,
-          executor: () =>
-            this.userPreferencesController.updateUserPreferences(
-              message.payload
-            ),
-        });
-        break;
-      case "SYNC_USER_PREFERENCES":
-        this.responseHandler({
-          command,
-          requestId: message.requestId,
-          executor: async () => {
-            // First update preferences, then sync
-            await this.userPreferencesController.updateUserPreferences(
-              message.payload
-            );
-            // Return sync result (placeholder for now)
-            return {
-              success: true,
-              message: "Preferences synced successfully",
-            };
-          },
-        });
-        break;
+
       case "GET_SERVER_CONFIG":
         this.responseHandler({
           command,
@@ -321,15 +276,10 @@ export class MessageController {
         });
         break;
       }
-      case "TEST_SETTINGS_CHANGE": {
-        const settings = await SettingsController.init(this.context);
-        settings.testSettingsChange();
-        // this.settingsChanged();
-        break;
-      }
+
       case "SYNC": {
         const userId = this._authController?.getCurrentUser()?.id;
-        if (!userId) throw new Error("User id is missing");
+        if (!userId) {throw new Error("User id is missing");}
         const syncController = new SyncController(this.context, userId);
         syncController.loadOrCreateLocalVersions();
         this.responseHandler<"SYNC", "response">({
@@ -366,12 +316,12 @@ export class MessageController {
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
     try {
-      if(command === "PUBLISH_DRAFT_CHANGES"){
-        TelemetryService.instance.sendEvent("MESSAGE_RESPONSE_HANDLER", {
-          command,
-          requestId,
-        });
-      }
+      // If(command === "PUBLISH_DRAFT_CHANGES"){
+      //   TelemetryService.instance.sendEvent("MESSAGE_RESPONSE_HANDLER", {
+      //     Command,
+      //     RequestId,
+      //   });
+      // }
       const response = await executor();
       this.POST_MESSAGE<T, K>({
         command,
@@ -380,10 +330,10 @@ export class MessageController {
         payload: response,
       });
     } catch (err) {
-      TelemetryService.instance.sendError("MESSAGE RESPONSE HANDLER", err, {
-        command,
-        requestId,
-      });
+      // TelemetryService.instance.sendError("MESSAGE RESPONSE HANDLER", err, {
+      //   Command,
+      //   RequestId,
+      // });
       log("error occurred in response handler", err);
       this.POST_MESSAGE<T, K>({
         command,
@@ -401,14 +351,13 @@ export class MessageController {
     const messageData = { command, payload, requestId, status, error };
     try {
       if (!this.panel) {
-        ;
         return;
       }
       this.panel.webview.postMessage(messageData);
     } catch (error) {
       console.error("Invalid message data:", error);
       console.error("Message data:", messageData);
-      return;
+      
     }
   }
 
@@ -447,9 +396,9 @@ export class MessageController {
         requestId: "",
         mode: "payload",
         executor: async () => {
-          const tc = await this.themeController();
-          const list = await tc.listOwnThemes(this.context);
-          const active = tc.getActiveThemeLabel() || "";
+          const tc = await this.themeController(),
+           list = await tc.listOwnThemes(),
+           active = tc.getActiveThemeLabel() || "";
           return {
             themes: list,
             active,
@@ -472,7 +421,6 @@ export class MessageController {
     const mergedSettings = settingsController.getMergedSettings();
 
     if (mergedSettings) {
-      ;
       this.responseHandler({
         command: "UPDATE_FONT_AND_LAYOUT_SETTINGS",
         requestId: "",

@@ -55,9 +55,9 @@ class QueryClient {
   }) {
     const subs = this.subscribers.get(command);
     if (subs) {
-      for (const cb of subs) cb(data);
+      for (const cb of subs) {cb(data);}
     }
-    return;
+    
   }
 
   subscribe<T extends keyof WebViewEvent>({
@@ -89,7 +89,7 @@ class QueryClient {
   }) {
     this.cache.set(command, data);
     this.notify({ command, data });
-    return;
+    
   }
 
   invalidate(key: string) {

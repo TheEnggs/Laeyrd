@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { DraftProvider } from "@/contexts/draft-context";
-import HeroSection from "@/components/hero-section";
-import { Toaster } from "@/components/ui/sonner";
-import { startListeners, stopListeners } from "@/lib/listeners";
+import { DraftProvider } from "@webview/contexts/draft-context";
+import HeroSection from "@webview/components/hero-section";
+import { startListeners, stopListeners } from "@webview/lib/listeners";
 import CustomizationTabs from "./components/tabs";
 
 export default function App() {
@@ -22,7 +21,6 @@ export default function App() {
           <HeroSection />
           <CustomizationTabs />
         </div>
-        <Toaster />
       </div>
     </DraftProvider>
   );

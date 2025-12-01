@@ -23,13 +23,13 @@ type BaseFileMeta = {
 export type RemoteFileMeta = BaseFileMeta & {
   id: number;
   remoteFileUrl: string;
-  deviceId?: string; // optional, last updater device
+  deviceId?: string; // Optional, last updater device
 };
 
 export type LocalFileMeta = BaseFileMeta & {
   id?: number;
   localCommitHash: string;
-  localFilePath: string; // path on local machine
+  localFilePath: string; // Path on local machine
   isDirty: boolean;
   hasConflict: boolean;
 };

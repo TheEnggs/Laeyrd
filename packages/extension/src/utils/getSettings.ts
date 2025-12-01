@@ -36,7 +36,7 @@ export const productMap: Record<string, ProductConfig> = {
     productName: "Antigravity",
     baseName: "Antigravity"
   }
-  // add more as needed
+  // Add more as needed
 };
 
 function resolvePath(baseName: string, platform: Platform): string {
@@ -75,15 +75,15 @@ export function getSettingsPath(
   platform: NodeJS.Platform = process.platform
 ): string {
   const product = productMap[fork];
-  if (!product) throw new Error(`Unknown fork: ${fork}`);
+  if (!product) {throw new Error(`Unknown fork: ${fork}`);}
   return resolvePath(product.baseName, platform as Platform);
 }
 
 // Auto-detect fork
 export function detectFork(): keyof typeof productMap {
   const appName = vscode.env.appName.toLowerCase();
-  if (appName.includes("vscodium")) return "vscodium";
-  if (appName.includes("cursor")) return "cursor";
+  if (appName.includes("vscodium")) {return "vscodium";}
+  if (appName.includes("cursor")) {return "cursor";}
   return "vscode";
 }
 

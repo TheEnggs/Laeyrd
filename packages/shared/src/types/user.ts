@@ -23,7 +23,7 @@ export interface AuthUser {
 }
 
 export interface AuthSession {
-  id: string; // sessionId
+  id: string; // SessionId
   token: string;
   userId: string;
   status: "active" | "expired" | "ended";
@@ -34,7 +34,7 @@ export interface UserPreferences {
   userId?: string;
   authUser?: AuthUser;
   consents: UserConsents;
-  version: string; // for schema migration purposes
+  version: string; // For schema migration purposes
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }

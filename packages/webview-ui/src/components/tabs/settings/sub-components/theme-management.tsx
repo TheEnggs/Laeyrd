@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@/hooks/use-query";
-import useToast from "@/hooks/use-toast";
+import { useMutation, useQuery } from "@webview/hooks/use-query";
+import useToast from "@webview/hooks/use-toast";
 import { log } from "@shared/utils/debug-logs";
 import {
   Card,
@@ -7,23 +7,23 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 import { Palette } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { cn } from "@webview/lib/utils";
+import { Skeleton } from "@webview/components/ui/skeleton";
+import { Button } from "@webview/components/ui/button";
 export default function ThemeManagement() {
-  const toast = useToast();
-  const {
+  const toast = useToast(),
+   {
     data: themesData,
     refetch,
     isLoading,
   } = useQuery({
     command: "GET_THEME_LIST",
     payload: [],
-  });
+  }),
 
-  const { mutate: deleteTheme, isPending: isDeleting } = useMutation(
+   { mutate: deleteTheme, isPending: isDeleting } = useMutation(
     "DELETE_THEME",
     {
       onSuccess: async () => {
@@ -55,18 +55,13 @@ export default function ThemeManagement() {
         ) : themesData && themesData.themes.length > 0 ? (
           <div
             className={cn(
-              "grid gap-6 grid-cols-1",
-              themesData.themes.length >= 3
-                ? "xl:grid-cols-3 md:grid-cols-2"
-                : themesData.themes.length === 2
-                  ? "md:grid-cols-2"
-                  : "md:grid-cols-1"
+              "grid gap-6 grid-cols-1 xl:grid-cols-3 md:grid-cols-2"
             )}
           >
             {themesData.themes.map((theme) => (
               <div
                 key={theme.label}
-                className="flex items-center justify-between p-4 border border-primary/20 rounded-xl"
+                className="flex items-center justify-between p-4 bg-primary/10 border border-primary/20 rounded-xl"
               >
                 <div className="flex items-center gap-3">
                   <Palette className="h-4 w-4" />

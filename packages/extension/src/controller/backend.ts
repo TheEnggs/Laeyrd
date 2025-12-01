@@ -2,10 +2,10 @@ import { log } from "@shared/utils/debug-logs";
 import { SERVER_CONFIG } from "@shared/utils/constants";
 import { AuthController } from "./auth";
 import {
-  RemoteFileMeta,
-  LocalFileMeta,
   CreateTheme,
+  LocalFileMeta,
   PushResponse,
+  RemoteFileMeta,
 } from "@shared/types/sync";
 import path from "path";
 import fs from "node:fs";
@@ -24,7 +24,7 @@ export class BackendController {
   ): Promise<ApiResponse<T>> {
     try {
       const token = await this.getUserToken();
-      if (!token) throw new Error("No auth token available");
+      if (!token) {throw new Error("No auth token available");}
 
       const url = `${this.baseUrl}${endpoint}`;
       log("Requesting", url);
@@ -34,7 +34,7 @@ export class BackendController {
         headers: {
           ...(options.headers || {}),
           Authorization: `Bearer ${token}`,
-          // only set JSON content type when body exists and is a string
+          // Only set JSON content type when body exists and is a string
           ...(options.body && typeof options.body === "string"
             ? { "Content-Type": "application/json" }
             : {}),
@@ -56,8 +56,8 @@ export class BackendController {
       }
 
       // ✅ Auto-detect content type for correct parsing
-      const contentType = res.headers.get("content-type") || "";
-      const responseType = contentType.includes("application/json")
+      const contentType = res.headers.get("content-type") || "",
+       responseType = contentType.includes("application/json")
         ? "json"
         : contentType.includes("text/")
           ? "text"
@@ -69,7 +69,7 @@ export class BackendController {
       } else if (responseType === "text") {
         data = await res.text();
       } else {
-        data = await res.arrayBuffer(); // for binary responses
+        data = await res.arrayBuffer(); // For binary responses
       }
 
       return { success: true, data: data as T, responseType };
@@ -82,7 +82,7 @@ export class BackendController {
   /** ---------- TOKEN / AUTH ---------- **/
   async getUserToken(): Promise<string | null> {
     const session = AuthController.getInstance().getCurrentSession();
-    if (!session) return null;
+    if (!session) {return null;}
     log("Sessionid", session.id);
 
     const res = await fetch(`${SERVER_CONFIG.webappUrl}/api/refresh-token`, {
@@ -92,10 +92,10 @@ export class BackendController {
       },
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {return null;}
 
     const data = (await res.json()) as { token: string; sessionId: string };
-    if (data.sessionId !== session.id) return null;
+    if (data.sessionId !== session.id) {return null;}
     return data.token || null;
   }
 
@@ -127,11 +127,11 @@ export class BackendController {
   }
 
   async initThemesUpload(localMeta: LocalFileMeta, content: string) {
-    const obj = content;
-    const blob = new Blob([obj], {
+    const obj = content,
+     blob = new Blob([obj], {
       type: "application/json",
-    });
-    const file = new File([blob], "data.json", { type: "application/json" });
+    }),
+     file = new File([blob], "data.json", { type: "application/json" });
     return this.request<{
       endpoint: { expire: number; signedUrl: string; fileId: string };
     }>(`/uac/themes/initUpload`, {
@@ -147,11 +147,11 @@ export class BackendController {
 
   async uploadFile(endpoint: string, content: string) {
     try {
-      const obj = content;
-      const blob = new Blob([obj], {
+      const obj = content,
+       blob = new Blob([obj], {
         type: "application/json",
-      });
-      const file = new File([blob], "data.json", { type: "application/json" });
+      }),
+       file = new File([blob], "data.json", { type: "application/json" });
       log("file", file);
       const uploadRes = await fetch(endpoint, {
         method: "PUT",
@@ -162,7 +162,7 @@ export class BackendController {
       });
 
       if (!uploadRes.ok) {
-        // read response body for error details from S3
+        // Read response body for error details from S3
         const errorText = await uploadRes.text();
         return {
           success: false,
@@ -214,7 +214,7 @@ export class BackendController {
 
       // 1️⃣ Make request to download raw content
       const token = await this.getUserToken();
-      if (!token) throw new Error("No auth token available");
+      if (!token) {throw new Error("No auth token available");}
 
       const url = `${this.baseUrl}${remoteMeta.remoteFileUrl}`;
       log("Downloading", url);
@@ -222,11 +222,11 @@ export class BackendController {
       const res = await this.request<string>(url, {
         method: "GET",
       });
-      if (!res.success) throw new Error("Failed to download file");
+      if (!res.success) {throw new Error("Failed to download file");}
       // 3️⃣ If a local path is provided, save it to disk
       if (localPath) {
         const dir = path.dirname(localPath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        if (!fs.existsSync(dir)) {fs.mkdirSync(dir, { recursive: true });}
 
         // For binary content, write as base64-decoded buffer
         if (res.responseType === "text") {
@@ -259,7 +259,7 @@ export class BackendController {
       dbHeadVersionId?: number;
     }>
   > {
-    if (!localMeta.id) return { success: false, error: "File id is missing" };
+    if (!localMeta.id) {return { success: false, error: "File id is missing" };}
     return this.request<{
       status: "up_to_date" | "conflict" | "update_required";
       remoteFileUrl: string;

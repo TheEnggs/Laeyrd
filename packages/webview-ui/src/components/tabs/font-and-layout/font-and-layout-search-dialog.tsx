@@ -6,15 +6,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@webview/components/ui/dialog";
 import { Button } from "../../ui/button";
 import { Search, Settings2 } from "lucide-react";
-import { useDraft } from "@/contexts/draft-context";
+import { useDraft } from "@webview/contexts/draft-context";
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@webview/lib/utils";
 import RemoveDraftChange from "../shared/remove-draft-change";
 import { Input } from "../../ui/input";
-import { useQuery } from "@/hooks/use-query";
+import { useQuery } from "@webview/hooks/use-query";
 
 import { Switch } from "../../ui/switch";
 import {
@@ -28,17 +28,17 @@ import { UiLayoutMetaWithKey } from "./layout-settings";
 import { useDebounce } from "use-debounce";
 
 export default function FontAndLayoutSearchDialog() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-  const { drafts } = useDraft();
-  const { data: layoutState, isLoading: isLoadingLayout } = useQuery({
+  const [searchQuery, setSearchQuery] = useState(""),
+   [debouncedSearchQuery] = useDebounce(searchQuery, 500),
+   { drafts } = useDraft(),
+   { data: layoutState, isLoading: isLoadingLayout } = useQuery({
     command: "GET_FONT_AND_LAYOUT_SETTINGS",
     payload: [],
-  });
+  }),
 
   // Merge draftState with default values and organize by subcategory
-  const settingsCustomization = useMemo(() => {
-    if (!layoutState) return [];
+   settingsCustomization = useMemo(() => {
+    if (!layoutState) {return [];}
     return Object.entries(layoutState).map(([key, item]) => {
       const draftValue = drafts.find(
         (c): c is Extract<DraftStatePayload, { type: "settings" }> =>
@@ -46,27 +46,27 @@ export default function FontAndLayoutSearchDialog() {
       );
       return {
         ...item,
-        key: key,
+        key,
         defaultValue: draftValue ? draftValue.value : item.defaultValue,
         originalValue: item.defaultValue,
-        isTouched: !!draftValue,
+        isTouched: Boolean(draftValue),
       } as UiLayoutMetaWithKey;
     });
-  }, [drafts, layoutState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drafts, layoutState]), // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filteredSettingsCustomization: UiLayoutMetaWithKey[] = useMemo(() => {
+   filteredSettingsCustomization: UiLayoutMetaWithKey[] = useMemo(() => {
     const query = debouncedSearchQuery.trim().toLowerCase();
-    if (query === "") return settingsCustomization.slice(0, 20);
+    if (query === "") {return settingsCustomization.slice(0, 20);}
 
     return settingsCustomization.filter((s) => {
-      // helper to avoid repeating `.toLowerCase().includes(...)`
+      // Helper to avoid repeating `.toLowerCase().includes(...)`
       const match = (value: unknown): boolean => {
-        if (value == null) return false;
+        if (value == null) {return false;}
         return String(value).toLowerCase().includes(query);
-      };
+      },
 
-      // for union-specific fields
-      const optionsMatch =
+      // For union-specific fields
+       optionsMatch =
         "options" in s && Array.isArray(s.options)
           ? s.options.some((opt) => match(opt))
           : false;

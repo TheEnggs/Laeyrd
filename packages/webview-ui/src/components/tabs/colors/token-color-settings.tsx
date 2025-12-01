@@ -5,33 +5,33 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@webview/components/ui/card";
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
-import { useDraft } from "@/contexts/draft-context";
+import { cn } from "@webview/lib/utils";
+import { useDraft } from "@webview/contexts/draft-context";
 import {
   DraftStatePayload,
   TokenColorSettings as TokenColorSettingsType,
 } from "@shared/types/theme";
-import { useQuery } from "@/hooks/use-query";
+import { useQuery } from "@webview/hooks/use-query";
 import { CardSkeleton } from "../skeleton/card";
 import RemoveDraftChange from "../shared/remove-draft-change";
-import ColorPicker from "@/components/ui/color-picker";
-import { Brackets, Code2 } from "lucide-react";
+import ColorPicker from "@webview/components/ui/color-picker";
+import { Brackets } from "lucide-react";
 
 export default function TokenColorSettings() {
-  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft();
-  const {
+  const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft(),
+   {
     data: semanticTokenColorsState,
     isLoading: isLoadingSemanticTokenColors,
   } = useQuery({
     command: "GET_THEME_TOKEN_MAP_COLORS",
     payload: [],
-  });
+  }),
 
   // 🔹 Memoized tree: category → subcategory → colors[]
-  const colors = useMemo(() => {
-    if (!semanticTokenColorsState) return {};
+   colors = useMemo(() => {
+    if (!semanticTokenColorsState) {return {};}
     const tree: Record<
       string,
       {
@@ -41,18 +41,13 @@ export default function TokenColorSettings() {
         value: TokenColorSettingsType;
         originalValue: string | undefined;
         isTouched: boolean;
-        preferredType: "textmate" | "semantic";
       }
     > = {};
 
     for (const [key, def] of Object.entries(semanticTokenColorsState)) {
       const draftColor = drafts.find(
-        (
-          c
-        ): c is Extract<
-          DraftStatePayload,
-          { type: "semanticToken" | "token" }
-        > => c.key === key && (c.type === "semanticToken" || c.type === "token")
+        (c): c is Extract<DraftStatePayload, { type: "token" }> =>
+          c.key === key && c.type === "token"
       );
 
       tree[key] = {
@@ -64,8 +59,7 @@ export default function TokenColorSettings() {
           fontStyle: def.defaultFontStyle ?? "none",
         },
         originalValue: def.defaultColor,
-        isTouched: !!draftColor,
-        preferredType: def.preferredType || "semantic",
+        isTouched: Boolean(draftColor),
       };
     }
     return tree;
@@ -106,10 +100,8 @@ export default function TokenColorSettings() {
                   handleRemove={() =>
                     handleRemoveDraftChange([
                       {
-                        type:
-                          color.preferredType === "textmate"
-                            ? "token"
-                            : "semanticToken",
+                        type: "token",
+
                         key: color.key,
                         value: color.value,
                       },
@@ -131,10 +123,7 @@ export default function TokenColorSettings() {
                   onChange={(value) =>
                     updateUnsavedChanges([
                       {
-                        type:
-                          color.preferredType === "textmate"
-                            ? "token"
-                            : "semanticToken",
+                        type: "token",
                         key: color.key,
                         value: {
                           foreground: value,

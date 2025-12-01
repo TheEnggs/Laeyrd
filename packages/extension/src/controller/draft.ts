@@ -1,24 +1,23 @@
 import {
   DraftChangeHandlerMap,
   DraftFile,
-  draftFile,
-  DraftState,
   DraftStatePayload,
-  DraftStatePayloadKeys,
+  DraftTokenColorSettings,
   TextMateTokenRule,
+  ThemeJson,
   TokenColorSettings,
   UserTokenColors,
+  draftFile,
 } from "@shared/types/theme";
 import { log } from "@shared/utils/debug-logs";
 import * as vscode from "vscode";
 import { ThemeController } from "./theme";
 import { PublishType, SaveThemeModes } from "@shared/types/event";
-import { TextMateScopeMap } from "@shared/data/token/textMateScopeMap";
-import { generateTextMateTokenColors } from "@shared/utils/themeGenerator";
 import {
-  convertDraftUserTokenColorsToTokenColors,
-  convertUserTokenColorsToTokenColorsList,
-} from "@shared/data/token/tokenList";
+  generateSemanticTokenColors,
+  generateTextMateTokenColors,
+} from "@shared/utils/themeGenerator";
+import { convertDraftUserTokenColorsToTokenColors } from "@shared/data/token/tokenList";
 
 const defaultDraft: DraftFile = {
   lastUpdatedOn: new Date().toISOString(),
@@ -26,13 +25,11 @@ const defaultDraft: DraftFile = {
     colorCustomization: {},
     tokenCustomization: {},
     settingsCustomization: {},
-    semanticTokenCustomization: {},
   },
   oldSettings: {
     colorCustomization: {},
     tokenCustomization: {},
     settingsCustomization: {},
-    semanticTokenCustomization: {},
   },
   isSettingsRestored: true,
   isEditing: false,
@@ -80,7 +77,9 @@ export default class DraftManager {
   private async loadFromFile() {
     try {
       const fileContent = await this.getFile();
-      if (!fileContent) throw new Error("Failed to read file content");
+      if (!fileContent) {
+        throw new Error("Failed to read file content");
+      }
       this.draftFileContent = fileContent;
     } catch (err) {
       log("File not found or corrupted, creating new one:", err);
@@ -94,10 +93,10 @@ export default class DraftManager {
   private async getFile(): Promise<DraftFile | null> {
     const filePath = this.getFilePath();
     try {
-      const bytes = await vscode.workspace.fs.readFile(filePath);
-      const content = new TextDecoder().decode(bytes);
-      const parsed = JSON.parse(content);
-      const validate = draftFile.safeParse(parsed);
+      const bytes = await vscode.workspace.fs.readFile(filePath),
+        content = new TextDecoder().decode(bytes),
+        parsed = JSON.parse(content),
+        validate = draftFile.safeParse(parsed);
       return validate.success ? validate.data : null;
     } catch (err) {
       console.error("DraftManager: failed to read file:", err);
@@ -109,12 +108,14 @@ export default class DraftManager {
    * Persist current draftFileContent to file.
    */
   public async writeFile() {
-    if (!this.draftFileContent) throw new Error("No draft file content");
+    if (!this.draftFileContent) {
+      throw new Error("No draft file content");
+    }
     try {
-      const filePath = this.getFilePath();
-      const bytes = new TextEncoder().encode(
-        JSON.stringify(this.draftFileContent, null, 2)
-      );
+      const filePath = this.getFilePath(),
+        bytes = new TextEncoder().encode(
+          JSON.stringify(this.draftFileContent, null, 2)
+        );
 
       await vscode.workspace.fs.writeFile(filePath, bytes);
       return true;
@@ -130,56 +131,86 @@ export default class DraftManager {
     payload: DraftStatePayload[]
   ): Promise<boolean> {
     log("applyDraftChanges", payload);
-    const draft = this.draftFileContent;
-    const config = await this.getVSCodeConfig();
-
-    const test = config.get("editor.tokenColorCustomizations");
-    // Take snapshots ONCE so we don't keep reading config
-    const existingColors =
-      config.get<Record<string, string>>("workbench.colorCustomizations") || {};
-    const existingTokenColors =
-      config.get<Record<string, any>>("editor.tokenColorCustomizations") || {};
-    const existingSemanticTokens =
-      config.get<{ rules?: Record<string, any> }>(
-        "editor.semanticTokenColorCustomizations"
-      ) || {};
-    const existingSemanticRules = existingSemanticTokens.rules || {};
-
-    // Accumulators for new values
-    const pendingColors: Record<string, string> = {};
-    const pendingTokenColors: UserTokenColors = {};
-    const pendingSemanticRules: UserTokenColors = {};
-    const pendingSettings: Record<string, string | number | boolean> = {};
-
-    // We pass these through to the handlers
-    const handlers = this.applyDraftChangeHandlers(draft, {
-      existingColors,
-      existingTokenColors,
-      existingSemanticRules,
-      pendingColors,
-      pendingTokenColors,
-      pendingSemanticRules,
-      pendingSettings,
-    });
+    const originalTheme = (await ThemeController.getInstance(this.context))
+        .currentTheme,
+      draft = { ...this.draftFileContent },
+      config = await this.getVSCodeConfig(),
+      // Take snapshots ONCE so we don't keep reading config
+      existingColors =
+        config.get<Record<string, string>>("workbench.colorCustomizations") ||
+        {},
+      // Accumulators for new values
+      pendingColors: Record<string, string> = {},
+      pendingTokenColors: TextMateTokenRule[] = [],
+      pendingSemanticRules: UserTokenColors = {},
+      pendingSettings: Record<string, string | number | boolean> = {};
+    console.log("payload", payload);
 
     // Process all payload items, but don't touch config yet
     payload.forEach((item) => {
+      const key = item.key;
+
       switch (item.type) {
-        case "color":
-          handlers.color(item.key, item.value);
+        case "color": {
+          const value = item.value as Extract<
+            DraftStatePayload,
+            { type: typeof item.type }
+          >["value"];
+          if (!(key in draft.oldSettings.colorCustomization)) {
+            draft.oldSettings.colorCustomization[key] =
+              existingColors[key] ?? "";
+          }
+          draft.draftState.colorCustomization[key] = value;
+          pendingColors[key] = value;
           break;
+        }
 
-        case "token":
-          handlers.token(item.key, item.value);
+        case "token": {
+          if (!originalTheme)
+            throw new Error(
+              "Something went wrong while saving the token colors"
+            );
+          const value = item.value as Extract<
+            DraftStatePayload,
+            { type: typeof item.type }
+          >["value"];
+          const getTokenColoredMap = convertDraftUserTokenColorsToTokenColors({
+              [key]: value as DraftTokenColorSettings,
+            }),
+            generatedScopedTokenColors =
+              generateTextMateTokenColors(getTokenColoredMap),
+            generatedSemanticTokenColors = generateSemanticTokenColors(
+              originalTheme?.semanticTokenColors,
+              getTokenColoredMap
+            );
+          console.log("getTokenMap", getTokenColoredMap);
+          console.log("generatedScopedTokenColors", generatedScopedTokenColors);
+          console.log(
+            "generatedSemanticTokenColors",
+            generatedSemanticTokenColors
+          );
+          // Add/overwrite with your new rules
+          for (const rule of generatedScopedTokenColors) {
+            pendingTokenColors.push(rule);
+            // draft.draftState.tokenCustomization[key] = rule.settings;
+          }
+          for (const [key, value] of Object.entries(
+            generatedSemanticTokenColors
+          )) {
+            pendingSemanticRules[key] = value;
+          }
+          draft.draftState.tokenCustomization[key] = value;
           break;
+        }
 
-        case "semanticToken":
-          handlers.semanticToken(item.key, item.value);
+        case "settings": {
+          const value = item.value as Extract<
+            DraftStatePayload,
+            { type: typeof item.type }
+          >["value"];
+          pendingSettings[key] = value;
           break;
-
-        case "settings":
-          handlers.settings(item.key, item.value);
-          break;
+        }
       }
     });
 
@@ -197,30 +228,19 @@ export default class DraftManager {
     }
 
     // 2. editor.tokenColorCustomizations
-    if (Object.keys(pendingTokenColors).length > 0) {
-
-      const getTokenColoredMap =
-        convertDraftUserTokenColorsToTokenColors(pendingTokenColors);
-      const generateScopedTokenColors =
-        generateTextMateTokenColors(getTokenColoredMap);
+    if (pendingTokenColors.length > 0) {
       await this.updateConfigSection<Record<string, any>>(
         "editor.tokenColorCustomizations",
         (existing) => {
-          const existingRules: TextMateTokenRule[] = existing?.textMateRules ?? [];
-
-          // Build a map of existing rules by name
-          const existingMap = new Map(
-            existingRules.map((rule) => [rule.name, rule])
+          const existingRules: TextMateTokenRule[] =
+            existing?.textMateRules ?? [];
+          // Remove any existing rules that are being updated
+          const filteredExistingRules = existingRules.filter(
+            (rule) => !pendingTokenColors.some((p) => p.name === rule.name)
           );
-
-          // Add/overwrite with your new rules
-          for (const rule of generateScopedTokenColors) {
-            existingMap.set(rule.name, rule); // overwrite if name exists
-          }
-
           return {
             ...(existing ?? {}),
-            textMateRules: Array.from(existingMap.values()), // convert map back to array
+            textMateRules: [...filteredExistingRules, ...pendingTokenColors], // Convert map back to array
           };
         }
       );
@@ -231,8 +251,18 @@ export default class DraftManager {
       await this.updateConfigSection<{
         rules?: Record<string, TokenColorSettings>;
       }>("editor.semanticTokenColorCustomizations", (existing) => {
-        const rules = { ...(existing.rules ?? {}), ...pendingSemanticRules };
-        return { ...existing, rules };
+        const rules = { ...(existing.rules ?? {}) };
+        // Remove any existing rules that are being updated
+        for (const key of Object.keys(pendingSemanticRules)) {
+          if (key in rules) {
+            delete rules[key];
+          }
+        }
+        return {
+          enabled: true,
+          ...existing,
+          rules: { ...rules, ...pendingSemanticRules },
+        };
       });
     }
 
@@ -250,70 +280,19 @@ export default class DraftManager {
     draft.isEditing = true;
     draft.isSettingsRestored = false;
     this.draftFileContent = draft;
+    console.log("updated draft", draft);
+
     return await this.writeFile();
-  }
-
-  public applyDraftChangeHandlers(
-    draft: DraftFile,
-    ctx: DraftHandlerContext
-  ): DraftChangeHandlerMap {
-    return {
-      color: (key: string, value: string) => {
-        const { existingColors, pendingColors } = ctx;
-
-        if (!(key in draft.oldSettings.colorCustomization)) {
-          draft.oldSettings.colorCustomization[key] = existingColors[key] ?? "";
-        }
-
-        draft.draftState.colorCustomization[key] = value;
-        pendingColors[key] = value;
-      },
-
-      token: (key: string, value: TokenColorSettings) => {
-        const { existingTokenColors, pendingTokenColors } = ctx;
-        // const existingTextmateColors = existingTokenColors?.textMateRules as TextMateTokenRule[]
-
-        // if (!(key in draft.oldSettings.tokenCustomization)) {
-        //   draft.oldSettings.tokenCustomization[key] =
-        //     existingTextmateColors?.find(t=>t.name?.split("(Laeyrd)")[0])?.settings ?? {};
-        // }
-
-        draft.draftState.tokenCustomization[key] = value;
-        pendingTokenColors[key] = value;
-      },
-
-      semanticToken: (key: string, value: TokenColorSettings) => {
-        const { existingSemanticRules, pendingSemanticRules } = ctx;
-
-        // if (!(key in draft.oldSettings.semanticTokenCustomization)) {
-        //   draft.oldSettings.semanticTokenCustomization[key] =
-        //     existingSemanticRules[key] ?? "";
-        // }
-
-        draft.draftState.semanticTokenCustomization[key] = value;
-        pendingSemanticRules[key] = value;
-      },
-
-      settings: (key: string, value: string | boolean | number) => {
-        draft.draftState.settingsCustomization[key] = value;
-        ctx.pendingSettings[key] = value;
-      },
-    };
   }
 
   public async removeDraftChange(payload: DraftStatePayload[]) {
     const successData: DraftStatePayload[] = [];
     try {
-      const draft = this.draftFileContent.draftState;
-      const oldSettings = this.draftFileContent.oldSettings;
-      const colorCustomizations = payload.filter((p) => p.type === "color");
-      const semanticTokenCustomizations = payload.filter(
-        (p) => p.type === "semanticToken"
-      );
-      const tokenCustomizations = payload.filter((p) => p.type === "token");
-      const settingsCustomizations = payload.filter(
-        (p) => p.type === "settings"
-      );
+      const draft = this.draftFileContent.draftState,
+        { oldSettings } = this.draftFileContent,
+        colorCustomizations = payload.filter((p) => p.type === "color"),
+        tokenCustomizations = payload.filter((p) => p.type === "token"),
+        settingsCustomizations = payload.filter((p) => p.type === "settings");
 
       if (colorCustomizations.length > 0) {
         await this.updateConfigSection(
@@ -323,10 +302,10 @@ export default class DraftManager {
             colorCustomizations.forEach(({ key, value, type }) => {
               const keyInOldSettings = oldSettings.colorCustomization[key];
               if (keyInOldSettings && keyInOldSettings !== "") {
-                // restore old value
+                // Restore old value
                 copy[key] = keyInOldSettings;
               } else {
-                // delete value entirely
+                // Delete value entirely
                 delete copy[key];
               }
               delete draft.colorCustomization[key];
@@ -341,66 +320,47 @@ export default class DraftManager {
           "editor.tokenColorCustomizations",
           (existing) => {
             const copy = { ...existing };
-            const existingRules: TextMateTokenRule[] = copy.textMateRules ?? [];
-            // Build a map of existing rules by name
-            // const existingMap = new Map(
-            //   existingRules.map((rule) => [rule.name, rule])
-            // );
+            let existingRules: TextMateTokenRule[] = copy.textMateRules ?? [];
             tokenCustomizations.forEach(({ key, value, type }) => {
-              const keyWithLaeyrd = key+"(Laeyrd)";
-            //   const keyInOldSettings = oldSettings.tokenCustomization[key];
-            //   if (keyInOldSettings && Object.keys(keyInOldSettings).length > 0) {
-            //     // restore old value
-            //     existingMap.set(keyWithLaeyrd, {
-            //       ...existingMap.get(keyWithLaeyrd),
-            //       scope: existingMap.get(key)?.scope ?? [],
-            //       settings: {
-            //         foreground: keyInOldSettings.foreground ?? "",
-            //         fontStyle: keyInOldSettings.fontStyle ?? "none"
-            //       },
-            //     });
-            //   } else {
-            //     // delete value entirely
-                existingRules.filter(rule => rule.name !== keyWithLaeyrd);
-            //   }
+              existingRules = existingRules.filter((rule) => rule.name !== key);
               delete draft.tokenCustomization[key];
               successData.push({ key, value, type });
             });
             return { ...copy, textMateRules: existingRules };
           }
         );
-      }
-      if (semanticTokenCustomizations.length > 0) {
         await this.updateConfigSection(
           "editor.semanticTokenColorCustomizations",
           (existing) => {
-            const copy = { ...existing.rules };
-            semanticTokenCustomizations.forEach(({ key, value, type }) => {
-              // const keyInOldSettings =
-              //   oldSettings.semanticTokenCustomization[key];
-              // if (
-              //   keyInOldSettings &&
-              //   Object.keys(keyInOldSettings).length > 0
-              // ) {
-              //   // restore old value
-              //   copy[key] = keyInOldSettings;
-              // } else {
-                // delete value entirely
-                delete copy[key];
-              // }
-              delete draft.semanticTokenCustomization[key];
+            const existingRulesMap = new Map(
+              Object.entries(existing.rules || {})
+            );
+            tokenCustomizations.forEach(({ key, value, type }) => {
+              const similarTokens = Array.from(existingRulesMap.keys()).filter(
+                (semanticKey) =>
+                  semanticKey === key ||
+                  semanticKey.split(".")[0] === key ||
+                  semanticKey.split(":")[0] === key
+              );
+              similarTokens.forEach((semanticKey) => {
+                existingRulesMap.delete(semanticKey);
+              });
+              delete draft.tokenCustomization[key];
               successData.push({ key, value, type });
             });
-            return { enabled: true, rules: copy };
+            return {
+              enabled: true,
+              rules: Object.fromEntries(existingRulesMap),
+            };
           }
         );
       }
       if (settingsCustomizations.length > 0) {
         settingsCustomizations.forEach(({ key, value, type }) => {
           const hasKey = key in oldSettings.settingsCustomization;
-          this.updateSettingsConfig(key, (existing) => {
-            return hasKey ? oldSettings.settingsCustomization[key] : existing;
-          });
+          this.updateSettingsConfig(key, (existing) =>
+            hasKey ? oldSettings.settingsCustomization[key] : existing
+          );
           delete draft.settingsCustomization[key];
           successData.push({ type, key, value });
         });
@@ -453,15 +413,12 @@ export default class DraftManager {
       }
 
       if ((publishType === "theme" || publishType === "both") && theme) {
-        const tc = await ThemeController.create();
-        await tc.handleSaveTheme(
-          {
-            mode: theme.mode,
-            themeName: theme.themeName,
-            draftState: this.draftFileContent.draftState,
-          },
-          this.context
-        );
+        const tc = await ThemeController.getInstance(this.context);
+        await tc.handleSaveTheme({
+          mode: theme.mode,
+          themeName: theme.themeName,
+          draftState: this.draftFileContent.draftState,
+        });
       }
 
       await this.revertToOldSettings(publishType);
@@ -495,6 +452,7 @@ export default class DraftManager {
   ): Promise<void> {
     try {
       const { oldSettings, draftState } = this.draftFileContent;
+      const config = await this.getVSCodeConfig();
 
       if (saveTrigger === "both" || saveTrigger === "theme") {
         // Colors
@@ -505,8 +463,11 @@ export default class DraftManager {
             (existing, oldValues) => {
               const reverted = { ...existing };
               for (const [key, val] of Object.entries(oldValues)) {
-                if (val === "") delete reverted[key];
-                else reverted[key] = val;
+                if (val === "") {
+                  delete reverted[key];
+                } else {
+                  reverted[key] = val;
+                }
               }
               return reverted;
             }
@@ -514,20 +475,22 @@ export default class DraftManager {
         }
 
         // Tokens
-        if (Object.keys(oldSettings.tokenCustomization).length) {
-          const config = await this.getVSCodeConfig();
-          const existing = config.get("editor.tokenColorCustomizations") ?? ({});
-          await config.update("editor.tokenColorCustomizations", 
-            {...existing, textMateRules: []}, vscode.ConfigurationTarget.Global);
-        }
+        const existingTokens =
+          config.get("editor.tokenColorCustomizations") ?? {};
+        await config.update(
+          "editor.tokenColorCustomizations",
+          { ...existingTokens, textMateRules: [] },
+          vscode.ConfigurationTarget.Global
+        );
 
         // Semantic tokens
-        if (Object.keys(oldSettings.semanticTokenCustomization).length) {
-          const config = await this.getVSCodeConfig();
-          const existing = config.get("editor.semanticTokenColorCustomizations") ?? ({});
-          await config.update("editor.semanticTokenColorCustomizations", 
-            {...existing, rules: {}}, vscode.ConfigurationTarget.Global);
-        }
+        const existingSemantics =
+          config.get("editor.semanticTokenColorCustomizations") ?? {};
+        await config.update(
+          "editor.semanticTokenColorCustomizations",
+          { ...existingSemantics, rules: {} },
+          vscode.ConfigurationTarget.Global
+        );
       }
       if (saveTrigger === "discard_all") {
         // General settings
@@ -550,13 +513,11 @@ export default class DraftManager {
         overrideDraft.draftState = {
           ...draftState,
           colorCustomization: {},
-          semanticTokenCustomization: {},
           tokenCustomization: {},
         };
         overrideDraft.oldSettings = {
           ...oldSettings,
           colorCustomization: {},
-          semanticTokenCustomization: {},
           tokenCustomization: {},
         };
       }
@@ -584,18 +545,18 @@ export default class DraftManager {
     section: string,
     mergeFn: (existing: T) => T
   ) {
-    const config = await this.getVSCodeConfig();
-    const existing = config.get<T>(section) ?? ({} as T);
-    const merged = mergeFn(existing);
+    const config = await this.getVSCodeConfig(),
+      existing = config.get<T>(section) ?? ({} as T),
+      merged = mergeFn(existing);
     await config.update(section, merged, vscode.ConfigurationTarget.Global);
   }
   private async updateSettingsConfig<T extends string | boolean | number>(
     section: string,
     mergeFn: (existing: T) => T
   ) {
-    const config = await this.getVSCodeConfig();
-    const existing = config.get<T>(section) ?? ({} as T);
-    const merged = mergeFn(existing);
+    const config = await this.getVSCodeConfig(),
+      existing = config.get<T>(section) ?? ({} as T),
+      merged = mergeFn(existing);
 
     await config.update(section, merged, vscode.ConfigurationTarget.Global);
   }
@@ -605,10 +566,9 @@ export default class DraftManager {
     oldValues: T,
     normalize: (existing: T, oldValues: T) => T
   ) {
-    const config = await this.getVSCodeConfig();
-    const existing = config.get<T>(section) ?? ({} as T);
-
-    const reverted = normalize(existing, oldValues);
+    const config = await this.getVSCodeConfig(),
+      existing = config.get<T>(section) ?? ({} as T),
+      reverted = normalize(existing, oldValues);
 
     await config.update(section, reverted, vscode.ConfigurationTarget.Global);
   }
