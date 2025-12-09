@@ -1,7 +1,11 @@
-import { ThemeJson, TokenColorSettings, TokenColorsList, UserTokenColors } from "../../types/theme";
+import {
+  ThemeJson,
+  TokenColorSettings,
+  TokenColorsList,
+  UserTokenColors,
+} from "../../types/theme";
 import { normalizeTokenMapKey } from "./normalizeTokenMapColors";
 import { TextMateScopeMap } from "./textMateScopeMap";
-
 
 // NOTE: This list now contains the user-friendly definitions and default styles.
 
@@ -35,7 +39,7 @@ export const tokenColorMap: TokenColorsList = {
     description: "Color for constant variables",
     defaultColor: "#4FC1FF",
     defaultFontStyle: "none",
-    },
+  },
   parameter: {
     displayName: "Parameters",
     description: "Color for function parameters",
@@ -147,73 +151,74 @@ export const tokenColorMap: TokenColorsList = {
 };
 
 // This map links specific semantic token selectors (type.modifier) to your conceptual keys.
-export const semanticToTokenKeyMap: Record<string, keyof typeof tokenColorMap> = {
-  // Core Types and Symbols
-  namespace: "namespace",
-  type: "type",
-  class: "class",
-  interface: "interface",
-  enum: "enum",
-  enumMember: "enum",
-  typeParameter: "type",
+export const semanticToTokenKeyMap: Record<string, keyof typeof tokenColorMap> =
+  {
+    // Core Types and Symbols
+    namespace: "namespace",
+    type: "type",
+    class: "class",
+    interface: "interface",
+    enum: "enum",
+    enumMember: "enum",
+    typeParameter: "type",
 
-  // Variables and Parameters
-  parameter: "parameter",
-  variable: "variable",
-  property: "property",
+    // Variables and Parameters
+    parameter: "parameter",
+    variable: "variable",
+    property: "property",
 
-  // Functions and Methods
-  function: "function",
-  member: "property",
-  method: "function",
+    // Functions and Methods
+    function: "function",
+    member: "property",
+    method: "function",
 
-  // Immutability (Constants)
-  "variable.constant": "constant",
-  "variable.readonly": "constant",
-  "property.readonly": "constant",
-  "enumMember.readonly": "enum",
+    // Immutability (Constants)
+    "variable.constant": "constant",
+    "variable.readonly": "constant",
+    "property.readonly": "constant",
+    "enumMember.readonly": "enum",
 
-  // Keywords and Operators
-  keyword: "keyword",
-  "keyword.operator": "operator",
-  operator: "operator",
+    // Keywords and Operators
+    keyword: "keyword",
+    "keyword.operator": "operator",
+    operator: "operator",
 
-  // Literals
-  string: "literal",
-  number: "number",
-  boolean: "literal",
-  regexp: "literal",
-  "string.escape": "escapesequence",
+    // Literals
+    string: "literal",
+    number: "number",
+    boolean: "literal",
+    regexp: "literal",
+    "string.escape": "escapesequence",
 
-  // Comments
-  comment: "comment",
-  "comment.documentation": "comment",
+    // Comments
+    comment: "comment",
+    "comment.documentation": "comment",
 
-  // Builtins / libraries
-  "variable.defaultLibrary": "builtin",
-  "type.defaultLibrary": "builtin",
-  "property.defaultLibrary": "builtin",
-  "function.defaultLibrary": "builtin",
-  "method.defaultLibrary": "builtin",
+    // Builtins / libraries
+    "variable.defaultLibrary": "builtin",
+    "type.defaultLibrary": "builtin",
+    "property.defaultLibrary": "builtin",
+    "function.defaultLibrary": "builtin",
+    "method.defaultLibrary": "builtin",
 
-  // JSX / HTML / XML
-  tag: "tag",
-  "tag.attribute": "attribute",
-  attribute: "attribute",
-  "namespace.jsx": "namespace",
-  "type.jsx": "type",
+    // JSX / HTML / XML
+    tag: "tag",
+    "tag.attribute": "attribute",
+    attribute: "attribute",
+    "namespace.jsx": "namespace",
+    "type.jsx": "type",
 
-  // Decorators / annotations
-  decorator: "annotation",
-  annotation: "annotation",
+    // Decorators / annotations
+    decorator: "annotation",
+    annotation: "annotation",
 
-  // Macros
-  macro: "macro",
+    // Macros
+    macro: "macro",
 
-  // Invalid / error
-  invalid: "invalid",
-  unreachable: "invalid",
-};
+    // Invalid / error
+    invalid: "invalid",
+    unreachable: "invalid",
+  };
 
 export function convertDraftUserTokenColorsToTokenColors(
   tokenColors: UserTokenColors
@@ -222,10 +227,14 @@ export function convertDraftUserTokenColorsToTokenColors(
 
   for (const [key, value] of Object.entries(tokenColors)) {
     const category = normalizeTokenMapKey(key);
-    if (!category) {continue;}
+    if (!category) {
+      continue;
+    }
 
     const base = tokenColorMap[category];
-    if (!base) {continue;} // Extra safety if normalizeTokenMapKey ever returns weird stuff
+    if (!base) {
+      continue;
+    } // Extra safety if normalizeTokenMapKey ever returns weird stuff
 
     map[category] = {
       ...base,
@@ -240,10 +249,10 @@ export function convertDraftUserTokenColorsToTokenColors(
 // --- Helper Functions ---
 
 /**
- * Matches a specific semantic selector (e.g. 'variable.readonly') 
+ * Matches a specific semantic selector (e.g. 'variable.readonly')
  * back to your conceptual key (e.g. 'constant')
  */
-function getConceptualKeyFromSemanticSelector(
+export function getConceptualKeyFromSemanticSelector(
   semanticSelector: string
 ): keyof TokenColorsList | null {
   // 1. Check exact match
@@ -251,7 +260,7 @@ function getConceptualKeyFromSemanticSelector(
     return semanticToTokenKeyMap[semanticSelector];
   }
   // 2. Check base token type (e.g. 'variable' from 'variable.readonly')
-  const baseType = semanticSelector.split(":")[0].split('.')[0];
+  const baseType = semanticSelector.split(":")[0].split(".")[0];
   if (semanticToTokenKeyMap[baseType]) {
     return semanticToTokenKeyMap[baseType];
   }
@@ -261,29 +270,43 @@ function getConceptualKeyFromSemanticSelector(
 /**
  * Parses VS Code style string ("bold italic") into your TokenStyle type
  */
-function parseFontStyle(styleString: string | undefined): TokenColorSettings["fontStyle"] {
-  if (!styleString || styleString === "") {return "none";}
+function parseFontStyle(
+  styleString: string | undefined
+): TokenColorSettings["fontStyle"] {
+  if (!styleString || styleString === "") {
+    return "none";
+  }
   const styles = styleString.toLowerCase();
 
-  if (styles.includes("italic")) {return "italic";}
-  if (styles.includes("bold")) {return "bold";}
-  if (styles.includes("underline")) {return "underline";}
+  if (styles.includes("italic")) {
+    return "italic";
+  }
+  if (styles.includes("bold")) {
+    return "bold";
+  }
+  if (styles.includes("underline")) {
+    return "underline";
+  }
   return "none";
 }
 
 /**
  * Normalizes a theme rule value (string or object) into color and style
  */
-function extractStyleFromRule(
-  value: string | TokenColorSettings
-): { color: string; style: TokenColorSettings["fontStyle"] | undefined } {
+function extractStyleFromRule(value: string | TokenColorSettings): {
+  color: string;
+  style: TokenColorSettings["fontStyle"] | undefined;
+} {
   if (typeof value === "string") {
     return { color: value, style: undefined };
   }
 
   return {
     color: value.foreground || "",
-    style: value.fontStyle !== undefined ? parseFontStyle(value.fontStyle) : undefined,
+    style:
+      value.fontStyle !== undefined
+        ? parseFontStyle(value.fontStyle)
+        : undefined,
   };
 }
 
@@ -293,14 +316,12 @@ export function generateTokenMapColorsFromTheme(
   tokenColors?: ThemeJson["tokenColors"],
   semanticTokenColors?: ThemeJson["semanticTokenColors"]
 ): TokenColorsList {
-
   // 1. Start with default values (cloned to avoid mutation)
   // This ensures we always return a complete map, even if the theme is partial
   const finalMap: TokenColorsList = JSON.parse(JSON.stringify(tokenColorMap)),
-
-  // 2. Track which keys were updated by Semantic Rules (Priority 1)
-  // We will NOT allow TextMate rules to overwrite these later.
-   semanticUpdatedKeys = new Set<string>();
+    // 2. Track which keys were updated by Semantic Rules (Priority 1)
+    // We will NOT allow TextMate rules to overwrite these later.
+    semanticUpdatedKeys = new Set<string>();
   // --- PROCESS SEMANTIC COLORS (Highest Priority) ---
   if (semanticTokenColors) {
     for (const [selector, value] of Object.entries(semanticTokenColors)) {
@@ -327,29 +348,40 @@ export function generateTokenMapColorsFromTheme(
   if (tokenColors && Array.isArray(tokenColors)) {
     for (const rule of tokenColors) {
       // Skip rules without valid settings
-      if (!rule.scope || !rule.settings || !rule.settings.foreground) {continue;}
+      if (!rule.scope || !rule.settings || !rule.settings.foreground) {
+        continue;
+      }
 
       // Normalize scope to array for easier checking
       const ruleScopes = Array.isArray(rule.scope) ? rule.scope : [rule.scope];
 
       // We compare this rule against ALL our conceptual keys to see if it applies
-      for (const key of Object.keys(TextMateScopeMap) as Array<keyof TokenColorsList>) {
-
+      for (const key of Object.keys(TextMateScopeMap) as Array<
+        keyof TokenColorsList
+      >) {
         // SKIP if this key was already set by a higher-priority Semantic Rule
-        if (semanticUpdatedKeys.has(key)) {continue;}
+        if (semanticUpdatedKeys.has(key)) {
+          continue;
+        }
 
         const targetScopes = TextMateScopeMap[key],
-         isMatch = ruleScopes.some(ruleScope => {
-          // Does this rule scope exist in our target list?
-          if (targetScopes.includes(ruleScope)) {return true;}
+          isMatch = ruleScopes.some((ruleScope) => {
+            // Does this rule scope exist in our target list?
+            if (targetScopes.includes(ruleScope)) {
+              return true;
+            }
 
-          // Does this rule scope cover one of our targets? 
-          // (e.g. rule "comment" covers target "comment.line")
-          const coversTarget = targetScopes.some(target => target.startsWith(ruleScope));
-          if (coversTarget) {return true;}
+            // Does this rule scope cover one of our targets?
+            // (e.g. rule "comment" covers target "comment.line")
+            const coversTarget = targetScopes.some((target) =>
+              target.startsWith(ruleScope)
+            );
+            if (coversTarget) {
+              return true;
+            }
 
-          return false;
-        });
+            return false;
+          });
 
         if (isMatch) {
           const { color, style } = extractStyleFromRule(rule.settings);
@@ -361,14 +393,12 @@ export function generateTokenMapColorsFromTheme(
           };
 
           // NOTE: We do NOT break here.
-          // TextMate rules rely on order (cascading). A later rule in the array might 
+          // TextMate rules rely on order (cascading). A later rule in the array might
           // Override this one, so we keep processing the loop to capture the final state.
         }
       }
     }
   }
-  
-
 
   return finalMap;
 }
@@ -376,23 +406,44 @@ export function generateTokenMapColorsFromTheme(
 // Define which conceptual tokens are best handled by which setting property.
 // Note: This is a decision based on the reliability issues discussed (string/comment failure on semantic).
 const SEMANTIC_TOKENS_FOR_SETTINGS = [
-  'function', 'class', 'interface', 'enum', 'type', 'variable',
-  'constant', 'parameter', 'property', 'annotation', 'builtin',
-  'namespace', 'tag', 'attribute', 'macro', 'invalid'
-],
-
- SIMPLE_TEXTMATE_TOKENS_FOR_SETTINGS = [
-  'comment', 'literal', 'keyword', 'number', 'operator', 'punctuation'
-];
+    "function",
+    "class",
+    "interface",
+    "enum",
+    "type",
+    "variable",
+    "constant",
+    "parameter",
+    "property",
+    "annotation",
+    "builtin",
+    "namespace",
+    "tag",
+    "attribute",
+    "macro",
+    "invalid",
+  ],
+  SIMPLE_TEXTMATE_TOKENS_FOR_SETTINGS = [
+    "comment",
+    "literal",
+    "keyword",
+    "number",
+    "operator",
+    "punctuation",
+  ];
 
 // Assumes tokenColorMap and semanticToTokenKeyMap are imported.
 
-export function generateSemanticAndTextmateCustomizations(semanticTokens: ThemeJson["semanticTokenColors"]): { semanticRules: Record<string, TokenColorSettings | string>, textmateRules: Record<string, TokenColorSettings | string> } {
+export function generateSemanticAndTextmateCustomizations(
+  semanticTokens: ThemeJson["semanticTokenColors"]
+): {
+  semanticRules: Record<string, TokenColorSettings | string>;
+  textmateRules: Record<string, TokenColorSettings | string>;
+} {
   const semanticRules: Record<string, TokenColorSettings | string> = {},
-   textmateRules: Record<string, TokenColorSettings | string> = {};
+    textmateRules: Record<string, TokenColorSettings | string> = {};
 
   Object.entries(semanticTokens).map(([key, value]) => {
-
     // Skip if this token is designated for the simple TextMate path
     if (SIMPLE_TEXTMATE_TOKENS_FOR_SETTINGS.includes(key)) {
       textmateRules[key] = value;

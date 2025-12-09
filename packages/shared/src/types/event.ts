@@ -24,6 +24,14 @@ export type WebViewEvent = {
     payload: { message: string; type: "info" | "error" | "warn" | "success" };
     response: undefined;
   };
+  GET_THEMES_LIST: {
+    payload: {};
+    response: { themes: string[] };
+  };
+  SET_THEME: {
+    payload: { themeName: string };
+    response: void;
+  };
   GET_DRAFT_STATE: {
     payload: {};
     response: DraftFile;
@@ -94,7 +102,7 @@ export type WebViewEvent = {
   };
   GET_ACTIVE_THEME_LABEL: {
     payload: any;
-    response: string;
+    response: string | undefined;
   };
   UPDATE_THEME_LIST: {
     payload: {
@@ -123,6 +131,10 @@ export type WebViewEvent = {
     payload: {
       settings: Record<keyof typeof fontsLayoutUI, string | number | boolean>;
     };
+    response: { success: boolean };
+  };
+  RESTORE_THEMES: {
+    payload: any;
     response: { success: boolean };
   };
   RESTORE_ORIGINAL_SETTINGS: { payload: any; response: undefined };
@@ -227,7 +239,7 @@ export type RequestMessage = RequestMessageMap[keyof RequestMessageMap];
 
 export interface ResponseMessage<
   T extends keyof WebViewEvent,
-  K extends "payload" | "response",
+  K extends "payload" | "response"
 > {
   requestId: string;
   command: T;

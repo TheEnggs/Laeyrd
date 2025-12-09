@@ -9,6 +9,16 @@ import {
   TokenColorsList,
 } from "../types/theme";
 
+export function normalizeFileName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_.]/g, "-") // replace weird chars
+    .replace(/-+/g, "-") // collapse dashes
+    .concat("-laeyrd")
+    .concat(".json");
+}
+
 // --- Generator Functions ---
 
 /**
@@ -35,7 +45,9 @@ export function getFontStyleString(
  * @param userCustomizations A map of conceptual tokens and their user-selected styles.
  */
 export function generateSemanticTokenColors(
-  originalSemanticTokens: Record<string, string | TokenColorSettings> | undefined,
+  originalSemanticTokens:
+    | Record<string, string | TokenColorSettings>
+    | undefined,
   userCustomizations: TokenColorsList
 ): Record<string, TokenColorSettings> {
   const semanticRules: Record<string, TokenColorSettings> = {};
@@ -44,18 +56,19 @@ export function generateSemanticTokenColors(
   //    (defined in semanticToTokenKeyMap)
   for (const semanticSelector in semanticToTokenKeyMap) {
     const conceptualKey = semanticToTokenKeyMap[semanticSelector],
-
-    // 2. Get the definition from the user's map (or default)
-     definition = userCustomizations[conceptualKey];
+      // 2. Get the definition from the user's map (or default)
+      definition = userCustomizations[conceptualKey];
 
     if (definition) {
       const fontStyle = getFontStyleString(definition.defaultFontStyle),
-
-       findAllTheKeysInOriginal = Object.keys(
-        originalSemanticTokens || {}
-      ).filter(
-        (key) => key === conceptualKey || key.split(".")[0] === conceptualKey || key.split(":")[0] === conceptualKey
-      );
+        findAllTheKeysInOriginal = Object.keys(
+          originalSemanticTokens || {}
+        ).filter(
+          (key) =>
+            key === conceptualKey ||
+            key.split(".")[0] === conceptualKey ||
+            key.split(":")[0] === conceptualKey
+        );
       if (findAllTheKeysInOriginal.length > 1) {
         for (const specificKey of findAllTheKeysInOriginal) {
           semanticRules[specificKey] = {
@@ -73,7 +86,9 @@ export function generateSemanticTokenColors(
         };
       } else {
         // If no special font style is needed, use the simpler hex string format
-        semanticRules[semanticSelector] = { foreground: definition.defaultColor || ""};
+        semanticRules[semanticSelector] = {
+          foreground: definition.defaultColor || "",
+        };
       }
     }
   }
@@ -94,15 +109,14 @@ export function generateTextMateTokenColors(
   // 1. Loop through the conceptual tokens (e.g., 'keyword', 'comment')
   for (const key in userCustomizations) {
     const conceptualKey = key as keyof TokenColorsList,
-     definition = userCustomizations[conceptualKey],
-     scopes = TextMateScopeMap[conceptualKey];
+      definition = userCustomizations[conceptualKey],
+      scopes = TextMateScopeMap[conceptualKey];
 
     if (scopes && scopes.length > 0) {
       const settings: TokenColorSettings = {
-        foreground: definition.defaultColor,
-      },
-
-       fontStyle = getFontStyleString(definition.defaultFontStyle);
+          foreground: definition.defaultColor,
+        },
+        fontStyle = getFontStyleString(definition.defaultFontStyle);
       if (fontStyle) {
         settings.fontStyle = fontStyle;
       }
@@ -132,32 +146,31 @@ export function generateVscodeTheme(
   }
 ): ThemeJson {
   const generatedSemanticTokens = overriddenConfig.userSemanticTokenColors
-    ? Object.keys(overriddenConfig.userSemanticTokenColors).length > 0
-      ? generateSemanticTokenColors(
-          baseTheme.semanticTokenColors,
-          overriddenConfig.userSemanticTokenColors
-        )
-      : {}
-    : {},
-
-   generatedTokenColors = overriddenConfig.userTextmateTokenColors
-    ? Object.keys(overriddenConfig.userTextmateTokenColors).length > 0
-      ? generateTextMateTokenColors(overriddenConfig.userTextmateTokenColors)
-      : []
-    : [],
-   themeJson = {
-    name: overriddenConfig.userThemeName || baseTheme.name,
-    type: overriddenConfig.userThemeType || baseTheme.type,
-    // Essential flag to enable the modern semantic coloring engine
-    semanticHighlighting: true,
-    // --- Workbench UI Colors ---
-    colors: { ...baseTheme.colors, ...overriddenConfig.userThemeColors },
-    // --- Syntax Coloring ---
-    semanticTokenColors: {
-      ...baseTheme.semanticTokenColors,
-      ...generatedSemanticTokens,
-    },
-    tokenColors: [...baseTheme.tokenColors, ...generatedTokenColors],
-  };
+      ? Object.keys(overriddenConfig.userSemanticTokenColors).length > 0
+        ? generateSemanticTokenColors(
+            baseTheme.semanticTokenColors,
+            overriddenConfig.userSemanticTokenColors
+          )
+        : {}
+      : {},
+    generatedTokenColors = overriddenConfig.userTextmateTokenColors
+      ? Object.keys(overriddenConfig.userTextmateTokenColors).length > 0
+        ? generateTextMateTokenColors(overriddenConfig.userTextmateTokenColors)
+        : []
+      : [],
+    themeJson = {
+      name: overriddenConfig.userThemeName || baseTheme.name,
+      type: overriddenConfig.userThemeType || baseTheme.type,
+      // Essential flag to enable the modern semantic coloring engine
+      semanticHighlighting: true,
+      // --- Workbench UI Colors ---
+      colors: { ...baseTheme.colors, ...overriddenConfig.userThemeColors },
+      // --- Syntax Coloring ---
+      semanticTokenColors: {
+        ...baseTheme.semanticTokenColors,
+        ...generatedSemanticTokens,
+      },
+      tokenColors: [...baseTheme.tokenColors, ...generatedTokenColors],
+    };
   return themeJson;
 }
