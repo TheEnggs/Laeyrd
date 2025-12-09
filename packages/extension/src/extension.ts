@@ -7,7 +7,7 @@ import { TelemetryService } from "./controller/telemetry";
 
 let panelManager: PanelManager | null = null;
 export async function activate(context: vscode.ExtensionContext) {
-    const telemetry = TelemetryService.instance;
+  const telemetry = TelemetryService.instance;
   telemetry.init(context);
 
   telemetry.sendEvent("extension_activated", {

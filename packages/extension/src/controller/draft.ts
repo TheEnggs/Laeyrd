@@ -17,7 +17,10 @@ import {
   generateSemanticTokenColors,
   generateTextMateTokenColors,
 } from "@shared/utils/themeGenerator";
-import { convertDraftUserTokenColorsToTokenColors } from "@shared/data/token/tokenList";
+import {
+  convertDraftUserTokenColorsToTokenColors,
+  getConceptualKeyFromSemanticSelector,
+} from "@shared/data/token/tokenList";
 
 const defaultDraft: DraftFile = {
   lastUpdatedOn: new Date().toISOString(),
@@ -45,6 +48,7 @@ type DraftHandlerContext = {
   pendingSemanticRules: Record<string, TokenColorSettings>;
   pendingSettings: Record<string, string | number | boolean>;
 };
+
 export default class DraftManager {
   public draftFileContent: DraftFile;
   private readonly DRAFT_FILE_NAME = "laeyrd-draft.json";
@@ -292,12 +296,10 @@ export default class DraftManager {
           (existing) => {
             const copy = { ...existing };
             colorCustomizations.forEach(({ key, value, type }) => {
-              const keyInOldSettings = oldSettings.colorCustomization[key];
-              if (keyInOldSettings && keyInOldSettings !== "") {
-                // Restore old value
-                copy[key] = keyInOldSettings;
+              const oldValue = oldSettings.colorCustomization?.[key];
+              if (oldValue) {
+                copy[key] = oldValue;
               } else {
-                // Delete value entirely
                 delete copy[key];
               }
               delete draft.colorCustomization[key];
@@ -332,7 +334,8 @@ export default class DraftManager {
                 (semanticKey) =>
                   semanticKey === key ||
                   semanticKey.split(".")[0] === key ||
-                  semanticKey.split(":")[0] === key
+                  semanticKey.split(":")[0] === key ||
+                  getConceptualKeyFromSemanticSelector(semanticKey) === key
               );
               similarTokens.forEach((semanticKey) => {
                 existingRulesMap.delete(semanticKey);
@@ -446,7 +449,11 @@ export default class DraftManager {
       const { oldSettings, draftState } = this.draftFileContent;
       const config = await this.getVSCodeConfig();
 
-      if (saveTrigger === "both" || saveTrigger === "theme") {
+      if (
+        saveTrigger === "theme" ||
+        saveTrigger === "both" ||
+        saveTrigger === "discard_all"
+      ) {
         // Colors
         if (Object.keys(oldSettings.colorCustomization).length) {
           await this.revertConfigSection(
@@ -494,14 +501,14 @@ export default class DraftManager {
         }
       }
       const overrideDraft = { ...defaultDraft };
-      if (saveTrigger === "settings") {
+      if (saveTrigger === "settings" || saveTrigger === "both") {
         overrideDraft.draftState = { ...draftState, settingsCustomization: {} };
         overrideDraft.oldSettings = {
           ...oldSettings,
           settingsCustomization: {},
         };
       }
-      if (saveTrigger === "theme") {
+      if (saveTrigger === "theme" || saveTrigger === "both") {
         overrideDraft.draftState = {
           ...draftState,
           colorCustomization: {},

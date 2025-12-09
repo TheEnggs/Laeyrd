@@ -9,7 +9,10 @@ import { SaveThemeModes } from "@shared/types/event";
 import { parse } from "jsonc-parser";
 import { ToastController } from "./toast";
 import { BackupManager } from "./backup";
-import { generateVscodeTheme } from "@shared/utils/themeGenerator";
+import {
+  generateVscodeTheme,
+  normalizeFileName,
+} from "@shared/utils/themeGenerator";
 import {
   convertDraftUserTokenColorsToTokenColors,
   generateTokenMapColorsFromTheme,
@@ -41,8 +44,7 @@ export class ThemeController {
   private themesDirUri?: vscode.Uri;
   private isLoading = false;
 
-  private constructor(private readonly context: vscode.ExtensionContext) {
-  }
+  private constructor(private readonly context: vscode.ExtensionContext) {}
 
   /** Load the currently active theme JSON into memory */
   private async loadCurrentTheme(): Promise<void> {
@@ -172,6 +174,23 @@ export class ThemeController {
     return Boolean(this.currentTheme?.name?.includes("Laeyrd"));
   }
 
+  public async getAvailableThemes(): Promise<string[]> {
+    const themes: string[] = [];
+
+    for (const ext of vscode.extensions.all) {
+      const contributes = ext.packageJSON?.contributes;
+      const themeContribs = contributes?.themes;
+
+      if (Array.isArray(themeContribs)) {
+        for (const theme of themeContribs) {
+          themes.push(theme.label);
+        }
+      }
+    }
+
+    return themes;
+  }
+
   /** List themes contributed by this extension (from package.json) */
   public async listOwnThemes() {
     const packageUri = vscode.Uri.joinPath(
@@ -193,6 +212,12 @@ export class ThemeController {
     return themes;
   }
 
+  public setThemeByName(themeName: string): Thenable<void> {
+    return vscode.workspace
+      .getConfiguration("workbench")
+      .update("colorTheme", themeName, vscode.ConfigurationTarget.Global);
+  }
+
   public getActiveThemeLabel(): string | undefined {
     return vscode.workspace
       .getConfiguration("workbench")
@@ -210,6 +235,7 @@ export class ThemeController {
       }
 
       const { draftState, themeName, mode } = payload;
+      const fileName = normalizeFileName(themeName);
 
       const colors = draftState.colorCustomization;
 
@@ -228,14 +254,14 @@ export class ThemeController {
         userTextmateTokenColors: textmateTokenColors,
         userThemeType: this.currentTheme.type,
       });
-      const res = await this.writeToThemeFile(themeName, themeJson);
+      const res = await this.writeToThemeFile(fileName, themeJson);
       if (!res.success) {
         throw new Error("Failed to write theme file");
       }
       if (mode === SaveThemeModes.CREATE) {
         await this.addThemeToPackageJson(
           themeName,
-          `${themeName}.json`,
+          fileName,
           this.currentTheme.type === "dark" ? "dark" : "light"
         );
       }
@@ -299,29 +325,27 @@ export class ThemeController {
 
   private async getThemePath(themeName: string): Promise<vscode.Uri> {
     const dir = await this.ensureThemesFolder();
-    return vscode.Uri.joinPath(dir, `${themeName}.json`);
+    return vscode.Uri.joinPath(dir, themeName);
   }
 
   public async writeToThemeFile(
-    themeName: string,
+    fileName: string,
     themeJson: ThemeJson
   ): Promise<{ success: boolean }> {
     try {
-      const fileUri = await this.getThemePath(themeName);
+      const fileUri = await this.getThemePath(fileName);
 
       await vscode.workspace.fs.writeFile(
         fileUri,
         new TextEncoder().encode(JSON.stringify(themeJson, null, 2))
       );
 
-      vscode.window.showInformationMessage(
-        `Theme "${themeName}" created successfully!`
-      );
+      vscode.window.showInformationMessage(`Theme created successfully!`);
 
       try {
         const backupManager = new BackupManager(this.context);
         await backupManager.backupTheme({
-          name: themeName,
+          fileName,
           data: themeJson,
         });
       } catch (e) {
@@ -329,11 +353,11 @@ export class ThemeController {
       }
 
       this.promptReload(
-        `Your changes to theme "${themeName}" have been saved. Reload to activate.`
+        `Your changes to theme have been saved. Reload to activate.`
       );
       return { success: true };
     } catch {
-      vscode.window.showErrorMessage(`Failed to create theme "${themeName}"`);
+      vscode.window.showErrorMessage(`Failed to create theme.`);
       return { success: false };
     }
   }
@@ -349,7 +373,10 @@ export class ThemeController {
       throw new Error("Theme not found");
     }
 
-    const themeUri = vscode.Uri.joinPath(this.context.extensionUri, target.path);
+    const themeUri = vscode.Uri.joinPath(
+      this.context.extensionUri,
+      target.path
+    );
     const themeContent = await vscode.workspace.fs.readFile(themeUri);
     const themeJson: ThemeJson = JSON.parse(
       Buffer.from(themeContent).toString("utf8")
@@ -431,9 +458,7 @@ export class ThemeController {
   /**
    * Remove a theme contribution by label from package.json
    */
-  public async removeThemeFromPackageJson(
-    themeName: string
-  ): Promise<void> {
+  public async removeThemeFromPackageJson(themeName: string): Promise<void> {
     const pkg = await this.readPackageJson();
     const themes = this.ensureContributesThemes(pkg);
 
@@ -459,6 +484,6 @@ export class ThemeController {
 
   dispose() {
     // Clean up resources if needed
-    ThemeController.instance = undefined; 
+    ThemeController.instance = undefined;
   }
 }

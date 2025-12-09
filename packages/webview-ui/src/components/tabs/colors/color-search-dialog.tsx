@@ -1,6 +1,4 @@
-import {
-  DraftStatePayload,
-} from "@shared/types/theme";
+import { DraftStatePayload } from "@shared/types/theme";
 import {
   Dialog,
   DialogContent,
@@ -24,76 +22,74 @@ import { useDebounce } from "use-debounce";
 
 export default function ColorSearchDialog() {
   const [searchQuery, setSearchQuery] = useState(""),
-   [debouncedSearchQuery] = useDebounce(searchQuery, 500),
+    [debouncedSearchQuery] = useDebounce(searchQuery, 500),
+    { drafts } = useDraft(),
+    { data: colorsState, isLoading: isLoadingColors } = useQuery({
+      command: "GET_THEME_COLORS",
+      payload: [],
+    }),
+    // 🔹 Memoized tree: category → subcategory → colors[]
+    colors = useMemo(() => {
+      if (!colorsState) {
+        return [];
+      }
+      const colors = [];
+      for (const [key, def] of Object.entries(colorsState)) {
+        const draftColor = drafts.find(
+          (c): c is Extract<DraftStatePayload, { type: "color" }> =>
+            c.key === key && c.type === "color"
+        );
+        colors.push({
+          key,
+          category: def.category,
+          displayName: def.displayName,
+          description: def.description,
+          groupName: def.groupName,
+          value: draftColor?.value ?? def.defaultValue ?? "",
+          originalValue: def.defaultValue,
+          isTouched: Boolean(draftColor),
+        });
+      }
+      return colors;
+    }, [colorsState, drafts]),
+    filteredColors = useMemo(() => {
+      const query = debouncedSearchQuery.trim().toLowerCase();
+      if (query === "") {
+        return colors.slice(0, 20);
+      }
 
-   { drafts } = useDraft(),
-   { data: colorsState, isLoading: isLoadingColors } = useQuery({
-    command: "GET_THEME_COLORS",
-    payload: [],
-  }),
+      return colors.filter((color) => {
+        const match = (value: unknown): boolean => {
+          if (value == null) {
+            return false;
+          }
+          return String(value).toLowerCase().includes(query);
+        };
 
-  // 🔹 Memoized tree: category → subcategory → colors[]
-   colors = useMemo(() => {
-    if (!colorsState) {return [];}
-    const colors = [];
-    for (const [key, def] of Object.entries(colorsState)) {
-      const draftColor = drafts.find(
-        (c): c is Extract<DraftStatePayload, { type: "color" }> =>
-          c.key === key && c.type === "color"
-      );
-      colors.push({
-        key,
-        category: def.category,
-        displayName: def.displayName,
-        description: def.description,
-        groupName: def.groupName,
-        value: draftColor?.value ?? def.defaultValue ?? "",
-        originalValue: def.defaultValue,
-        isTouched: Boolean(draftColor),
+        return (
+          match(color.key) ||
+          match(color.category) ||
+          match(color.displayName) ||
+          match(color.displayName.split(" ").join()) ||
+          match(color.description) ||
+          match(color.groupName?.split("_").join(" ")) ||
+          match(color.value) ||
+          match(color.originalValue)
+        );
       });
-    }
-    return colors;
-  }, [colorsState, drafts]),
-
-   filteredColors = useMemo(() => {
-    const query = debouncedSearchQuery.trim().toLowerCase();
-    if (query === "") {return colors.slice(0, 20);}
-
-    return colors.filter((color) => {
-      const match = (value: unknown): boolean => {
-        if (value == null) {return false;}
-        return String(value).toLowerCase().includes(query);
-      };
-
-      return (
-        match(color.key) ||
-        match(color.category) ||
-        match(color.displayName) ||
-        match(color.displayName.split(" ").join()) ||
-        match(color.description) ||
-        match(color.groupName?.split("_").join(" ")) ||
-        match(color.value) ||
-        match(color.originalValue)
-      );
-    });
-  }, [colors, debouncedSearchQuery]),
-
-  // Pick icon based on first color’s category, or fall back
-   IconComponent =
-    colors.length > 0
-      ? iconMap[colors[0].category as keyof typeof iconMap] || Square
-      : Square;
+    }, [colors, debouncedSearchQuery]),
+    // Pick icon based on first color’s category, or fall back
+    IconComponent =
+      colors.length > 0
+        ? iconMap[colors[0].category as keyof typeof iconMap] || Square
+        : Square;
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          className="w-full p-2 text-xs capitalize text-foreground rounded-full"
-          variant="outline"
-          size="sm"
-        >
+        <Button className="rounded-full" variant="outline" size="sm">
           {/* <span className="w-40 p-2 rounded-xl border border-border/40"> */}
-          <Search className="w-4 h-4" />
+          <Search className="w-4 h-4 mr-2" /> Colors
           {/* </span> */}
         </Button>
       </DialogTrigger>
@@ -131,8 +127,8 @@ export default function ColorSearchDialog() {
                 colors.length >= 3
                   ? "xl:grid-cols-3 md:grid-cols-2"
                   : colors.length === 2
-                    ? "md:grid-cols-2"
-                    : "md:grid-cols-1"
+                  ? "md:grid-cols-2"
+                  : "md:grid-cols-1"
               )}
             >
               {filteredColors.map((color) => (

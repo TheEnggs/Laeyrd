@@ -28,12 +28,10 @@ export class TelemetryService {
       return;
     }
 
-  const appInsightsKey = "1fbf884b-5a35-45ba-8c84-8b21fd6ac538";
+    const appInsightsKey = "1fbf884b-5a35-45ba-8c84-8b21fd6ac538";
 
     try {
-      const extension = vscode.extensions.getExtension(
-        "TheEnggs.Laeyrd"
-      );
+      const extension = vscode.extensions.getExtension("TheEnggs.Laeyrd");
 
       if (!extension) {
         console.warn("[telemetry] Extension metadata not found");
@@ -41,12 +39,14 @@ export class TelemetryService {
       }
 
       if (!appInsightsKey) {
-        console.warn("[telemetry] No Application Insights key. Telemetry disabled.");
+        console.warn(
+          "[telemetry] No Application Insights key. Telemetry disabled."
+        );
         return;
       }
 
       const extensionId = extension.id,
-       extensionVersion = extension.packageJSON.version;
+        extensionVersion = extension.packageJSON.version;
 
       this.reporter = new TelemetryReporter(
         extensionId,
@@ -57,11 +57,6 @@ export class TelemetryService {
       context.subscriptions.push(this.reporter);
 
       this.initialized = true;
-      console.log(
-        "[telemetry] Initialized for",
-        extensionId,
-        extensionVersion
-      );
     } catch (error) {
       console.error("[telemetry] Failed to initialize:", error);
       this.reporter = null;

@@ -13,6 +13,7 @@ import { log } from "@shared/utils/debug-logs";
 import SyncController from "./sync";
 import DraftManager from "./draft";
 import { TelemetryService } from "./telemetry";
+import { BackupManager } from "./backup";
 
 export class MessageController {
   private _themeController?: ThemeController;
@@ -38,8 +39,9 @@ export class MessageController {
   }
 
   private get authController(): AuthController {
-    if (!this._authController)
-      {this._authController = AuthController.getInstance();}
+    if (!this._authController) {
+      this._authController = AuthController.getInstance();
+    }
     return this._authController;
   }
 
@@ -68,6 +70,38 @@ export class MessageController {
           type: message.payload.type,
         });
         break;
+      case "GET_THEMES_LIST":
+        this.responseHandler<"GET_THEMES_LIST", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const tc = await this.themeController();
+            const themes = await tc.getAvailableThemes();
+            return { themes };
+          },
+        });
+        break;
+      case "GET_ACTIVE_THEME_LABEL":
+        this.responseHandler<"GET_ACTIVE_THEME_LABEL", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const tc = await this.themeController();
+            const theme = tc.getActiveThemeLabel();
+            return theme;
+          },
+        });
+        break;
+      case "SET_THEME":
+        this.responseHandler<"SET_THEME", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const tc = await this.themeController();
+            return await tc.setThemeByName(message.payload.themeName);
+          },
+        });
+        break;
       case "GET_THEME_COLORS":
         this.responseHandler({
           command,
@@ -90,8 +124,8 @@ export class MessageController {
         break;
       case "GET_THEME_LIST": {
         const tc = await this.themeController(),
-         themes = await tc.listOwnThemes(),
-         active = tc.getActiveThemeLabel();
+          themes = await tc.listOwnThemes(),
+          active = tc.getActiveThemeLabel();
         this.responseHandler<"GET_THEME_LIST", "response">({
           command,
           requestId: message.requestId,
@@ -133,9 +167,7 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const draftManager = await DraftManager.init(this.context),
-             result = await draftManager.applyDraftChanges(
-              message.payload
-            );
+              result = await draftManager.applyDraftChanges(message.payload);
             return {
               success: result,
               draftFile: draftManager.draftFileContent,
@@ -149,9 +181,7 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const draftManager = await DraftManager.init(this.context),
-             result = await draftManager.publishDraftChanges(
-              message.payload
-            );
+              result = await draftManager.publishDraftChanges(message.payload);
             if (
               result.success &&
               (result.data.publishType === "theme" ||
@@ -173,9 +203,7 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const draftManager = await DraftManager.init(this.context),
-             result = await draftManager.removeDraftChange(
-              message.payload
-            );
+              result = await draftManager.removeDraftChange(message.payload);
             return result;
           },
         });
@@ -186,7 +214,7 @@ export class MessageController {
           requestId: message.requestId,
           executor: async () => {
             const draftManager = await DraftManager.init(this.context),
-             result = await draftManager.discardChanges();
+              result = await draftManager.discardChanges();
             return result;
           },
         });
@@ -198,6 +226,16 @@ export class MessageController {
           executor: () => this.handleOverwriteSettings(message.payload),
         });
         break;
+      case "RESTORE_THEMES":
+        await this.responseHandler<"RESTORE_THEMES", "response">({
+          command,
+          requestId: message.requestId,
+          executor: async () => {
+            const backupManager = new BackupManager(this.context);
+            const pulls = await backupManager.pullBackups();
+            return pulls;
+          },
+        });
       case "RESTORE_ORIGINAL_SETTINGS":
         const settings = new UserSettingsController(this.context);
         settings.rollbackToOriginal();
@@ -280,7 +318,9 @@ export class MessageController {
 
       case "SYNC": {
         const userId = this._authController?.getCurrentUser()?.id;
-        if (!userId) {throw new Error("User id is missing");}
+        if (!userId) {
+          throw new Error("User id is missing");
+        }
         const syncController = new SyncController(this.context, userId);
         syncController.loadOrCreateLocalVersions();
         this.responseHandler<"SYNC", "response">({
@@ -304,7 +344,7 @@ export class MessageController {
 
   public async responseHandler<
     T extends keyof WebViewEvent,
-    K extends "payload" | "response",
+    K extends "payload" | "response"
   >({
     command,
     mode = "response" as K,
@@ -317,7 +357,7 @@ export class MessageController {
     executor: () => Promise<WebViewEvent[T][K]> | WebViewEvent[T][K];
   }) {
     try {
-      if(command === "PUBLISH_DRAFT_CHANGES"){
+      if (command === "PUBLISH_DRAFT_CHANGES") {
         TelemetryService.instance.sendEvent("MESSAGE RESPONSE HANDLER", {
           command,
           requestId,
@@ -347,7 +387,7 @@ export class MessageController {
 
   public POST_MESSAGE<
     T extends keyof WebViewEvent,
-    K extends "payload" | "response",
+    K extends "payload" | "response"
   >({ command, payload, requestId, status, error }: ResponseMessage<T, K>) {
     const messageData = { command, payload, requestId, status, error };
     try {
@@ -358,7 +398,6 @@ export class MessageController {
     } catch (error) {
       console.error("Invalid message data:", error);
       console.error("Message data:", messageData);
-      
     }
   }
 
@@ -398,8 +437,8 @@ export class MessageController {
         mode: "payload",
         executor: async () => {
           const tc = await this.themeController(),
-           list = await tc.listOwnThemes(),
-           active = tc.getActiveThemeLabel() || "";
+            list = await tc.listOwnThemes(),
+            active = tc.getActiveThemeLabel() || "";
           return {
             themes: list,
             active,

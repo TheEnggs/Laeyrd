@@ -29,73 +29,72 @@ import { useDebounce } from "use-debounce";
 
 export default function FontAndLayoutSearchDialog() {
   const [searchQuery, setSearchQuery] = useState(""),
-   [debouncedSearchQuery] = useDebounce(searchQuery, 500),
-   { drafts } = useDraft(),
-   { data: layoutState, isLoading: isLoadingLayout } = useQuery({
-    command: "GET_FONT_AND_LAYOUT_SETTINGS",
-    payload: [],
-  }),
+    [debouncedSearchQuery] = useDebounce(searchQuery, 500),
+    { drafts } = useDraft(),
+    { data: layoutState, isLoading: isLoadingLayout } = useQuery({
+      command: "GET_FONT_AND_LAYOUT_SETTINGS",
+      payload: [],
+    }),
+    // Merge draftState with default values and organize by subcategory
+    settingsCustomization = useMemo(() => {
+      if (!layoutState) {
+        return [];
+      }
+      return Object.entries(layoutState).map(([key, item]) => {
+        const draftValue = drafts.find(
+          (c): c is Extract<DraftStatePayload, { type: "settings" }> =>
+            c.key === key && c.type === "settings"
+        );
+        return {
+          ...item,
+          key,
+          defaultValue: draftValue ? draftValue.value : item.defaultValue,
+          originalValue: item.defaultValue,
+          isTouched: Boolean(draftValue),
+        } as UiLayoutMetaWithKey;
+      });
+    }, [drafts, layoutState]), // eslint-disable-line react-hooks/exhaustive-deps
+    filteredSettingsCustomization: UiLayoutMetaWithKey[] = useMemo(() => {
+      const query = debouncedSearchQuery.trim().toLowerCase();
+      if (query === "") {
+        return settingsCustomization.slice(0, 20);
+      }
 
-  // Merge draftState with default values and organize by subcategory
-   settingsCustomization = useMemo(() => {
-    if (!layoutState) {return [];}
-    return Object.entries(layoutState).map(([key, item]) => {
-      const draftValue = drafts.find(
-        (c): c is Extract<DraftStatePayload, { type: "settings" }> =>
-          c.key === key && c.type === "settings"
-      );
-      return {
-        ...item,
-        key,
-        defaultValue: draftValue ? draftValue.value : item.defaultValue,
-        originalValue: item.defaultValue,
-        isTouched: Boolean(draftValue),
-      } as UiLayoutMetaWithKey;
-    });
-  }, [drafts, layoutState]), // eslint-disable-line react-hooks/exhaustive-deps
+      return settingsCustomization.filter((s) => {
+        // Helper to avoid repeating `.toLowerCase().includes(...)`
+        const match = (value: unknown): boolean => {
+            if (value == null) {
+              return false;
+            }
+            return String(value).toLowerCase().includes(query);
+          },
+          // For union-specific fields
+          optionsMatch =
+            "options" in s && Array.isArray(s.options)
+              ? s.options.some((opt) => match(opt))
+              : false;
 
-   filteredSettingsCustomization: UiLayoutMetaWithKey[] = useMemo(() => {
-    const query = debouncedSearchQuery.trim().toLowerCase();
-    if (query === "") {return settingsCustomization.slice(0, 20);}
-
-    return settingsCustomization.filter((s) => {
-      // Helper to avoid repeating `.toLowerCase().includes(...)`
-      const match = (value: unknown): boolean => {
-        if (value == null) {return false;}
-        return String(value).toLowerCase().includes(query);
-      },
-
-      // For union-specific fields
-       optionsMatch =
-        "options" in s && Array.isArray(s.options)
-          ? s.options.some((opt) => match(opt))
-          : false;
-
-      return (
-        match(s.key) ||
-        match(s.category) ||
-        match(s.subcategory) ||
-        match(s.displayName) ||
-        match(s.displayName.split(" ").join()) ||
-        match(s.description) ||
-        match(s.valueType) ||
-        match(s.defaultValue) ||
-        match(s.originalValue) ||
-        optionsMatch
-      );
-    });
-  }, [settingsCustomization, debouncedSearchQuery]);
+        return (
+          match(s.key) ||
+          match(s.category) ||
+          match(s.subcategory) ||
+          match(s.displayName) ||
+          match(s.displayName.split(" ").join()) ||
+          match(s.description) ||
+          match(s.valueType) ||
+          match(s.defaultValue) ||
+          match(s.originalValue) ||
+          optionsMatch
+        );
+      });
+    }, [settingsCustomization, debouncedSearchQuery]);
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          className="w-full p-2 text-xs capitalize text-foreground rounded-full"
-          variant="outline"
-          size="sm"
-        >
+        <Button className="rounded-full" variant="outline" size="sm">
           {/* <span className="w-40 p-2 rounded-xl border border-border/40"> */}
-          <Search className="w-4 h-4" />
+          <Search className="w-4 h-4 mr-2" /> Settings
           {/* </span> */}
         </Button>
       </DialogTrigger>
@@ -134,8 +133,8 @@ export default function FontAndLayoutSearchDialog() {
                 filteredSettingsCustomization.length >= 3
                   ? "xl:grid-cols-3 md:grid-cols-2"
                   : settingsCustomization.length === 2
-                    ? "md:grid-cols-2"
-                    : "md:grid-cols-1"
+                  ? "md:grid-cols-2"
+                  : "md:grid-cols-1"
               )}
             >
               {filteredSettingsCustomization.map((c) => (

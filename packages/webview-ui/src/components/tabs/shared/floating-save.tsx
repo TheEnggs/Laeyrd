@@ -16,6 +16,7 @@ import { DiscardChangesDialog } from "./discard-changes";
 import { cn } from "@webview/lib/utils";
 import ColorSearchDialog from "../colors/color-search-dialog";
 import FontAndLayoutSearchDialog from "../font-and-layout/font-and-layout-search-dialog";
+import { AvailableThemes } from "./available-themes";
 
 export default function FloatingSave({
   activeTab,
@@ -52,9 +53,6 @@ export default function FloatingSave({
       // SaveDrafts();
       publishDraftChanges(args);
     };
-  if (activeTab === "importer" && drafts.length === 0) {
-    return null;
-  }
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
       {drafts.length > 0 ? (
@@ -74,6 +72,13 @@ export default function FloatingSave({
           isSaving ? "pointer-events-none" : ""
         )}
       >
+        <AvailableThemes
+          popoverAlign={drafts.length > 0 ? "start" : "center"}
+          popoverOffset={drafts.length > 0 ? 14 : 0}
+        />
+        {activeTab === "importer" && drafts.length === 0 ? null : (
+          <Separator orientation="vertical" className="mx-1" />
+        )}
         {activeTab === "colors" ? (
           <ColorSearchDialog key={activeTab} />
         ) : activeTab === "fonts-layout" ? (
@@ -82,14 +87,16 @@ export default function FloatingSave({
 
         {drafts.length > 0 ? (
           <>
-          {activeTab !== "importer" ? <Separator orientation="vertical" className="mx-1" /> : null}
+            {activeTab !== "importer" ? (
+              <Separator orientation="vertical" className="mx-1" />
+            ) : null}
             <div className="flex items-center justify-center gap-2">
               <DiscardChangesDialog
                 handleDiscard={() => discardChanges({})}
                 isDiscarding={isDiscarding}
               />
             </div>
-            <Separator orientation="vertical" className="mx-1"/>
+            <Separator orientation="vertical" className="mx-1" />
             <SaveChangesPopover
               isPublishingDraftChanges={isPublishingDraftChanges}
               isDiscarding={isDiscarding}

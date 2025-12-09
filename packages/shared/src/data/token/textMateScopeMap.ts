@@ -3,10 +3,30 @@ import { TokenColorsList } from "../../types/theme";
 // To the complex, standard TextMate scope strings required for broad coverage.
 export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
   // General code comments (e.g., //, /* */, #)
-  comment: ["comment", "comment.block", "comment.line", "punctuation.definition.comment"],
-  
+  comment: [
+    "comment",
+    "comment.block",
+    "comment.line",
+    "punctuation.definition.comment",
+  ],
+  constant: [
+    "constant",
+    "constant.numeric",
+    "constant.language",
+    "constant.character",
+    "constant.other",
+  ],
   // String, char, and regex literals
-  literal: ["string", "string.quoted", "string.template", "string.regexp", "entity.name.tag.script", "markup.inline.raw", "string.other.link", "markup.inline.raw.string.markdown"],
+  literal: [
+    "string",
+    "string.quoted",
+    "string.template",
+    "string.regexp",
+    "entity.name.tag.script",
+    "markup.inline.raw",
+    "string.other.link",
+    "markup.inline.raw.string.markdown",
+  ],
 
   // Control flow, variable declaration types, storage modifiers
   keyword: [
@@ -15,7 +35,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
     "keyword.operator.new",
     "storage.type",
     "storage.modifier",
-    "variable.language" // E.g., 'this' in JS
+    "variable.language", // E.g., 'this' in JS
   ],
 
   // Generic variable references that aren't constants or parameters (fallback)
@@ -24,14 +44,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
     "variable.other.readwrite",
     "variable.other.property",
     "variable.other.object",
-    "variable.parameter" // Catch parameters if semantic isn't active
-  ],
-
-  // Constant literals (true, false, null) and defined constants (const/final)
-  constant: [
-    "constant.language", // True, false, null
-    "constant.numeric",  // (Usually overridden by semantic number type)
-    "constant.other"
+    "variable.parameter", // Catch parameters if semantic isn't active
   ],
 
   // Function parameters (used when semantic is off)
@@ -44,7 +57,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
   class: [
     "entity.name.type.class",
     "support.class",
-    "entity.name.type.module" // Modules/packages
+    "entity.name.type.module", // Modules/packages
   ],
 
   // Interface names (often same scope as classes but targeting both is safe)
@@ -69,7 +82,7 @@ export const TextMateScopeMap: Record<keyof TokenColorsList, string[]> = {
   punctuation: [
     "punctuation.separator",
     "punctuation.terminator",
-    "punctuation.definition"
+    "punctuation.definition",
   ],
 
   // Class/object properties, member access

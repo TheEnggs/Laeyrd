@@ -2,7 +2,11 @@
 
 import { Trash2 } from "lucide-react";
 import { Button } from "@webview/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@webview/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@webview/components/ui/popover";
 import { PopoverClose } from "@radix-ui/react-popover";
 
 export function DiscardChangesDialog({
@@ -19,14 +23,14 @@ export function DiscardChangesDialog({
           variant="destructive"
           size="sm"
           disabled={isDiscarding}
-          className="rounded-full font-medium"
+          className="rounded-full text-xs"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           {isDiscarding ? "Discarding..." : "Discard"}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent 
+      <PopoverContent
         align="end"
         sideOffset={14}
         className="w-[320px] md:w-[380px] bg-primary/10 rounded-xl shadow-xl border border-primary/20 backdrop-blur-xl p-4 space-y-4"
@@ -41,7 +45,11 @@ export function DiscardChangesDialog({
 
         <div className="flex justify-end gap-2 mt-4">
           <PopoverClose asChild>
-            <Button variant="outline" size={"sm"} className="rounded-xl border-border/50">
+            <Button
+              variant="outline"
+              size={"sm"}
+              className="rounded-xl border-border/50"
+            >
               Cancel
             </Button>
           </PopoverClose>

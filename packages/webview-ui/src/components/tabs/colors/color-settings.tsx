@@ -57,45 +57,49 @@ export type ColorRendered = {
 export type CategoryTree = Record<string, Record<string, ColorRendered[]>>;
 export default function ColorSettings() {
   const { drafts, updateUnsavedChanges, handleRemoveDraftChange } = useDraft(),
-   { data: colorsState, isLoading: isLoadingColors } = useQuery({
-    command: "GET_THEME_COLORS",
-    payload: [],
-  }),
+    { data: colorsState, isLoading: isLoadingColors } = useQuery({
+      command: "GET_THEME_COLORS",
+      payload: [],
+    }),
+    [activeTab, setActiveTab] = useState<string>(mainTabs[0]),
+    // 🔹 Memoized tree: category → subcategory → colors[]
+    categoryTree = useMemo(() => {
+      if (!colorsState) {
+        return {};
+      }
+      const tree: CategoryTree = {};
 
-   [activeTab, setActiveTab] = useState<string>(mainTabs[0]),
+      for (const [key, def] of Object.entries(colorsState)) {
+        const { category } = def,
+          subcategory = def.subcategory || "General";
 
-  // 🔹 Memoized tree: category → subcategory → colors[]
-   categoryTree = useMemo(() => {
-    if (!colorsState) {return {};}
-    const tree: CategoryTree = {};
+        if (!tree[category]) {
+          tree[category] = {};
+        }
+        if (!tree[category][subcategory]) {
+          tree[category][subcategory] = [];
+        }
+        const draftColor = drafts.find(
+          (c): c is Extract<DraftStatePayload, { type: "color" }> =>
+            c.key === key && c.type === "color"
+        );
 
-    for (const [key, def] of Object.entries(colorsState)) {
-      const {category} = def,
-       subcategory = def.subcategory || "General";
-
-      if (!tree[category]) {tree[category] = {};}
-      if (!tree[category][subcategory]) {tree[category][subcategory] = [];}
-      const draftColor = drafts.find(
-        (c): c is Extract<DraftStatePayload, { type: "color" }> =>
-          c.key === key && c.type === "color"
-      );
-
-      tree[category][subcategory].push({
-        key,
-        category: def.category,
-        displayName: def.displayName,
-        description: def.description,
-        groupName: def.groupName,
-        value: draftColor?.value ?? def.defaultValue ?? "",
-        originalValue: def.defaultValue,
-        isTouched: Boolean(draftColor),
-      });
-    }
-    return tree;
-  }, [colorsState, drafts]);
+        tree[category][subcategory].push({
+          key,
+          category: def.category,
+          displayName: def.displayName,
+          description: def.description,
+          groupName: def.groupName,
+          value: draftColor?.value ?? def.defaultValue ?? "",
+          originalValue: def.defaultValue,
+          isTouched: Boolean(draftColor),
+        });
+      }
+      return tree;
+    }, [colorsState, drafts]);
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-2">
       <Tabs
         defaultValue={mainTabs[0]}
         className="w-full"
@@ -133,7 +137,7 @@ export default function ColorSettings() {
         {/* 🔹 Tabs Content */}
         {mainTabs.map((tab) => {
           const subcategories = categoryTree[tab] || {},
-           IconComponent = iconMap[tab as keyof typeof iconMap] || Square;
+            IconComponent = iconMap[tab as keyof typeof iconMap] || Square;
 
           return (
             <TabsContent
@@ -161,8 +165,8 @@ export default function ColorSettings() {
                         colors.length >= 3
                           ? "xl:grid-cols-3 md:grid-cols-2"
                           : colors.length === 2
-                            ? "md:grid-cols-2"
-                            : "md:grid-cols-1"
+                          ? "md:grid-cols-2"
+                          : "md:grid-cols-1"
                       )}
                     >
                       {colors.map((color) => (
